@@ -121,10 +121,84 @@ public static class OpcodeTables
             table.Set(new OpcodeDefinition(0xDA, "PHX", AddressingMode.Implied, 1, 3, ExecuteAccumulatorStackCycle));
             table.Set(new OpcodeDefinition(0xF2, "SBC", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
             table.Set(new OpcodeDefinition(0xFA, "PLX", AddressingMode.Implied, 1, 4, ExecuteAccumulatorStackCycle));
+
+            // Tranche 2: remap remaining illegal-NMOS opcodes to 65C02 NOPs
+            // 59 bytes at Implied, Length 1, Cycles 1
+            table.Set(new OpcodeDefinition(0x03, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x07, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x0F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x13, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x17, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x1B, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x1F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x23, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x27, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x2F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x33, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x37, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x3B, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x3F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x43, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x47, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x4F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x53, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x57, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x5B, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x5F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x63, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x67, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x6F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x73, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x77, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x7B, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x7F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x83, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x87, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x8B, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x8F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x93, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x97, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x9B, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x9F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xA3, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xA7, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xAB, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xAF, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xB3, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xB7, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xBB, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xBF, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xC3, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xC7, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xCF, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xD3, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xD7, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xDB, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xDF, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xE3, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xE7, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xEB, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xEF, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xF3, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xF7, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xFB, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0xFF, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+
+            // 4 bytes at Immediate, Length 2, Cycles 2
+            table.Set(new OpcodeDefinition(0x02, "NOP", AddressingMode.Immediate, 2, 2, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x22, "NOP", AddressingMode.Immediate, 2, 2, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x42, "NOP", AddressingMode.Immediate, 2, 2, ExecuteCmosNopCycle));
+            table.Set(new OpcodeDefinition(0x62, "NOP", AddressingMode.Immediate, 2, 2, ExecuteCmosNopCycle));
+
+            // 0x5C - reuse Nmos handler with bumped cycle count and mnemonic
+            table.Set(Nmos[0x5C] with { Mnemonic = "NOP", BaseCycles = 8 });
         });
 
     private static void Execute65C02Cycle(Cpu6502 cpu, byte opcode, byte cycle) =>
         cpu.Execute65C02Cycle(opcode, cycle);
+
+    private static void ExecuteCmosNopCycle(Cpu6502 cpu, byte opcode, byte cycle) =>
+        cpu.ExecuteCmosNopCycle(opcode, cycle);
 
     private static void ExecuteControlFlowCycle(Cpu6502 cpu, byte opcode, byte cycle)
     {

@@ -98,4 +98,23 @@ public partial class Cpu6502
         if (cycle > 0)
             _sync = cycle >= GetEffectiveInstructionCycles(opcode) - 1;
     }
+
+    internal void ExecuteCmosNopCycle(byte opcode, byte cycle)
+    {
+        if (cycle == 0)
+        {
+            switch (_currentDefinition!.AddressingMode)
+            {
+                case AddressingMode.Implied:
+                    break;
+                case AddressingMode.Immediate:
+                    _memory.Read(_pc++);
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unsupported CMOS NOP addressing mode for opcode 0x{opcode:X2}.");
+            }
+        }
+        if (cycle >= GetEffectiveInstructionCycles(opcode) - 1)
+            _sync = true;
+    }
 }
