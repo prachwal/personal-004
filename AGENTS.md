@@ -1,6 +1,6 @@
 # Repository Instructions
 
-- This repository currently contains no source files, manifests, CI configuration, or test setup. Do not assume a language, framework, package manager, or developer command; inspect newly added project files before making changes or running checks.
+- This repository currently contains inventory documentation, OpenCode/GitNexus configuration, and CLI delegation scripts, but no application source, build manifest, CI configuration, or test setup. Do not assume a language, framework, package manager, or developer command; inspect newly added project files before making changes or running checks.
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
