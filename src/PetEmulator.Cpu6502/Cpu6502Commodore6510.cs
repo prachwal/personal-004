@@ -14,8 +14,9 @@ public sealed class Cpu6502Commodore6510 : Cpu6502
     /// </summary>
     /// <param name="memory">Interfejs magistrali pamięci.</param>
     /// <param name="opcodeTable">Opcjonalna tablica opcode wariantu.</param>
-    public Cpu6502Commodore6510(IMemoryBus memory, OpcodeTable? opcodeTable = null)
-        : base(memory, OpcodeTables.CreateCommodore6510Variant(opcodeTable))
+    /// <param name="clock">Opcjonalna instancja IClock (uses default internal clock if null).</param>
+    public Cpu6502Commodore6510(IMemoryBus memory, OpcodeTable? opcodeTable = null, IClock? clock = null)
+        : base(memory, OpcodeTables.CreateCommodore6510Variant(opcodeTable), clock)
     {
     }
 }

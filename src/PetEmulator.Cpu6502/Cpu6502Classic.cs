@@ -13,8 +13,9 @@ public sealed class Cpu6502Classic : Cpu6502
     /// </summary>
     /// <param name="memory">Interfejs magistrali pamięci.</param>
     /// <param name="opcodeTable">Opcjonalna tablica opcode wariantu.</param>
-    public Cpu6502Classic(IMemoryBus memory, OpcodeTable? opcodeTable = null)
-        : base(memory, OpcodeTables.CreateNmosVariant(opcodeTable))
+    /// <param name="clock">Opcjonalna instancja IClock (uses default internal clock if null).</param>
+    public Cpu6502Classic(IMemoryBus memory, OpcodeTable? opcodeTable = null, IClock? clock = null)
+        : base(memory, OpcodeTables.CreateNmosVariant(opcodeTable), clock)
     {
     }
 }

@@ -30,7 +30,7 @@ public partial class Cpu6502 : IProcessor
 
         // Ustaw sygnalizację pobrania nowego opcode
         _sync = true;
-        _cycle = 0;
+        _clock.Reset();
         _cycleCount = 0;
         _currentOpcode = 0;
         _instructionCount = 0;
@@ -62,7 +62,7 @@ public partial class Cpu6502 : IProcessor
         return new CpuState
         {
             A = _a, X = _x, Y = _y, PC = _pc, SP = _sp, P = _p,
-            Cycle = _cycle, IR = _ir, Sync = _sync, Halted = _halted
+            Cycle = _clock.CycleCount, IR = _ir, Sync = _sync, Halted = _halted
         };
     }
 
@@ -75,7 +75,7 @@ public partial class Cpu6502 : IProcessor
     {
         _a = state.A; _x = state.X; _y = state.Y;
         _pc = state.PC; _sp = state.SP; _p = state.P;
-        _cycle = state.Cycle; _ir = state.IR; _sync = state.Sync; _halted = state.Halted;
+        _clock.Reset(); _clock.Advance(state.Cycle); _ir = state.IR; _sync = state.Sync; _halted = state.Halted;
     }
 
      #endregion

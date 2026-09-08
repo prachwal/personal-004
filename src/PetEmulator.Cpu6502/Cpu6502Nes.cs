@@ -13,8 +13,10 @@ public sealed class Cpu6502Nes : Cpu6502
     /// Inicjalizuje nowy egzemplarz procesora Ricoh 2A03 (NES).
     /// </summary>
     /// <param name="memory">Interfejs magistrali pamięci.</param>
-    public Cpu6502Nes(IMemoryBus memory, OpcodeTable? opcodeTable = null)
-        : base(memory, OpcodeTables.CreateNesVariant(opcodeTable))
+    /// <param name="opcodeTable">Opcjonalna tablica opcode wariantu.</param>
+    /// <param name="clock">Opcjonalna instancja IClock (uses default internal clock if null).</param>
+    public Cpu6502Nes(IMemoryBus memory, OpcodeTable? opcodeTable = null, IClock? clock = null)
+        : base(memory, OpcodeTables.CreateNesVariant(opcodeTable), clock)
     {
     }
 }

@@ -105,7 +105,7 @@ public partial class Cpu6502
     /// <summary>
     /// Licznik cykli zegara.
     /// </summary>
-    public ulong CycleCount => _cycle;
+    public ulong CycleCount => _clock.CycleCount;
 
     #endregion
 }

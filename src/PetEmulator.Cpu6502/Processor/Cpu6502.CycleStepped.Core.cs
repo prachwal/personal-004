@@ -13,16 +13,19 @@ public partial class Cpu6502
     /// Inicjalizuje nową instancję procesora 6502.
     /// </summary>
     /// <param name="memoryBus">Interfejs magistrali pamięci.</param>
-    public Cpu6502(IMemoryBus memoryBus, OpcodeTable? opcodeTable = null)
-        : this(memoryBus, OpcodeTables.CreateNmosVariant(opcodeTable))
+    /// <param name="opcodeTable">Optional custom opcode table (uses NMOS by default).</param>
+    /// <param name="clock">Optional injected IClock instance (uses default internal clock if null).</param>
+    public Cpu6502(IMemoryBus memoryBus, OpcodeTable? opcodeTable = null, IClock? clock = null)
+        : this(memoryBus, OpcodeTables.CreateNmosVariant(opcodeTable), clock)
     {
     }
 
-    protected Cpu6502(IMemoryBus memoryBus, Cpu6502Variant variant)
+    protected Cpu6502(IMemoryBus memoryBus, Cpu6502Variant variant, IClock? clock = null)
     {
         _memory = memoryBus ?? throw new ArgumentNullException(nameof(memoryBus));
         Variant = variant ?? throw new ArgumentNullException(nameof(variant));
         _opcodeTable = variant.OpcodeTable;
+        _clock = clock ?? new Clock();
         Registers = new Cpu6502Registers(this);
     }
 
@@ -115,7 +118,7 @@ public partial class Cpu6502
         {
             _currentDefinition!.Handler(this, _currentOpcode, _cycleCount);
             _cycleCount++;
-            _cycle++;
+            _clock.Advance(1);
         }
 
         _instructionCount++;

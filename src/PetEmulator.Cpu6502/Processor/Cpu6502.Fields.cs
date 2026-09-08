@@ -15,6 +15,8 @@ public partial class Cpu6502
 
     public Cpu6502Variant Variant { get; }
 
+    public IClock Clock => _clock;
+
     #region Rejestry CPU
 
     /// <summary>
@@ -63,9 +65,10 @@ public partial class Cpu6502
     private bool _sync;
 
     /// <summary>
-    /// Licznik cykli zegara.
+    /// Injected or default clock instance that tracks cycle count.
+    /// Delegates cycle counting to this IClock rather than maintaining an internal counter.
     /// </summary>
-    private ulong _cycle;
+    private readonly IClock _clock;
 
     /// <summary>
     /// Bieżący numer cyklu instrukcji (0-7).
