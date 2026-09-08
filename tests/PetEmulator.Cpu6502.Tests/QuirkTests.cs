@@ -1,5 +1,6 @@
 using Cpu6502;
 using NUnit.Framework;
+using PetEmulator.Core;
 
 namespace Cpu6502.Tests
 {

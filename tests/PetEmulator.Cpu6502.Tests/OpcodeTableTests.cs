@@ -1,5 +1,6 @@
 using FluentAssertions;
 using NUnit.Framework;
+using PetEmulator.Core;
 
 namespace PetEmulator.Cpu6502.Tests;
 
@@ -113,7 +114,35 @@ public sealed class OpcodeTableTests
         }
     }
 
-    private sealed class TestMemory : global::Cpu6502.IMemoryBus
+    [Test]
+    public void All_nmos_opcodes_have_correct_page_cross_penalty_flags()
+    {
+        // Regression test against OpcodeDefinition.HasPageCrossPenalty.
+        // The 23 opcodes with page-cross penalties are those with AbsX or AbsY addressing modes
+        // that access memory for reads (LDA, LDX, LDY, ADC, SBC, CMP, BIT operations on absolute,X/Y).
+        byte[] expectedPageCrossOpcodes =
+        [
+            0xBD, 0xB9, 0xB1, 0xBE, 0xBC,  // LDA, LDA, LDA, LDX, LDY (AbsX/AbsY/IndY variants)
+            0x7D, 0x79, 0x71,              // ADC abs,X; ADC abs,Y; ADC (ind),Y
+            0xFD, 0xF9, 0xF1,              // SBC abs,X; SBC abs,Y; SBC (ind),Y
+            0xDD, 0xD9, 0xD1,              // CMP abs,X; CMP abs,Y; CMP (ind),Y
+            0x3D, 0x39, 0x31,              // AND abs,X; AND abs,Y; AND (ind),Y
+            0x1D, 0x19, 0x11,              // ORA abs,X; ORA abs,Y; ORA (ind),Y
+            0x5D, 0x59, 0x51               // EOR abs,X; EOR abs,Y; EOR (ind),Y
+        ];
+        var expectedSet = new HashSet<byte>(expectedPageCrossOpcodes);
+
+        var table = global::Cpu6502.OpcodeTables.CreateNmos();
+        for (int opcode = 0; opcode <= byte.MaxValue; opcode++)
+        {
+            bool shouldHavePenalty = expectedSet.Contains((byte)opcode);
+            table[(byte)opcode].HasPageCrossPenalty.Should()
+                .Be(shouldHavePenalty,
+                    $"Opcode 0x{opcode:X2} ({table[(byte)opcode].Mnemonic}) page-cross penalty flag is incorrect");
+        }
+    }
+
+    private sealed class TestMemory : IMemoryBus
     {
         public byte Read(ushort address) => 0;
         public void Write(ushort address, byte value) { }

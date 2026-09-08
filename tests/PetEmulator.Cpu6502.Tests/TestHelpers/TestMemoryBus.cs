@@ -1,5 +1,6 @@
 using System;
 using Cpu6502;
+using PetEmulator.Core;
 
 namespace Cpu6502.Tests.TestHelpers;
 

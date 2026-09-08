@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using Cpu6502;
 using Cpu6502.Variants;
+using PetEmulator.Core;
 
 namespace Cpu6502.Tests.TestHelpers;
 

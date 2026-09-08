@@ -1,3 +1,5 @@
+using PetEmulator.Core;
+
 namespace Cpu6502;
 
 /// <summary>
@@ -82,6 +84,7 @@ public partial class Cpu6502
 
             byte opcode = _memory.Read(_pc);
             _currentOpcode = opcode;
+            _currentDefinition = _opcodeTable[opcode];
             _ir = (byte)(opcode << 3);
             _cycleCount = 0;
             _pageCrossed = false;
@@ -91,7 +94,7 @@ public partial class Cpu6502
 
         while (!_sync)
         {
-            _opcodeTable[_currentOpcode].Handler(this, _currentOpcode, _cycleCount);
+            _currentDefinition!.Handler(this, _currentOpcode, _cycleCount);
             _cycleCount++;
             _cycle++;
         }
@@ -102,25 +105,14 @@ public partial class Cpu6502
 
 private byte GetEffectiveInstructionCycles(byte opcode)
     {
-        byte cycles = _opcodeTable[opcode].BaseCycles;
-        if (_pageCrossed && HasReadPageCrossPenalty(opcode))
+        var definition = _opcodeTable[opcode];
+        byte cycles = definition.BaseCycles;
+        if (_pageCrossed && definition.HasPageCrossPenalty)
         {
             cycles++;
         }
 
         return cycles;
-    }
-
-    private static bool HasReadPageCrossPenalty(byte opcode)
-    {
-        return opcode is
-            0xBD or 0xB9 or 0xB1 or 0xBE or 0xBC or
-            0x7D or 0x79 or 0x71 or
-            0xFD or 0xF9 or 0xF1 or
-            0xDD or 0xD9 or 0xD1 or
-            0x3D or 0x39 or 0x31 or
-            0x1D or 0x19 or 0x11 or
-            0x5D or 0x59 or 0x51;
     }
 
     /// <summary>

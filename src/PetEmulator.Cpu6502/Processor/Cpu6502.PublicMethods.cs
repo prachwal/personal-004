@@ -1,9 +1,11 @@
+using PetEmulator.Core;
+
 namespace Cpu6502;
 
 /// <summary>
 /// Reprezentacja procesora MOS 6502.
 /// </summary>
-public partial class Cpu6502
+public partial class Cpu6502 : IProcessor
 {
     #region Metody publiczne - Reset
 
@@ -45,6 +47,8 @@ public partial class Cpu6502
     }
 
     #endregion
+
+    void IProcessor.Reset() => Reset();
 
     #region Metody publiczne - Stan CPU
 

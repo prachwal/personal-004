@@ -74,7 +74,7 @@ public sealed class Cpu6502Tests
         nes.HasJmpIndirectBug.Should().BeFalse();
     }
 
-    private sealed class TestMemory : global::Cpu6502.IMemoryBus
+    private sealed class TestMemory : IMemoryBus
     {
         private readonly byte[] _data = new byte[ushort.MaxValue + 1];
 

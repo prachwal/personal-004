@@ -1,3 +1,5 @@
+using PetEmulator.Core;
+
 namespace Cpu6502;
 
 /// <summary>
@@ -79,6 +81,12 @@ public partial class Cpu6502
     /// Licznik wykonanych instrukcji.
     /// </summary>
     private ulong _instructionCount;
+
+    /// <summary>
+    /// Definicja bieżącego opcodu (cached z _opcodeTable[_currentOpcode]).
+    /// Oszczędza wielokrotne wyszukiwania w tablicy podczas wielocyklowych instrukcji.
+    /// </summary>
+    private OpcodeDefinition? _currentDefinition;
 
     #endregion
 
