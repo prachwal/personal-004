@@ -623,4 +623,74 @@ public partial class Cpu6502
     }
 
     #endregion
+
+    #region BRA - Branch Always (65C02)
+
+    /// <summary>
+    /// BRA - Cykl 0: Fetch offset
+    /// Always branches (unconditional).
+    /// </summary>
+    private void BraRel_Cycle0()
+    {
+        _tempValue = _memory.Read(_pc++);
+        _tempAddr = (ushort)(_pc + (sbyte)_tempValue);
+        _branchTaken = true;  // Always taken
+    }
+
+    /// <summary>
+    /// BRA - Cykl 1: Sprawdź page crossing i ewentualnie skocz
+    /// </summary>
+    private void BraRel_Cycle1()
+    {
+        bool pageCrossed = ((_pc >> 8) != (_tempAddr >> 8));
+        if (!pageCrossed)
+        {
+            // Same page - 3 cykle
+            if (_irqPending && !GetFlag(FlagI))
+            {
+                _irqReadyAtBoundary = true;
+            }
+            _pc = _tempAddr;
+        }
+        else
+        {
+            // Different page - 4 cykle, potrzebny dodatkowy cykl
+            _pageCrossed = true;
+            _pc = _tempAddr;
+        }
+    }
+
+    /// <summary>
+    /// BRA - Cykl 2: Sync dla same page
+    /// </summary>
+    private void BraRel_Cycle2()
+    {
+        if (!_pageCrossed)
+        {
+            // Same page - 3 cykle, sync na cyklu 2
+            if (_irqPending && !GetFlag(FlagI))
+            {
+                _irqReadyAtBoundary = true;
+            }
+            _sync = true;
+        }
+    }
+
+    /// <summary>
+    /// BRA - Cykl 3: Sync dla different page
+    /// </summary>
+    private void BraRel_Cycle3()
+    {
+        if (_pageCrossed)
+        {
+            // Different page - 4 cykle, sync na cyklu 3
+            if (_irqPending && !GetFlag(FlagI))
+            {
+                _irqReadyAtBoundary = true;
+            }
+            _sync = true;
+        }
+    }
+
+    #endregion
 }

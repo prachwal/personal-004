@@ -47,6 +47,44 @@ public partial class Cpu6502
         _p = (byte)((Pop() & ~FlagB) | FlagU);
     }
 
+    /// <summary>
+    /// Phx - Push X Register (65C02).
+    /// Opcode: 0xDA, Tryb: Implied, Cykle: 3
+    /// </summary>
+    private void Phx()
+    {
+        Push(_x);
+    }
+
+    /// <summary>
+    /// Phy - Push Y Register (65C02).
+    /// Opcode: 0x5A, Tryb: Implied, Cykle: 3
+    /// </summary>
+    private void Phy()
+    {
+        Push(_y);
+    }
+
+    /// <summary>
+    /// Plx - Pull X Register (65C02).
+    /// Opcode: 0xFA, Tryb: Implied, Cykle: 4
+    /// </summary>
+    private void Plx()
+    {
+        _x = Pop();
+        SetNZ(_x);
+    }
+
+    /// <summary>
+    /// Ply - Pull Y Register (65C02).
+    /// Opcode: 0x7A, Tryb: Implied, Cykle: 4
+    /// </summary>
+    private void Ply()
+    {
+        _y = Pop();
+        SetNZ(_y);
+    }
+
     #endregion
 
     #region Instrukcja NOP

@@ -145,5 +145,40 @@ public partial class Cpu6502
         return (ushort)((addrHi << 8) | addrLo);
     }
 
+    /// <summary>
+    /// Zero Page Indirect addressing mode (zp) - 65C02 only.
+    /// Reads a pointer from zero page and dereferences it.
+    /// Wraps within zero page (zp and zp+1).
+    /// No page-cross penalty (wrapping is zero-page local).
+    /// </summary>
+    /// <returns>Indirect address from (zp)</returns>
+    private ushort AddrZpIndirect()
+    {
+        byte zp = _memory.Read(_pc++);
+        byte lo = _memory.Read(zp);
+        byte hi = _memory.Read((byte)(zp + 1));  // wraps in zero page
+        return (ushort)(hi << 8 | lo);
+    }
+
+    /// <summary>
+    /// Absolute Indirect,X addressing mode for JMP (abs,X) - 65C02 only.
+    /// Reads a 16-bit absolute address from PC, adds X to it (16-bit addition),
+    /// then reads the 16-bit target address from that computed location.
+    /// Does NOT have the NMOS page-wrap bug (always reads correctly across pages).
+    /// </summary>
+    /// <returns>Indirect address from (abs+X)</returns>
+    private ushort AddrIndirectAbsX()
+    {
+        byte lo = _memory.Read(_pc++);
+        byte hi = _memory.Read(_pc++);
+        ushort baseAddr = (ushort)(hi << 8 | lo);
+        ushort ptrAddr = (ushort)(baseAddr + _x);  // 16-bit addition, wraps at 0xFFFF
+
+        byte addrLo = _memory.Read(ptrAddr);
+        byte addrHi = _memory.Read((ushort)(ptrAddr + 1));  // normal 16-bit increment, no bug
+
+        return (ushort)((addrHi << 8) | addrLo);
+    }
+
     #endregion
 }

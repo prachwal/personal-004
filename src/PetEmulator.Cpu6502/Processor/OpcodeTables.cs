@@ -85,6 +85,64 @@ public static class OpcodeTables
     public static Cpu6502Variant CreateNesVariant(OpcodeTable? opcodeTable = null) =>
         new("Ricoh 2A03", opcodeTable ?? CreateNmos(), CpuQuirk.None);
 
+    public static Cpu6502Variant CreateCommodore6510Variant(OpcodeTable? opcodeTable = null) =>
+        new("Commodore 6510", opcodeTable ?? CreateNmos(), CpuQuirk.DecimalArithmetic | CpuQuirk.JmpIndirectPageWrap);
+
+    public static Cpu6502Variant CreateAtari6507Variant(OpcodeTable? opcodeTable = null) =>
+        new("Atari 6507", opcodeTable ?? CreateNmos(), CpuQuirk.DecimalArithmetic | CpuQuirk.JmpIndirectPageWrap);
+
+    public static OpcodeTable CreateCmos65C02Table() =>
+        Nmos.Derive(table =>
+        {
+            table.Set(new OpcodeDefinition(0x04, "TSB", AddressingMode.ZeroPage, 2, 5, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0x0C, "TSB", AddressingMode.Absolute, 3, 6, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0x12, "ORA", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0x14, "TRB", AddressingMode.ZeroPage, 2, 5, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0x1A, "INC", AddressingMode.Accumulator, 1, 2, ExecuteAccumulatorStackCycle));
+            table.Set(new OpcodeDefinition(0x1C, "TRB", AddressingMode.Absolute, 3, 6, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0x32, "AND", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0x34, "BIT", AddressingMode.ZeroPageX, 2, 4, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0x3A, "DEC", AddressingMode.Accumulator, 1, 2, ExecuteAccumulatorStackCycle));
+            table.Set(new OpcodeDefinition(0x3C, "BIT", AddressingMode.AbsoluteX, 3, 4, Execute65C02Cycle, true));
+            table.Set(new OpcodeDefinition(0x52, "EOR", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0x5A, "PHY", AddressingMode.Implied, 1, 3, ExecuteAccumulatorStackCycle));
+            table.Set(new OpcodeDefinition(0x64, "STZ", AddressingMode.ZeroPage, 2, 3, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0x72, "ADC", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0x74, "STZ", AddressingMode.ZeroPageX, 2, 4, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0x7A, "PLY", AddressingMode.Implied, 1, 4, ExecuteAccumulatorStackCycle));
+            table.Set(new OpcodeDefinition(0x7C, "JMP", AddressingMode.Indirect, 3, 6, ExecuteControlFlowCycle));
+            table.Set(new OpcodeDefinition(0x80, "BRA", AddressingMode.Relative, 2, 2, ExecuteBranchCycle));
+            table.Set(new OpcodeDefinition(0x89, "BIT", AddressingMode.Immediate, 2, 2, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0x92, "STA", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0x9C, "STZ", AddressingMode.Absolute, 3, 4, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0x9E, "STZ", AddressingMode.AbsoluteX, 3, 5, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0xB2, "LDA", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0xD2, "CMP", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0xDA, "PHX", AddressingMode.Implied, 1, 3, ExecuteAccumulatorStackCycle));
+            table.Set(new OpcodeDefinition(0xF2, "SBC", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
+            table.Set(new OpcodeDefinition(0xFA, "PLX", AddressingMode.Implied, 1, 4, ExecuteAccumulatorStackCycle));
+        });
+
+    private static void Execute65C02Cycle(Cpu6502 cpu, byte opcode, byte cycle) =>
+        cpu.Execute65C02Cycle(opcode, cycle);
+
+    private static void ExecuteControlFlowCycle(Cpu6502 cpu, byte opcode, byte cycle)
+    {
+        var key = (ushort)((opcode << 3) | cycle);
+        if (!cpu.ExecuteCycleControlFlow(key))
+            throw new InvalidOperationException($"Unsupported control flow opcode 0x{opcode:X2}.");
+    }
+
+    private static void ExecuteBranchCycle(Cpu6502 cpu, byte opcode, byte cycle)
+    {
+        var key = (ushort)((opcode << 3) | cycle);
+        if (!cpu.ExecuteCycleBranches(key))
+            throw new InvalidOperationException($"Unsupported branch opcode 0x{opcode:X2}.");
+    }
+
+    public static Cpu6502Variant CreateCmos65C02Variant(OpcodeTable? opcodeTable = null) =>
+        new("WDC 65C02", (opcodeTable ?? CreateCmos65C02Table()).Seal(), CpuQuirk.DecimalArithmetic | CpuQuirk.CmosBcdExtraCycle);
+
     private static OpcodeTable CreateNmosTable()
     {
         var table = new OpcodeTable();
@@ -226,8 +284,8 @@ public static class OpcodeTables
     {
         AddressingMode.Implied or AddressingMode.Accumulator => 1,
         AddressingMode.Immediate or AddressingMode.ZeroPage or AddressingMode.ZeroPageX or
-        AddressingMode.ZeroPageY or AddressingMode.IndirectX or AddressingMode.IndirectY or
-        AddressingMode.Relative => 2,
+        AddressingMode.ZeroPageY or AddressingMode.ZeroPageIndirect or AddressingMode.IndirectX or
+        AddressingMode.IndirectY or AddressingMode.Relative => 2,
         _ => 3
     };
 

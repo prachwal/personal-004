@@ -181,6 +181,37 @@ public partial class Cpu6502
         ExecuteBit(val);
     }
 
+    /// <summary>
+    /// BitImm - Bit Test, Immediate (65C02).
+    /// Opcode: 0x89, Tryb: Immediate, Cykle: 2
+    /// Sets only Z flag (unlike zp/abs BIT which also set N and V).
+    /// </summary>
+    private void BitImm()
+    {
+        byte val = _memory.Read(_pc++);
+        ExecuteBitImmediate(val);
+    }
+
+    /// <summary>
+    /// BitZpX - Bit Test, Zero Page, X (65C02).
+    /// Opcode: 0x34, Tryb: Zero Page,X, Cykle: 4
+    /// </summary>
+    private void BitZpX()
+    {
+        var (_, val, _) = ZpX();
+        ExecuteBit(val);
+    }
+
+    /// <summary>
+    /// BitAbsX - Bit Test, Absolute, X (65C02).
+    /// Opcode: 0x3C, Tryb: Absolute,X, Cykle: 4 + page crossing
+    /// </summary>
+    private void BitAbsX()
+    {
+        var (_, val, _) = AbsX();
+        ExecuteBit(val);
+    }
+
     #endregion
 
     #region Wspólne metody CMP/CPX/CPY
@@ -223,6 +254,18 @@ public partial class Cpu6502
 
         // V = bit 6 operandu (nie wyniku!)
         SetFlag(FlagV, (operand & 0x40) != 0);
+    }
+
+    /// <summary>
+    /// ExecuteBitImmediate - Wykonuje test bitów dla trybu immediate (65C02).
+    /// Sets only Z flag (unlike zp/abs BIT which also set N and V).
+    /// </summary>
+    /// <param name="operand">Immediate operand.</param>
+    private void ExecuteBitImmediate(byte operand)
+    {
+        byte result = (byte)(_a & operand);
+        // Only set Z flag, don't touch N or V
+        SetFlag(FlagZ, result == 0);
     }
 
     #endregion

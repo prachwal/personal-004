@@ -171,5 +171,10 @@ public partial class Cpu6502
     /// </summary>
     private bool _pageCrossed;
 
+    /// <summary>
+    /// Flaga sygnalizująca, że instrukcja ADC/SBC w trybie dziesiętnym może wymagać dodatkowego cyklu na 65C02.
+    /// </summary>
+    private bool _decimalExtraCycle;
+
     #endregion
 }

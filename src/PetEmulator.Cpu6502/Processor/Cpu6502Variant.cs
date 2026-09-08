@@ -5,7 +5,8 @@ public enum CpuQuirk
 {
     None = 0,
     DecimalArithmetic = 1,
-    JmpIndirectPageWrap = 2
+    JmpIndirectPageWrap = 2,
+    CmosBcdExtraCycle = 4
 }
 
 public sealed class Cpu6502Variant

@@ -62,6 +62,14 @@ public partial class Cpu6502
             case 0x2C << 3 | 2: BitAbs_Cycle2(); return true;
             case 0x2C << 3 | 3: BitAbs_Cycle3(); return true;
 
+            // JMP Indirect,X (6 cykle - 65C02)
+            case 0x7C << 3 | 0: JmpIndX_Cycle0(); return true;
+            case 0x7C << 3 | 1: JmpIndX_Cycle1(); return true;
+            case 0x7C << 3 | 2: JmpIndX_Cycle2(); return true;
+            case 0x7C << 3 | 3: JmpIndX_Cycle3(); return true;
+            case 0x7C << 3 | 4: JmpIndX_Cycle4(); return true;
+            case 0x7C << 3 | 5: JmpIndX_Cycle5(); return true;
+
             default: return false;
         }
     }

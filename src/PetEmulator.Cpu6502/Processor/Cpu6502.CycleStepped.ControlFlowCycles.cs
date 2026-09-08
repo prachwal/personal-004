@@ -268,4 +268,58 @@ public partial class Cpu6502
     }
 
     #endregion
+
+    #region JMP Indirect,X (6 cykli - 65C02)
+
+    /// <summary>
+    /// JMP Indirect,X - Cykl 0: Fetch low byte adresu bazowego
+    /// </summary>
+    private void JmpIndX_Cycle0()
+    {
+        _tempAddr = _memory.Read(_pc++);
+    }
+
+    /// <summary>
+    /// JMP Indirect,X - Cykl 1: Fetch high byte adresu bazowego
+    /// </summary>
+    private void JmpIndX_Cycle1()
+    {
+        _tempAddr |= (ushort)(_memory.Read(_pc++) << 8);
+    }
+
+    /// <summary>
+    /// JMP Indirect,X - Cykl 2: Add X to address (16-bit addition)
+    /// </summary>
+    private void JmpIndX_Cycle2()
+    {
+        _tempAddr = (ushort)(_tempAddr + _x);
+    }
+
+    /// <summary>
+    /// JMP Indirect,X - Cykl 3: Dereference - read low byte of target address
+    /// </summary>
+    private void JmpIndX_Cycle3()
+    {
+        _tempValue = _memory.Read(_tempAddr);
+    }
+
+    /// <summary>
+    /// JMP Indirect,X - Cykl 4: Dereference - read high byte of target address
+    /// </summary>
+    private void JmpIndX_Cycle4()
+    {
+        byte hi = _memory.Read((ushort)(_tempAddr + 1));
+        _tempAddr = (ushort)((hi << 8) | _tempValue);
+    }
+
+    /// <summary>
+    /// JMP Indirect,X - Cykl 5: Set PC and sync
+    /// </summary>
+    private void JmpIndX_Cycle5()
+    {
+        _pc = _tempAddr;
+        _sync = true;
+    }
+
+    #endregion
 }

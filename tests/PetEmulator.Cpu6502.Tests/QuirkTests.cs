@@ -1,4 +1,5 @@
 using Cpu6502;
+using Cpu6502.Variants;
 using NUnit.Framework;
 using PetEmulator.Core;
 
@@ -292,6 +293,76 @@ namespace Cpu6502.Tests
 
             // Assert - IRQ should have fired
             Assert.That(_cpu.PC, Is.EqualTo(0x5000));
+        }
+
+        #endregion
+
+        #region Variant Initialization Tests
+
+        [Test]
+        public void Cpu6502Commodore6510_HasCorrectVariantName()
+        {
+            // Arrange
+            var memory = new FlatMemory();
+            var cpu = new Cpu6502Commodore6510(memory);
+
+            // Act & Assert
+            Assert.That(cpu.Variant.Name, Is.EqualTo("Commodore 6510"));
+        }
+
+        [Test]
+        public void Cpu6502Commodore6510_HasDecimalModeEnabled()
+        {
+            // Arrange
+            var memory = new FlatMemory();
+            var cpu = new Cpu6502Commodore6510(memory);
+
+            // Act & Assert
+            Assert.That(cpu.DecimalModeEnabled, Is.True);
+        }
+
+        [Test]
+        public void Cpu6502Commodore6510_HasJmpIndirectBug()
+        {
+            // Arrange
+            var memory = new FlatMemory();
+            var cpu = new Cpu6502Commodore6510(memory);
+
+            // Act & Assert
+            Assert.That(cpu.HasJmpIndirectBug, Is.True);
+        }
+
+        [Test]
+        public void Cpu6502Atari6507_HasCorrectVariantName()
+        {
+            // Arrange
+            var memory = new FlatMemory();
+            var cpu = new Cpu6502Atari6507(memory);
+
+            // Act & Assert
+            Assert.That(cpu.Variant.Name, Is.EqualTo("Atari 6507"));
+        }
+
+        [Test]
+        public void Cpu6502Atari6507_HasDecimalModeEnabled()
+        {
+            // Arrange
+            var memory = new FlatMemory();
+            var cpu = new Cpu6502Atari6507(memory);
+
+            // Act & Assert
+            Assert.That(cpu.DecimalModeEnabled, Is.True);
+        }
+
+        [Test]
+        public void Cpu6502Atari6507_HasJmpIndirectBug()
+        {
+            // Arrange
+            var memory = new FlatMemory();
+            var cpu = new Cpu6502Atari6507(memory);
+
+            // Act & Assert
+            Assert.That(cpu.HasJmpIndirectBug, Is.True);
         }
 
         #endregion

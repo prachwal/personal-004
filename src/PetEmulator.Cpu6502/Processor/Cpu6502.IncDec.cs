@@ -159,5 +159,25 @@ public partial class Cpu6502
         SetNZ(_y);
     }
 
+    /// <summary>
+    /// IncAcc - Increment Accumulator (65C02).
+    /// Opcode: 0x1A, Tryb: Accumulator, Cykle: 2
+    /// </summary>
+    private void IncAcc()
+    {
+        _a = (byte)(_a + 1);
+        SetNZ(_a);
+    }
+
+    /// <summary>
+    /// DecAcc - Decrement Accumulator (65C02).
+    /// Opcode: 0x3A, Tryb: Accumulator, Cykle: 2
+    /// </summary>
+    private void DecAcc()
+    {
+        _a = (byte)(_a - 1);
+        SetNZ(_a);
+    }
+
     #endregion
 }

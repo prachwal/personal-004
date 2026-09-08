@@ -88,6 +88,7 @@ public partial class Cpu6502
             _ir = (byte)(opcode << 3);
             _cycleCount = 0;
             _pageCrossed = false;
+            _decimalExtraCycle = false;
             _sync = false;
             _pc++;
         }
@@ -108,6 +109,11 @@ private byte GetEffectiveInstructionCycles(byte opcode)
         var definition = _opcodeTable[opcode];
         byte cycles = definition.BaseCycles;
         if (_pageCrossed && definition.HasPageCrossPenalty)
+        {
+            cycles++;
+        }
+
+        if (_decimalExtraCycle && HasCmosBcdExtraCycle)
         {
             cycles++;
         }

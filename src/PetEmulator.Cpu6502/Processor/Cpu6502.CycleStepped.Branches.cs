@@ -54,6 +54,12 @@ public partial class Cpu6502
             case 0x70 << 3 | 2: BvsRel_Cycle2(); break;
             case 0x70 << 3 | 3: BvsRel_Cycle3(); break;
 
+            // BRA - Branch Always (65C02)
+            case 0x80 << 3 | 0: BraRel_Cycle0(); break;
+            case 0x80 << 3 | 1: BraRel_Cycle1(); break;
+            case 0x80 << 3 | 2: BraRel_Cycle2(); break;
+            case 0x80 << 3 | 3: BraRel_Cycle3(); break;
+
             default: return false;
         }
 

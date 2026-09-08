@@ -186,9 +186,12 @@ public partial class Cpu6502
         // Check BCD mode
         if (DecimalModeEnabled && (_p & FlagD) != 0)
         {
+            _decimalExtraCycle = true;
             ExecuteAdcBcd(operand);
             return;
         }
+
+        _decimalExtraCycle = false;
 
         // Binary mode ADC = A + M + C
         byte carry = (byte)((_p & FlagC) != 0 ? 1 : 0);
@@ -217,9 +220,12 @@ public partial class Cpu6502
         // Check BCD mode
         if (DecimalModeEnabled && (_p & FlagD) != 0)
         {
+            _decimalExtraCycle = true;
             ExecuteSbcBcd(operand);
             return;
         }
+
+        _decimalExtraCycle = false;
 
         // Binary mode SBC = A + ~M + C
         byte carry = (byte)((_p & FlagC) != 0 ? 1 : 0);

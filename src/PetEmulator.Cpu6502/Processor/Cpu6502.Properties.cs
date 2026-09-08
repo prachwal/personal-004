@@ -35,6 +35,13 @@ public partial class Cpu6502
     public bool HasJmpIndirectBug => Variant.Quirks.HasFlag(CpuQuirk.JmpIndirectPageWrap);
 
     /// <summary>
+    /// Controls whether BCD (decimal mode) ADC/SBC operations incur an extra cycle.
+    /// WDC 65C02 charges an extra cycle when D=1 for ADC/SBC.
+    /// NMOS 6502 and other variants do not.
+    /// </summary>
+    public bool HasCmosBcdExtraCycle => Variant.Quirks.HasFlag(CpuQuirk.CmosBcdExtraCycle);
+
+    /// <summary>
     /// Accumulator - główny rejestr arytmetyczny.
     /// </summary>
     public byte A
