@@ -3,6 +3,7 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <RootNamespace>PetEmulator.Cpu6502.Tests</RootNamespace>
+    <NoWarn>$(NoWarn);CS0618;CS0652;CS8602</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,5 +13,11 @@
     <PackageReference Include="NUnit3TestAdapter" />
     <PackageReference Include="FluentAssertions" />
     <ProjectReference Include="../../src/PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Data/*.bin" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Data/*.nes" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Data/*.log" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -59,3 +59,5 @@ dotnet test /home/prachwal/source/emulators/psudo-cpu/Emulator.Tests/Emulator.Te
 ```
 
 Nastepnie porownac: reset vector, `READY.`, klawiature, kursor, PETSCII, VRAM, IRQ, BASIC LOAD, D64 LOAD, TAP LOAD, snapshot i trace.
+
+Docelowa architektura i plan migracji sa opisane w [architecture.md](architecture.md).
