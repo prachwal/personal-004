@@ -1,11 +1,12 @@
 # Repository Instructions
 
-- This repository currently contains inventory documentation, OpenCode/GitNexus configuration, and CLI delegation scripts, but no application source, build manifest, CI configuration, or test setup. Do not assume a language, framework, package manager, or developer command; inspect newly added project files before making changes or running checks.
+- The application skeleton targets .NET 10 with `PetEmulator.slnx`; shared settings are in `Directory.Build.props` and package versions in `Directory.Packages.props`. The PET/CPU implementation is not present yet, so inspect project files before assuming commands beyond `dotnet restore`, `dotnet build`, and `dotnet test`.
+- CLI entrypoint: `dotnet run --project src/PetEmulator.Cli -- apps` lists predefined applications; `dotnet run --project src/PetEmulator.Cli -- run status` runs one. CLI settings come from `src/PetEmulator.Cli/appsettings.json` and can be overridden with `--config`, `--profile`, `--roms`, `--steps`, and `--log-level`.
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **personal-004** (2 symbols, 1 relationships, 0 execution flows).
+This project is indexed by GitNexus as **personal-004** (178 symbols, 274 relationships, 4 execution flows).
 
 > Index stale? Run `node .gitnexus/run.cjs analyze --index-only` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? Bootstrap with `npx`, `bunx`, or `pnpm dlx` — e.g. `bunx gitnexus@latest analyze` (npm 11 npx crash; #1939).
 

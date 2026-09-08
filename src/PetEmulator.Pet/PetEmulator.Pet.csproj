@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>PetEmulator.Pet</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../PetEmulator.Core/PetEmulator.Core.csproj" />
+    <ProjectReference Include="../PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
+  </ItemGroup>
+</Project>

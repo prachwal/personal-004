@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PetEmulator.Core/PetEmulator.Core.csproj" />
+    <Project Path="src/PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
+    <Project Path="src/PetEmulator.Pet/PetEmulator.Pet.csproj" />
+    <Project Path="src/PetEmulator.Desktop/PetEmulator.Desktop.csproj" />
+    <Project Path="src/PetEmulator.Cli/PetEmulator.Cli.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PetEmulator.Core.Tests/PetEmulator.Core.Tests.csproj" />
+    <Project Path="tests/PetEmulator.Cpu6502.Tests/PetEmulator.Cpu6502.Tests.csproj" />
+    <Project Path="tests/PetEmulator.Pet.Tests/PetEmulator.Pet.Tests.csproj" />
+    <Project Path="tests/PetEmulator.Cli.Tests/PetEmulator.Cli.Tests.csproj" />
+  </Folder>
+</Solution>
