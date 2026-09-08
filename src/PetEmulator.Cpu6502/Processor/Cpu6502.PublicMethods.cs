@@ -44,6 +44,7 @@ public partial class Cpu6502 : IProcessor
         _branchTaken = false;
         _pageCrossed = false;
         _halted = false;
+        _waitingForInterrupt = false;
     }
 
     #endregion

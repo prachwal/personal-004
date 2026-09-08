@@ -214,8 +214,65 @@ public static class OpcodeTables
             throw new InvalidOperationException($"Unsupported branch opcode 0x{opcode:X2}.");
     }
 
+    private static void ExecuteRockwellBitCycle(Cpu6502 cpu, byte opcode, byte cycle) =>
+        cpu.ExecuteRockwellBitCycle(opcode, cycle);
+
+    private static void ExecuteRockwellBranchCycle(Cpu6502 cpu, byte opcode, byte cycle) =>
+        cpu.ExecuteRockwellBranchCycle(opcode, cycle);
+
+    private static void ExecuteWaiStpCycle(Cpu6502 cpu, byte opcode, byte cycle) =>
+        cpu.ExecuteWaiStpCycle(opcode, cycle);
+
     public static Cpu6502Variant CreateCmos65C02Variant(OpcodeTable? opcodeTable = null) =>
         new("WDC 65C02", (opcodeTable ?? CreateCmos65C02Table()).Seal(), CpuQuirk.DecimalArithmetic | CpuQuirk.CmosBcdExtraCycle);
+
+    public static OpcodeTable CreateR65C02STable() =>
+        CreateCmos65C02Table().Derive(table =>
+        {
+            // RMB0-7
+            table.Set(new OpcodeDefinition(0x07, "RMB0", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            table.Set(new OpcodeDefinition(0x17, "RMB1", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            table.Set(new OpcodeDefinition(0x27, "RMB2", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            table.Set(new OpcodeDefinition(0x37, "RMB3", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            table.Set(new OpcodeDefinition(0x47, "RMB4", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            table.Set(new OpcodeDefinition(0x57, "RMB5", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            table.Set(new OpcodeDefinition(0x67, "RMB6", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            table.Set(new OpcodeDefinition(0x77, "RMB7", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            // SMB0-7
+            table.Set(new OpcodeDefinition(0x87, "SMB0", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            table.Set(new OpcodeDefinition(0x97, "SMB1", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            table.Set(new OpcodeDefinition(0xA7, "SMB2", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            table.Set(new OpcodeDefinition(0xB7, "SMB3", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            table.Set(new OpcodeDefinition(0xC7, "SMB4", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            table.Set(new OpcodeDefinition(0xD7, "SMB5", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            table.Set(new OpcodeDefinition(0xE7, "SMB6", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            table.Set(new OpcodeDefinition(0xF7, "SMB7", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+            // BBR0-7
+            table.Set(new OpcodeDefinition(0x0F, "BBR0", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            table.Set(new OpcodeDefinition(0x1F, "BBR1", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            table.Set(new OpcodeDefinition(0x2F, "BBR2", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            table.Set(new OpcodeDefinition(0x3F, "BBR3", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            table.Set(new OpcodeDefinition(0x4F, "BBR4", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            table.Set(new OpcodeDefinition(0x5F, "BBR5", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            table.Set(new OpcodeDefinition(0x6F, "BBR6", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            table.Set(new OpcodeDefinition(0x7F, "BBR7", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            // BBS0-7
+            table.Set(new OpcodeDefinition(0x8F, "BBS0", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            table.Set(new OpcodeDefinition(0x9F, "BBS1", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            table.Set(new OpcodeDefinition(0xAF, "BBS2", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            table.Set(new OpcodeDefinition(0xBF, "BBS3", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            table.Set(new OpcodeDefinition(0xCF, "BBS4", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            table.Set(new OpcodeDefinition(0xDF, "BBS5", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            table.Set(new OpcodeDefinition(0xEF, "BBS6", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            table.Set(new OpcodeDefinition(0xFF, "BBS7", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            // WAI / STP
+            table.Set(new OpcodeDefinition(0xCB, "WAI", AddressingMode.Implied, 1, 3, ExecuteWaiStpCycle));
+            table.Set(new OpcodeDefinition(0xDB, "STP", AddressingMode.Implied, 1, 3, ExecuteWaiStpCycle));
+        });
+
+    public static Cpu6502Variant CreateR65C02SVariant(OpcodeTable? opcodeTable = null) =>
+        new("WDC/Rockwell R65C02S", (opcodeTable ?? CreateR65C02STable()).Seal(),
+            CpuQuirk.DecimalArithmetic | CpuQuirk.CmosBcdExtraCycle | CpuQuirk.RockwellBitOps);
 
     private static OpcodeTable CreateNmosTable()
     {

@@ -15,6 +15,8 @@ public partial class Cpu6502
     /// <param name="type">Typ przerwania (IRQ, NMI, BRK).</param>
     private void InjectInterrupt(InterruptType type)
     {
+        _waitingForInterrupt = false;
+
         // Zapamiętaj bieżący PC (dla pushowania)
         ushort returnPC = _pc;
 

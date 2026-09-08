@@ -16,6 +16,7 @@ public enum AddressingMode
     IndirectX,
     IndirectY,
     Relative,
+    ZeroPageRelative,
     Unknown
 }
 

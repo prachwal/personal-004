@@ -147,6 +147,11 @@ public partial class Cpu6502
     /// </summary>
     private bool _halted;
 
+    /// <summary>
+    /// Flaga sygnalizująca, że procesor czeka na przerwanie (WAI — Rockwell/WDC 65C02S).
+    /// </summary>
+    private bool _waitingForInterrupt;
+
     #endregion
 
     #region Zmienne tymczasowe dla wielocyklowych instrukcji

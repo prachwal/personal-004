@@ -42,6 +42,12 @@ public partial class Cpu6502
     public bool HasCmosBcdExtraCycle => Variant.Quirks.HasFlag(CpuQuirk.CmosBcdExtraCycle);
 
     /// <summary>
+    /// Wskazuje, czy wariant udostępnia instrukcje bitowe Rockwell/WDC
+    /// (RMB/SMB/BBR/BBS) oraz WAI/STP (R65C02S).
+    /// </summary>
+    public bool HasRockwellBitOps => Variant.Quirks.HasFlag(CpuQuirk.RockwellBitOps);
+
+    /// <summary>
     /// Accumulator - główny rejestr arytmetyczny.
     /// </summary>
     public byte A

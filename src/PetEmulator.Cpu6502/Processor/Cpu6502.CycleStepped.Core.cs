@@ -70,6 +70,24 @@ public partial class Cpu6502
             return;
         }
 
+        if (_waitingForInterrupt)
+        {
+            if (_nmiLatched)
+            {
+                _waitingForInterrupt = false;
+            }
+            else if (_irqPending)
+            {
+                _waitingForInterrupt = false;
+                if (!GetFlag(FlagI))
+                    _irqReadyAtBoundary = true;
+            }
+            else
+            {
+                return;
+            }
+        }
+
         if (TryServiceInterruptBoundary())
         {
             return;

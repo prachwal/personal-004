@@ -6,7 +6,8 @@ public enum CpuQuirk
     None = 0,
     DecimalArithmetic = 1,
     JmpIndirectPageWrap = 2,
-    CmosBcdExtraCycle = 4
+    CmosBcdExtraCycle = 4,
+    RockwellBitOps = 8
 }
 
 public sealed class Cpu6502Variant
