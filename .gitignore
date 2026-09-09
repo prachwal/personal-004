@@ -5,6 +5,9 @@ TestResults/
 *.user
 *.suo
 
+## Script output
+build/
+
 ## IDE
 .vs/
 .idea/
