@@ -4,12 +4,6 @@ using PetEmulator.Pet.Roms;
 
 namespace PetEmulator.Pet;
 
-/// <summary>One real access this bus served - the CPU (or any other bus master) reading or
-/// writing one byte at one address, with the value actually transferred. Doesn't distinguish an
-/// opcode fetch from an operand/data access (this bus has no way to tell them apart, unlike a
-/// cycle-accurate CPU core's own bus-cycle stream).</summary>
-public readonly record struct BusAccess(bool IsWrite, ushort Address, byte Value);
-
 /// <summary>
 /// Address decoder for a PET machine: RAM (video RAM is a subrange of the same array, per
 /// <see cref="PetProfile.VideoRamStart"/>/<see cref="PetProfile.VideoRamLength"/> - not a

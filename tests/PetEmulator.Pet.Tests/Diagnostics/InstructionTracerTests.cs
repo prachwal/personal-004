@@ -1,5 +1,6 @@
 using FluentAssertions;
 using NUnit.Framework;
+using PetEmulator.Core;
 using PetEmulator.Pet.Diagnostics;
 using PetEmulator.Pet.Tests.Roms;
 

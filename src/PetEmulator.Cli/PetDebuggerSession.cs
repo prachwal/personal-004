@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using PetEmulator.Core;
 using PetEmulator.Debugger;
 using PetEmulator.Pet;
 using PetEmulator.Pet.Diagnostics;
@@ -20,7 +21,7 @@ namespace PetEmulator.Cli;
 /// <c>play</c>/<c>stop</c>/<c>eject</c>/<c>key</c>/<c>type</c>/<c>devices</c>/<c>status</c>/
 /// <c>trace-log</c>/<c>disk-stall-check</c>) live here, PET-specific
 /// (<c>trace-log</c>/<c>disk-stall-check</c> wrap <see cref="InstructionTracer"/>/
-/// <see cref="PetMachine.RunUntilOrStalled"/> - see docs/pet-debug-tools.md). Everything else
+/// <see cref="MachineExtensions.RunUntilOrStalled"/> - see docs/pet-debug-tools.md). Everything else
 /// (<c>trace</c>/<c>watch</c>/<c>watch-range</c>/<c>unwatch</c>/<c>break-cycle</c>/
 /// <c>break-instruction-count</c>/<c>dump</c>) is CPU-agnostic and already implemented once in
 /// <see cref="MachineDebugger"/> - this class delegates to it rather than duplicating it, once the
@@ -194,7 +195,7 @@ public sealed class PetDebuggerSession
     }
 
     /// <summary>Runs up to <paramref name="maxInstructions"/> instructions watching
-    /// <see cref="PetMachine.IeeeByteTransferCount"/> for a plateau (<see cref="PetMachine.RunUntilOrStalled"/>)
+    /// <see cref="PetMachine.IeeeByteTransferCount"/> for a plateau (<see cref="MachineExtensions.RunUntilOrStalled"/>)
     /// - the fast, scripted way to answer "is a LOAD/SAVE actually stuck, or just slow" instead of
     /// picking an instruction budget by hand and rerunning.</summary>
     private string DiskStallCheck(ulong maxInstructions, ulong stallWindow)
