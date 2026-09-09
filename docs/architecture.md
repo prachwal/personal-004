@@ -155,6 +155,37 @@ Nie wykonywac pelnego przepisywania CPU i PET jednoczesnie. Najmniejsza bezpiecz
 - Kontraktu maszyny zawierajacego szczegoly PET albo konkretnego UI.
 - Pelnego frameworka konfiguracji maszyn, zanim pojawi sie druga realna maszyna.
 
+## Znany bug w referencyjnym rdzeniu (personal-001)
+
+`personal-001` — trzymany jako referencja testow ROM/cykli (patrz tabela ponizej) — ma niebezpieczny wzorzec w glownej petli instrukcji, ktory **nie wolno kopiowac**:
+
+```csharp
+// personal-001, Cpu6502.CycleStepped.Core.cs:84-90
+while (!_sync)
+{
+    var key = (ushort)((_currentOpcode << 3) | _cycleCount);
+    ExecuteCycle(key);
+    _cycleCount++;
+    _cycle++;
+}
+```
+
+`_cycleCount` to `byte` bez maskowania do 3 bitow. Jesli ktorykolwiek cycle-handler (typowo illegal/unstable opcode) nie ustawi `_sync=true` na danym cyklu, licznik rosnie ponad 7 i zaczyna kolidowac z bitami opcode w kluczu dispatch (`<<3`) — CPU wpada w cudzy handler bez gwarancji powrotu. Skutek: nieskonczona petla wewnatrz jednego kroku instrukcji, niewidoczna dla zewnetrznego limitu instrukcji maszyny (`PetMachine.Run(n)` nigdy nie wraca). Ujawnia sie tylko na realnym kodzie KERNAL/BASIC (integration testy `PetMachineTests`/`PetDesktopIntegrationTests` w personal-001 wieszaja sie z tego powodu), nie na synthetic unit testach pojedynczych opcode. Szczegoly: [deep-analysis.md](deep-analysis.md).
+
+**Wlasny rdzen ma ten sam ksztalt ryzyka** (bez collision na kluczu dispatch, bo handler jest tabelowy per-opcode, ale bez capa na iteracje):
+
+```csharp
+// ten projekt, Cpu6502.CycleStepped.Core.cs:117-122
+while (!_sync)
+{
+    _currentDefinition!.Handler(this, _currentOpcode, _cycleCount);
+    _cycleCount++;
+    _clock.Advance(1);
+}
+```
+
+Jesli jakikolwiek handler w tabeli (zwlaszcza przy dodawaniu nowych wariantow/illegal opcode) zapomni ustawic `_sync=true` na ktoryms cyklu, petla nie ma gornej granicy. Przed uznaniem rdzenia za finalny (krok 6 planu migracji) dodac defensywny cap, np. `if (_cycleCount > 7) throw` albo assert w trybie debug — degraduje cichy hang do szybkiego bledu przy pisaniu nowego handlera.
+
 ## Zrodla wzorcow
 
 | Cecha | Zrodlo | Decyzja |
