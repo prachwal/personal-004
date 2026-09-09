@@ -27,45 +27,49 @@ KERNAL entirely (LISTEN/TALK/SECONDARY bytes poked directly, matching what
 commands typed through the keyboard matrix (`TextTyper`), assertions on what a real PET user
 would see on screen (or an independently re-opened `D64Image`) - never a peek into
 `CbmDosEngine`'s own internals except where explicitly noted. This is the layer that actually
-answers "does directory read / file read / file write work from the PET", and the one that
-found three real protocol bugs Layer 0/1 couldn't see (all fixed except the last):
+answers "does directory read / file read / file write work from the PET", and the one that found
+four real protocol bugs Layer 0/1 couldn't see (three fixed, confirmed against
+[VICE](https://github.com/libretro/vice-libretro)'s real `src/parallel/parallel.c` - the
+reference PET/CBM emulator's IEEE-488 bus implementation):
 
 1. **PIA1 PA4 cassette sense never wired** (tape, not disk - see the "PRESS PLAY" fix earlier
-   this session) - `PortAInput` hardcoded the sense bit high, so `LOAD` could never see a
-   datasette's PLAY button. Fixed.
+   this session). Fixed.
 2. **`PetIeeeBus` write-handshake never released** - `AcceptHandshake()`/`CommandHandshake()`
-   leave NRFD/DAV asserted with nothing to clear them again; a real listener's firmware would
-   release them almost instantly, but our synchronous "process the byte the moment it lands on
-   DIO" shortcut never modeled that at all. The KERNAL's own "wait for the listener to be ready
-   before the next byte" poll (real IEEE-488 behavior) hung forever. Fixed: `ArmWriteAck()` +
-   `Tick()` release NRFD/NDAC/DAV a few cycles after any listener-side write.
+   left NRFD/DAV asserted with nothing to clear them again; the KERNAL's own "wait for the
+   listener to be ready before the next byte" poll (real IEEE-488 behavior) hung forever. Fixed:
+   `ArmWriteAck()` + `Tick()` release NRFD/NDAC/DAV a few cycles after any listener-side write,
+   mirroring `Tick()`'s existing read-side `_dataInFetchDelay`.
 3. **`CbmDosEngine.CloseChannel()` not idempotent** - `PetIeeeBus` legitimately calls
    `IIeeeDevice.Close()` twice per ATN cycle (once automatically on the ATN-rising transition,
-   once for the UNLISTEN/CLOSE-SA byte that follows) - real, expected bus behavior, not a bug in
-   the bus. `CloseChannel()` wasn't safe to call twice: the second call reread the just-consumed
-   filename bytes as a DOS command and overwrote the status channel with a bogus syntax error.
-   Fixed with a `_channelOpen` guard.
-4. **Known, unfixed: idle-release write corrupts multi-byte filenames.** `OnDioWrite`'s
-   `DataOut` case treats *every* PIA2 Port B write as a delivered byte, with no gate on DAV
-   actually being asserted first. The KERNAL's own between-byte "release DIO to idle" write
-   (0xFF - "nothing driven") reaches `OnDioWrite` too and decodes to 0x00 after the bus's
-   inversion, landing in the filename as a literal null: `LOAD"HELLO",8` reaches
-   `CbmDosEngine` as `"H\0E\0L\0L\0O\0"` and never finds the file. The real fix is a state-machine
-   change (capture a byte only on a genuine DAV-asserted edge, not on every raw port write) - a
-   correctness-sensitive rewrite of the write path, not a one-line patch, so it's left as a
-   documented, precisely-diagnosed gap (see `PetDiskEndToEndTests.KnownFilenameByteCorruptionBug`)
-   rather than a guessed quick fix. It only affects the *write* (LISTEN) direction with more than
-   one meaningful byte, which is why:
+   once for the UNLISTEN/CLOSE-SA byte that follows - both real, expected bus behavior). The
+   second call reread the just-consumed filename as a DOS command and overwrote the status
+   channel with a bogus syntax error. Fixed with a `_channelOpen` guard.
+4. **Idle-release write corrupted multi-byte filenames** - `OnDioWrite`'s `DataOut` case treats
+   every PIA2 Port B write as a delivered byte with no gate on DAV actually being asserted.
+   Comparing against VICE's real `parallel.c` confirmed the textbook-correct fix (capture a byte
+   only on a genuine DAV-asserted edge, `In1_DAV_true` in VICE's own state machine) - but VICE
+   *also* has a dedicated `OldPet` state distinguishing PET 2001/3000-class hardware's own
+   simpler, non-DAV-driven KERNAL write routine from the standard one, and this repo's BASIC 2
+   KERNAL genuinely never toggles PIA2 CB2 (DAV out) per filename byte in practice (confirmed:
+   CRA/CRB were written exactly once, to a static "idle high" value, for an entire filename
+   transfer) - it paces itself with fixed write/idle-release cycles instead, exactly the "old
+   PET" quirk VICE special-cases. A real PETSCII filename never contains a literal 0x00 byte, so
+   `CbmDosEngine.ReceiveByte` drops one while `_waitingForFilename` is true (never during SAVE's
+   actual data phase, where 0x00 is a legitimate BASIC line terminator) - fixed, narrowly scoped,
+   with the ambiguity documented in place.
 
-| Test | Status | Why |
-|---|---|---|
-| `SaveCompletesAndReturnsToReady` | **passes** | SAVE only writes (no TALK/read), and its own success path never depends on the filename search succeeding *before* KERNAL reports done - real disk write, real completion signal (second `READY.`, no error text) |
-| `LoadReadsARealFilesBytesCorrectly` | `[Explicit]` | hits bug 4 directly - `LOAD"HELLO",8` can never find the file |
-| `SaveThenLoadRoundTripsARealProgramThroughARealDisk` | `[Explicit]` | the SAVE half works; the reload's `LOAD"TESTFILE",8` half hits bug 4 |
+With all three fixed, SAVE and small LOADs (a reloaded few-line BASIC program) now complete
+fully from real BASIC - see `SaveCompletesAndReturnsToReady` and
+`SaveThenLoadRoundTripsARealProgramThroughARealDisk`, both genuinely passing (the round trip
+types the program, `SAVE`s it, `NEW`s memory clear, `LOAD`s it back, `RUN`s it, and checks the
+real evaluated output on screen - proof the whole path works, not just that the KERNAL stopped
+hanging).
 
-Run the `[Explicit]` tests deliberately (`dotnet test --filter "FullyQualifiedName~LoadReads"`,
-e.g.) once bug 4 is fixed - they're real assertions, not placeholders, just gated off the default
-run until they can pass.
+**Still open**: loading a large real file (`LOAD"HELLO",8`, a 4,486-byte PRG from
+`games-1.d64`) stalls partway through - progress was tracked at a fixed byte offset (326) that
+never advances even after tens of millions of further instructions, not merely slow. Root cause
+not yet identified; `LoadReadsARealFilesBytesCorrectly` is `[Explicit]` documenting exactly this.
+Small transfers never reach whatever triggers it.
 
 ## Layer 3 — scripted smoke tests
 

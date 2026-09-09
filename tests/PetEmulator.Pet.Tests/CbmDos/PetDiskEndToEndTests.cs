@@ -21,23 +21,20 @@ public sealed class PetDiskEndToEndTests
     private static readonly byte[] ReadyBytes = [0x12, 0x05, 0x01, 0x04, 0x19, 0x2E]; // "READY."
     private static readonly byte[] ErrorBytes = [0x05, 0x12, 0x12, 0x0F, 0x12]; // "ERROR"
 
-    /// <summary>Root cause of both [Explicit] tests below (see their own doc comments): a real
-    /// multi-character filename write reaches CbmDosEngine as e.g. "H\0E\0L\0L\0O\0" instead of
-    /// "HELLO". PetIeeeBus.OnDioWrite's DataOut case treats *every* PIA2 Port B write as a
-    /// delivered byte with no gate on DAV actually being asserted - but the real KERNAL's
-    /// between-byte "release DIO to idle" write (0xFF, i.e. "nothing driven") reaches OnDioWrite
-    /// too, and decodes to 0x00 after the bus's inversion, so it gets misread as a literal null
-    /// byte inside the filename. Fixing it needs OnDioWrite to only capture a byte on a genuine
-    /// DAV-asserted edge, not on every raw port write - a real state-machine change, not a
-    /// one-line patch, so it's left as a documented gap rather than guessed at further.</summary>
-    private const string KnownFilenameByteCorruptionBug =
-        "Known bug: multi-character filenames sent to a listener device are corrupted by the " +
-        "KERNAL's own idle-release write between bytes (decodes to a spurious 0x00) - see this " +
-        "class's KnownFilenameByteCorruptionBug doc comment for the root cause. LOAD\"HELLO\",8 " +
-        "reaches CbmDosEngine as \"H\\0E\\0L\\0L\\0O\\0\" and never finds the file.";
+    /// <summary>Root cause not yet pinned down (see <see cref="LoadReadsARealFilesBytesCorrectly"/>'s
+    /// doc comment for what IS confirmed): a multi-hundred-byte real TALK/read transfer stalls at
+    /// a fixed byte offset (observed at byte 326 of "HELLO"'s 4,486) and never resumes, even after
+    /// tens of millions of extra instructions - not merely slow. Small transfers (a few dozen
+    /// bytes, see <see cref="SaveThenLoadRoundTripsARealProgramThroughARealDisk"/> and
+    /// <see cref="SaveCompletesAndReturnsToReady"/>, both genuinely passing) never reach it.</summary>
+    private const string KnownLargeReadStallBug =
+        "Known bug: a real multi-hundred-byte TALK/read transfer stalls at a fixed byte offset " +
+        "and never resumes - see this class's KnownLargeReadStallBug doc comment. Small transfers " +
+        "(SaveThenLoadRoundTripsARealProgramThroughARealDisk, SaveCompletesAndReturnsToReady) " +
+        "pass; loading a real multi-KB PRG like \"HELLO\" (4,486 bytes) does not.";
 
     [Test]
-    [Explicit(KnownFilenameByteCorruptionBug)]
+    [Explicit(KnownLargeReadStallBug)]
     [CancelAfter(60_000)]
     public void LoadReadsARealFilesBytesCorrectly()
     {
@@ -57,7 +54,11 @@ public sealed class PetDiskEndToEndTests
         var loadAddress = (ushort)(expectedBytes[0] | (expectedBytes[1] << 8));
 
         machine.RunUntil(mem => ContainsReady(mem, profile), 1_000_000).Should().BeTrue();
-        TextTyper.Type(machine, map, "LOAD\"HELLO\",8\n");
+        // Default hold/gap (5,500 instructions) occasionally drops a keystroke on a string this
+        // long - the KERNAL's keyboard scan is jiffy-clock-paced (~16,667 cycles/60Hz) and a
+        // too-short hold can land entirely inside one scan's dead time. 12,000 is what this
+        // session's own manual reproduction needed for "LOAD"HELLO",8" to type reliably.
+        TextTyper.Type(machine, map, "LOAD\"HELLO\",8\n", holdInstructions: 12_000, gapInstructions: 12_000);
         machine.RunUntil(mem => ContainsReadyAfterFirst(mem, profile), 3_000_000)
             .Should().BeTrue("LOAD should finish and print READY. again");
 
@@ -68,12 +69,10 @@ public sealed class PetDiskEndToEndTests
         }
     }
 
-    /// <summary>The SAVE half of this test genuinely passes on its own (see
-    /// <see cref="SaveCompletesAndReturnsToReady"/>) - it's the reload's LOAD"TESTFILE",8 leg that
-    /// hits the same filename-corruption bug <see cref="LoadReadsARealFilesBytesCorrectly"/>
-    /// documents ("TESTFILE" reaches CbmDosEngine as "T\0E\0S\0T\0F\0I\0L\0E\0").</summary>
+    /// <summary>A full SAVE, NEW (clear program memory), LOAD, RUN round trip through a real
+    /// disk - genuinely passes: the reloaded program's tiny size stays well clear of the stall
+    /// <see cref="LoadReadsARealFilesBytesCorrectly"/> documents.</summary>
     [Test]
-    [Explicit(KnownFilenameByteCorruptionBug)]
     [CancelAfter(60_000)]
     public void SaveThenLoadRoundTripsARealProgramThroughARealDisk()
     {
@@ -91,19 +90,21 @@ public sealed class PetDiskEndToEndTests
             machine.MountDisk(diskPath);
             machine.RunUntil(mem => ContainsReady(mem, profile), 1_000_000).Should().BeTrue();
 
-            TextTyper.Type(machine, map, "10 PRINT2+2\n");
-            TextTyper.Type(machine, map, "SAVE\"TESTFILE\",8\n");
+            // Default hold/gap (5,500 instructions) occasionally drops a keystroke on strings
+            // this long - see LoadReadsARealFilesBytesCorrectly's identical note.
+            TextTyper.Type(machine, map, "10 PRINT2+2\n", holdInstructions: 12_000, gapInstructions: 12_000);
+            TextTyper.Type(machine, map, "SAVE\"TESTFILE\",8\n", holdInstructions: 12_000, gapInstructions: 12_000);
             machine.RunUntil(mem => ContainsReadyAfterFirst(mem, profile), 2_000_000)
                 .Should().BeTrue("SAVE should finish and print READY. again");
 
-            TextTyper.Type(machine, map, "NEW\n"); // clear program memory - RUN below can only
-            machine.Run(20_000);                    // succeed off a genuinely reloaded program
+            TextTyper.Type(machine, map, "NEW\n", holdInstructions: 12_000, gapInstructions: 12_000); // clear
+            machine.Run(20_000); // program memory - RUN below can only succeed off a genuine reload
 
-            TextTyper.Type(machine, map, "LOAD\"TESTFILE\",8\n");
+            TextTyper.Type(machine, map, "LOAD\"TESTFILE\",8\n", holdInstructions: 12_000, gapInstructions: 12_000);
             machine.RunUntil(mem => ContainsReadyAfterFirst(mem, profile), 2_000_000)
                 .Should().BeTrue("LOAD should finish and print READY. again");
 
-            TextTyper.Type(machine, map, "RUN\n");
+            TextTyper.Type(machine, map, "RUN\n", holdInstructions: 12_000, gapInstructions: 12_000);
             machine.Run(50_000);
 
             var screen = SnapshotScreen(machine, profile);

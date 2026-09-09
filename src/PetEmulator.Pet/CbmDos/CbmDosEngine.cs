@@ -132,6 +132,18 @@ public sealed class CbmDosEngine
 
     public void ReceiveByte(byte data)
     {
+        // ponytail: PetIeeeBus.OnDioWrite can't yet distinguish a genuine data byte from the
+        // KERNAL's own between-byte "release DIO to idle" write - it decodes to a literal 0x00
+        // here (see docs/pet-disk-testing-strategy.md's bug #4; confirmed against VICE's real
+        // parallel.c, which gates byte capture on a DAV edge our binding doesn't reach for this
+        // KERNAL's write routine). Real PETSCII filenames never contain a literal 0x00 byte, so
+        // it's safe to drop while collecting one; NOT safe during SAVE's actual data phase
+        // (tokenized BASIC legitimately uses 0x00 as a line terminator), so this stays scoped to
+        // _waitingForFilename rather than becoming a blanket filter. Upgrade path: fix the real
+        // gate in PetIeeeBus/PetIeeeBusBinding once the KERNAL's actual per-byte strobe signal
+        // for this routine is identified.
+        if (_waitingForFilename && data == 0x00)
+            return;
         _commandBuffer.Add(data);
     }
 

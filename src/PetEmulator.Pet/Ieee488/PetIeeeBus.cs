@@ -98,6 +98,12 @@ public sealed class PetIeeeBus
             {
                 _state = BusState.DataIn;
                 _talkerDevice.OpenForWrite(_talkerSec);
+                // A write-ack release armed by the command bytes that just addressed this talker
+                // (see ArmWriteAck) can still be ticking down - if it fires after Tick()'s DataIn
+                // branch has already asserted DAV for a freshly cached read byte, it stomps the
+                // line back to false and the KERNAL's read loop hangs waiting for a DAV it will
+                // never see rise again. The read side owns DAV/NRFD/NDAC from here.
+                _writeAckDelay = 0;
             }
             else
             {
