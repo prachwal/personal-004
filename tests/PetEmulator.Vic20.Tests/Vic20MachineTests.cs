@@ -9,6 +9,22 @@ namespace PetEmulator.Vic20.Tests;
 public sealed class Vic20MachineTests
 {
     [Test]
+    public void Keyboard_RoutesThroughVia2PortBOutPortAIn_NotVia1()
+    {
+        // Layer 1 (register-level bus integration, no KERNAL involved) for the real wiring bug
+        // docs/vic20-rendering-fixes.md's keyboard investigation found: row-select is VIA2 port B
+        // ($9120), column readback is VIA2 port A ($9121) - confirmed against the real KERNAL
+        // disassembly (docs/vic20-disassembly/kernal.asm). An earlier version of this wiring used
+        // VIA1 port A/port B instead - every real keypress silently vanished.
+        var machine = CreateMachine();
+        machine.Keyboard.Press(2, 0);
+
+        machine.Via2.Write(0x9120, unchecked((byte)~(1 << 2))); // select row 2 only
+
+        machine.Via2.Read(0x9121).Should().Be(unchecked((byte)~1), "row 2 col 0 is pressed");
+    }
+
+    [Test]
     public void Name_And_IsReady_AreSet()
     {
         var machine = CreateMachine();

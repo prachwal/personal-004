@@ -63,6 +63,68 @@ Fixed the test-quality issue anyway (`HasScreenText` now requires a real letter,
 1-26, not just "non-space") so this false positive can't recur, matching the honest state of what
 the check was ever supposed to prove.
 
+## Bug 4: keyboard didn't work at all (root cause: wrong VIA, wrong ports, single-row model)
+
+Reported separately, after the first three fixes shipped: "nie mogę wpisać nic, klawiatura nie
+działa". By far the deepest issue - three compounding bugs, only findable by tracing a real
+keypress all the way from a routed GUI key event down to what the KERNAL's own scan code actually
+reads.
+
+1. **Wrong VIA, wrong ports.** `Vic20Machine` wired the keyboard to VIA1 port A (row-select
+   output) / port B (column input) - ported from a reference project's convention without
+   verifying it against this real KERNAL. The disassembly (`kernal.asm` ~line 1685: `sta $9120`
+   writes row-select, `lda $9121`/`lda $9121` debounce-reads columns) and the real boot-time DDR
+   writes ($9122=DDRB=$FF all-output, $9123=DDRA=$00 all-input) both confirm the real wiring is
+   **VIA2** port B out / port A in - the exact opposite chip and the opposite two ports. Wrong in
+   this specific way doesn't crash or corrupt anything visible: it just means every real keypress
+   is written to a VIA nobody's KERNAL scan routine ever reads, so it silently vanishes. Fixed in
+   `Vic20Machine`'s constructor (`_via2.PortBWritten`/`_via2.PortAInput` instead of `_via1`'s).
+
+2. **Single-row keyboard matrix model.** Even after wiring the right VIA/ports, keypresses still
+   didn't register. Tracing every `$9120`/`$9121` access with a key held the whole time
+   (`PetMachine.BusObserver`-style) revealed the KERNAL runs a cheap "is anything pressed at all"
+   check on every jiffy IRQ *before* ever running its real, expensive per-row scan: it asserts
+   **all eight rows simultaneously** (`$9120=$00`) and reads `$9121` once - real open-collector
+   hardware wire-ORs every asserted row's column state together, so a pressed key in *any*
+   currently-asserted row pulls its column low. `Vic20KeyboardMatrix.SetRowSelect` only ever
+   tracked one selected row (the first bit found clear in the mask), so this all-rows check always
+   read row 0's state - genuinely nothing pressed there - and the KERNAL never proceeded to the
+   real scan that would have found the actual key. Fixed: `SetRowSelect` now just latches the raw
+   mask; `ReadColumns` ORs `~_pressedColumns[row]` across every row whose bit is 0, which
+   degrades to the original single-row behavior when only one bit is clear (the normal per-row
+   scan) and now also handles the all-rows case correctly.
+
+3. **Wrong (row, col) table.** With the wiring and matrix model both fixed, keys registered but
+   typed the *wrong* characters (typing "PRINT5" echoed "DW*J@"). `Vic20HostKeyMap.LetterMap`
+   (also ported from the same reference project) didn't match this real KERNAL's actual scan
+   order at all. Rather than guess again, generated the real table empirically: booted to BASIC,
+   pressed each of the 64 matrix cells alone, read back the real PETSCII screen code the KERNAL
+   echoed for it (filtering out cursor-blink noise - a raw before/after screen diff is dominated
+   by the blink toggling `$20`/`$A0` at the cursor cell, unrelated to any real keypress). All 26
+   letters and 10 digits came back with a full, distinct hit. Enter and Space needed a second,
+   separate check (both showed as "nothing recognizable" in the raw scan): Enter confirmed by the
+   KERNAL's screen line-pointer (`$D1`/`$D2`) advancing by exactly one row (22, the profile's
+   column count) after that cell alone; Space confirmed by "A" + candidate + "B" echoing as
+   `A <space> B`, not `AB`. Rewrote `Vic20HostKeyMap.LetterMap` in full with the verified table
+   (`'@'` and a few less-common punctuation keys are a known, documented gap - not covered by
+   this scan, not needed by anything this repo currently types).
+
+Verified end-to-end through the *real* GUI pipeline, not a direct `machine.Keyboard.Press` call:
+extended `PetEmulator.Screenshot` with `--type <text>`, using Avalonia.Headless's
+`window.KeyPress`/`KeyRelease` (the same routed-event path a real OS keypress takes - focus,
+bubble, `MainWindow`'s `KeyDown`/`KeyUp` handlers, `MainWindowViewModel.HandleKey`) instead of
+calling into the machine directly. Typing `"PRINT2+2\n"` now genuinely echoes `PRINT22` (`+` isn't
+in this tool's own tiny char-to-`Key` table yet) to the real rendered screen.
+
+Also fixed while chasing this (real, but not root-cause): `MainWindow`/`PetMachineView`/
+`Vic20MachineView` were calling `.Focus()` on the outer `ContentControl` (`MachineHost`) instead
+of the actual leaf `Screen` control inside whichever machine view is current - each machine
+View's code-behind now focuses its own `Screen` on `Loaded` and on every `DataContext` change
+(covers reusing the same View instance across a same-type machine/profile switch). Didn't turn
+out to be why typing failed here (the headless test harness routes key events by focus
+independently of the OS-level quirk this was guarding against), but it's a real gap the same
+investigation surfaced and a legitimate fix regardless.
+
 ## Screenshot tool
 
 This dev environment has no screenshot utility (`import`/`scrot`/`xwd`) and no root to install
@@ -71,7 +133,12 @@ Skia rendering, no OS display needed (works identically under `xvfb-run` or full
 
 ```
 dotnet run --project src/PetEmulator.Screenshot -- --machine pet|vic20 --ticks N --out path.png
+  [--type "text\n"]
 ```
+
+`--type` (added for Bug 4 above) simulates real routed key events via Avalonia.Headless's
+`window.KeyPress`/`KeyRelease` - the actual GUI input pipeline, not a shortcut into the machine -
+so it can catch focus/routing bugs a direct `machine.Keyboard.Press` test can't see.
 
 Ticks the selected machine directly (`IMachineViewModel.Tick()`, same call `MainWindowViewModel`'s
 render-loop timer makes) `N` times, then **disposes the ViewModel before pumping the Avalonia

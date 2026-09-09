@@ -10,8 +10,11 @@ public sealed class Vic20KeyboardMap
 {
     public (int Row, int Col)? Translate(string hostKey) => hostKey switch
     {
-        "Enter" => (3, 0),
-        "Space" => (4, 0),
+        // Delegates to Vic20HostKeyMap.Find (single source of truth for these two cells - see
+        // its own doc comment for how Enter/Space were verified) instead of duplicating the
+        // (row, col) literals here.
+        "Enter" => Vic20HostKeyMap.Find('\n'),
+        "Space" => Vic20HostKeyMap.Find(' '),
         _ when hostKey.StartsWith("Key", StringComparison.Ordinal) && hostKey.Length == 4 =>
             Vic20HostKeyMap.Find(hostKey[3]),
         _ when hostKey.StartsWith("Digit", StringComparison.Ordinal) && hostKey.Length == 6 =>

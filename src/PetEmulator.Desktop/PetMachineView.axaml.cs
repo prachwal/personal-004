@@ -18,6 +18,12 @@ public partial class PetMachineView : UserControl
     {
         InitializeComponent();
         DataContextChanged += (_, _) => Rewire();
+        // MainWindow only focuses the outer ContentControl hosting this View (see its own
+        // comment) - that's OS-level/focus-scope grabbing, not a substitute for the actual leaf
+        // control holding keyboard focus. Screen (Focusable="True" in XAML) must be focused
+        // directly, both on first load and on every DataContext change (switching machine/profile
+        // can reuse this same View instance without a Loaded re-fire).
+        Loaded += (_, _) => Screen.Focus();
     }
 
     private void Rewire()
@@ -35,6 +41,7 @@ public partial class PetMachineView : UserControl
         _wired.FrameReady += OnFrameReady;
         _wired.GeometryChanged += OnGeometryChanged;
         SetScreenSize();
+        Screen.Focus();
     }
 
     private void OnFrameReady(object? sender, EventArgs e) => Screen.UpdateFrame(_wired!.FrameBuffer);

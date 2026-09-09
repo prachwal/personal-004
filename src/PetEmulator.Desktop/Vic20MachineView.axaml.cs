@@ -13,6 +13,9 @@ public partial class Vic20MachineView : UserControl
     {
         InitializeComponent();
         DataContextChanged += (_, _) => Rewire();
+        // See PetMachineView's identical Loaded handler doc comment - the outer ContentControl
+        // MainWindow focuses is not a substitute for Screen itself holding keyboard focus.
+        Loaded += (_, _) => Screen.Focus();
     }
 
     private void Rewire()
@@ -30,6 +33,7 @@ public partial class Vic20MachineView : UserControl
         _wired.FrameReady += OnFrameReady;
         _wired.GeometryChanged += OnGeometryChanged;
         SetScreenSize();
+        Screen.Focus();
     }
 
     private void OnFrameReady(object? sender, EventArgs e) => Screen.UpdateFrame(_wired!.FrameBuffer);

@@ -38,12 +38,19 @@ public sealed class Vic20Machine : IMachine
         _memoryBus = new Vic20MemoryBus(roms, _vic, _via1, _via2, _colorRam);
         _cpu = new Cpu6502Classic(_memoryBus);
 
-        // VIA1 port A: row-select (active-low, ORA & DDRA - real VIC-20 wiring, see
-        // Vic20KeyboardMatrix's doc comment); port B: column readback for the selected row.
-        _via1.PortAWritten = rowMask =>
+        // VIA2 port B ($9120): row-select (active-low, ORB & DDRB); VIA2 port A ($9121): column
+        // readback for the selected row. Confirmed against the real KERNAL disassembly
+        // (docs/vic20-disassembly/kernal.asm ~line 1685: "sta $9120" writes row-select,
+        // "lda $9121"/"lda $9121" debounce-reads columns) and the real boot-time DDR writes
+        // ($9122=DDRB=$FF all-output, $9123=DDRA=$00 all-input) - NOT VIA1, and NOT port A for
+        // output/port B for input as an earlier version of this wiring (and the reference project
+        // it was ported from) assumed. Getting this backwards doesn't corrupt anything visibly -
+        // it just means every real keypress silently vanishes, since the KERNAL's own scan reads
+        // a VIA/port pair nothing ever writes to.
+        _via2.PortBWritten = rowMask =>
         {
             _keyboard.SetRowSelect(rowMask);
-            _via1.PortBInput = _keyboard.ReadColumns();
+            _via2.PortAInput = _keyboard.ReadColumns();
         };
 
         Reset();
