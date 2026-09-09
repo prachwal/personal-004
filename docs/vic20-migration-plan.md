@@ -1,5 +1,10 @@
 # Plan migracji VIC-20
 
+**Status: v1 zaimplementowany i działa** (boot do BASIC READY, klawiatura, real ROM-y, debug
+tooling za darmo - patrz `docs/vic20-testing-strategy.md`). Kroki 0-10, 12 (Layer 0/1/2/3) i 13
+zrobione. Krok 11 (rendering Desktop) świadomie pominięty - poza zakresem "silnik działa"; nikt
+jeszcze o niego nie prosił (YAGNI).
+
 Kontekst: kandydat źródłowy `cpu-vibe-001` (`Cpu.Vic20`) - jedyny z realnym dowodem boota do BASIC
 READY (`Vic20BootTests`) na prawdziwych ROM-ach. **Nic stamtąd nie kompiluje się 1:1** - inny CPU
 core (`Mos6502.Core`/`MachineBoard`/`IDevice` vs ten repo's `Cpu6502Classic`/`IProcessor`/
@@ -113,6 +118,7 @@ pikseli per `Vic20Video.RenderChar`), PET to prosty tekst-grid przez font bitmap
 ## Krok 12 — pełna strategia testów
 
 Mirror 4-warstwowej struktury z `docs/pet-disk-testing-strategy.md`:
+
 - Layer 0: `Vic6560ChipTests` (register map/raster/columns/rows) - metodologia inspirowana
   `cpu-vibe-006`/`personal-002`'s Vic6560 testami (nie kopiowana - inny chip-shape tutaj).
 - Layer 1: register-level bus integration (poke VIC/VIA rejestry bezpośrednio, bez KERNAL-a).

@@ -1,0 +1,6 @@
+# Layer 3 smoke script (see docs/vic20-migration-plan.md step 12): mount ROMs, boot far enough
+# to reach BASIC READY, confirm the machine is alive and not halted.
+roms roms/vic20
+status
+trace 50
+status

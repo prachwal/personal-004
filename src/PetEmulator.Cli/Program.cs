@@ -51,9 +51,21 @@ internal static class CliCommandFactory
         debug.Arguments.Add(script);
         debug.SetAction((parseResult, _) => Task.FromResult(RunDebugScript(parseResult.GetValue(script))));
 
+        var vic20Script = new Argument<string?>("script")
+        {
+            Description = "Path to a Vic20DebuggerSession script (one command per line, '#' starts a comment) - omit to read stdin.",
+            Arity = ArgumentArity.ZeroOrOne
+        };
+        var vic20Debug = new Command("vic20-debug",
+            "Run a scripted Vic20DebuggerSession: roms/key/type/status, plus trace/watch/" +
+            "watch-range/unwatch/break-cycle/break-instruction-count/break-pc/dump.");
+        vic20Debug.Arguments.Add(vic20Script);
+        vic20Debug.SetAction((parseResult, _) => Task.FromResult(RunVic20DebugScript(parseResult.GetValue(vic20Script))));
+
         root.Subcommands.Add(apps);
         root.Subcommands.Add(run);
         root.Subcommands.Add(debug);
+        root.Subcommands.Add(vic20Debug);
         root.SetAction(async (parseResult, cancellationToken) =>
             await ExecuteAsync(parseResult, rootOptions, null,
                 static (registry, request, token) => registry.RunAsync(
@@ -72,6 +84,33 @@ internal static class CliCommandFactory
             : new StreamReader(Console.OpenStandardInput());
 
         var session = new PetDebuggerSession();
+        var hadError = false;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0 || trimmed.StartsWith('#'))
+                continue;
+
+            var output = session.Execute(trimmed);
+            if (output.Length > 0)
+                Console.Write(output.EndsWith('\n') ? output : output + Environment.NewLine);
+            if (output.StartsWith("error:", StringComparison.Ordinal))
+                hadError = true;
+        }
+
+        return hadError ? 1 : 0;
+    }
+
+    /// <summary>Mirrors <see cref="RunDebugScript"/> exactly, for a <see cref="Vic20DebuggerSession"/>
+    /// instead of a <see cref="PetDebuggerSession"/>.</summary>
+    private static int RunVic20DebugScript(string? scriptPath)
+    {
+        using var reader = scriptPath is not null
+            ? new StreamReader(scriptPath)
+            : new StreamReader(Console.OpenStandardInput());
+
+        var session = new Vic20DebuggerSession();
         var hadError = false;
         string? line;
         while ((line = reader.ReadLine()) is not null)

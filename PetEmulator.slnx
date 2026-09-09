@@ -4,6 +4,7 @@
     <Project Path="src/PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
     <Project Path="src/PetEmulator.DebugApi/PetEmulator.DebugApi.csproj" />
     <Project Path="src/PetEmulator.Pet/PetEmulator.Pet.csproj" />
+    <Project Path="src/PetEmulator.Vic20/PetEmulator.Vic20.csproj" />
     <Project Path="src/PetEmulator.Debugger/PetEmulator.Debugger.csproj" />
     <Project Path="src/PetEmulator.Desktop/PetEmulator.Desktop.csproj" />
     <Project Path="src/PetEmulator.Cli/PetEmulator.Cli.csproj" />
@@ -14,6 +15,7 @@
     <Project Path="tests/PetEmulator.DebugApi.Tests/PetEmulator.DebugApi.Tests.csproj" />
     <Project Path="tests/PetEmulator.Debugger.Tests/PetEmulator.Debugger.Tests.csproj" />
     <Project Path="tests/PetEmulator.Pet.Tests/PetEmulator.Pet.Tests.csproj" />
+    <Project Path="tests/PetEmulator.Vic20.Tests/PetEmulator.Vic20.Tests.csproj" />
     <Project Path="tests/PetEmulator.Cli.Tests/PetEmulator.Cli.Tests.csproj" />
   </Folder>
 </Solution>

@@ -17,6 +17,7 @@
     <PackageReference Include="System.CommandLine" />
     <ProjectReference Include="../PetEmulator.Pet/PetEmulator.Pet.csproj" />
     <ProjectReference Include="../PetEmulator.Debugger/PetEmulator.Debugger.csproj" />
+    <ProjectReference Include="../PetEmulator.Vic20/PetEmulator.Vic20.csproj" />
   </ItemGroup>
 
   <ItemGroup>
