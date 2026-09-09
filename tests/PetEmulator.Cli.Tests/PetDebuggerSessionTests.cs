@@ -103,6 +103,44 @@ public sealed class PetDebuggerSessionTests
     }
 
     [Test]
+    public void TraceLog_WritesAPcAndBusAccessTraceToTheGivenPath()
+    {
+        var session = new PetDebuggerSession();
+        session.Execute("profile pet-2001-8");
+        session.Execute($"roms {RomsRoot()}");
+        var path = Path.Combine(Path.GetTempPath(), $"trace-log-test-{Guid.NewGuid():N}.log");
+
+        try
+        {
+            var result = session.Execute($"trace-log 20 {path}");
+
+            result.Should().StartWith("trace written:").And.Contain("20 instructions");
+            File.Exists(path).Should().BeTrue();
+            var text = File.ReadAllText(path);
+            text.Should().Contain("[0] PC=").And.Contain("[19] PC=");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Test]
+    public void DiskStallCheck_ReportsNoStall_WhenNoDiskIsEvenMounted()
+    {
+        // No IEEE-488 traffic at all is a permanent plateau by definition - this asserts the
+        // command itself runs and reports cleanly, not that a booting-only machine transfers
+        // bytes (it doesn't, so a short stallWindow legitimately fires "stalled").
+        var session = new PetDebuggerSession();
+        session.Execute("profile pet-2001-8");
+        session.Execute($"roms {RomsRoot()}");
+
+        var result = session.Execute("disk-stall-check 200 100");
+
+        result.Should().Contain("stalled").And.Contain("byte transfer");
+    }
+
+    [Test]
     public void UnrecognizedCommand_DelegatesToTheGenericMachineDebugger()
     {
         var session = new PetDebuggerSession();

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using PetEmulator.Debugger;
 using PetEmulator.Pet;
+using PetEmulator.Pet.Diagnostics;
 using PetEmulator.Pet.Keyboard;
 using PetEmulator.Pet.Tape;
 
@@ -16,8 +17,10 @@ namespace PetEmulator.Cli;
 /// </summary>
 /// <remarks>
 /// Construction commands (<c>profile</c>/<c>roms</c>/<c>keymap</c>/<c>tape</c>/<c>disk</c>/
-/// <c>play</c>/<c>stop</c>/<c>eject</c>/<c>key</c>/<c>type</c>/<c>devices</c>/<c>status</c>) live
-/// here, PET-specific. Everything else
+/// <c>play</c>/<c>stop</c>/<c>eject</c>/<c>key</c>/<c>type</c>/<c>devices</c>/<c>status</c>/
+/// <c>trace-log</c>/<c>disk-stall-check</c>) live here, PET-specific
+/// (<c>trace-log</c>/<c>disk-stall-check</c> wrap <see cref="InstructionTracer"/>/
+/// <see cref="PetMachine.RunUntilOrStalled"/> - see docs/pet-debug-tools.md). Everything else
 /// (<c>trace</c>/<c>watch</c>/<c>watch-range</c>/<c>unwatch</c>/<c>break-cycle</c>/
 /// <c>break-instruction-count</c>/<c>dump</c>) is CPU-agnostic and already implemented once in
 /// <see cref="MachineDebugger"/> - this class delegates to it rather than duplicating it, once the
@@ -56,6 +59,10 @@ public sealed class PetDebuggerSession
                 "type" => Type(commandLine[(parts[0].Length + 1)..]),
                 "devices" => Devices(),
                 "status" => Status(),
+                "trace-log" => TraceLog(int.Parse(parts[1], CultureInfo.InvariantCulture), parts[2]),
+                "disk-stall-check" => DiskStallCheck(
+                    ulong.Parse(parts[1], CultureInfo.InvariantCulture),
+                    parts.Length > 2 ? ulong.Parse(parts[2], CultureInfo.InvariantCulture) : 50_000),
                 _ => EnsureDebugger().Execute(commandLine),
             };
         }
@@ -162,6 +169,41 @@ public sealed class PetDebuggerSession
         var machine = EnsureMachine();
         return $"profile={machine.Name} cycles={machine.CycleCount} " +
             $"instructions={machine.Processor.InstructionCount} halted={machine.Processor.Halted}";
+    }
+
+    /// <summary>Steps <paramref name="count"/> instructions recording PC + every real bus access
+    /// per instruction (<see cref="InstructionTracer"/>), then writes the rendered trace to
+    /// <paramref name="path"/> - the tool this session's manual read-procedure-trace.log
+    /// investigation should have started as. Detaches the tracer afterward so it never lingers on
+    /// the machine past this one command.</summary>
+    private string TraceLog(int count, string path)
+    {
+        var machine = EnsureMachine();
+        var tracer = new InstructionTracer(machine);
+        try
+        {
+            tracer.Run((ulong)count);
+            File.WriteAllText(path, tracer.Render());
+        }
+        finally
+        {
+            tracer.Detach();
+        }
+
+        return $"trace written: {Path.GetFullPath(path)} ({count} instructions)";
+    }
+
+    /// <summary>Runs up to <paramref name="maxInstructions"/> instructions watching
+    /// <see cref="PetMachine.IeeeByteTransferCount"/> for a plateau (<see cref="PetMachine.RunUntilOrStalled"/>)
+    /// - the fast, scripted way to answer "is a LOAD/SAVE actually stuck, or just slow" instead of
+    /// picking an instruction budget by hand and rerunning.</summary>
+    private string DiskStallCheck(ulong maxInstructions, ulong stallWindow)
+    {
+        var machine = EnsureMachine();
+        var result = machine.RunUntilOrStalled(_ => false, () => machine.IeeeByteTransferCount, maxInstructions, stallWindow);
+        return result.Stalled
+            ? $"stalled: no IEEE-488 byte transfer for {stallWindow} instructions (ran {result.InstructionsRun} of {maxInstructions})"
+            : $"no stall detected (ran {result.InstructionsRun}, byte transfer count={machine.IeeeByteTransferCount})";
     }
 
     private PetMachine EnsureMachine()

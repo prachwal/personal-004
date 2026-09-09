@@ -16,10 +16,14 @@ namespace PetEmulator.Debugger;
 /// real VideoController/TextRasterizer and read VDP VRAM directly. This repo's <see cref="IMachine"/>
 /// has no display/VRAM contract yet (no PetMachine, no frame buffer). TODO: revisit once a
 /// display abstraction exists.</item>
-/// <item><c>trace</c> prints step/cycle/instruction counters instead of a disassembly+register
-/// line — <see cref="IProcessor"/> is intentionally CPU-agnostic and exposes no PC or registers.</item>
-/// <item><c>break-pc</c> becomes <c>break-cycle</c>/<c>break-instruction-count</c> — with no PC on
-/// <see cref="IProcessor"/>, a breakpoint can only key off the two counters it does expose.</item>
+/// <item><c>trace</c> prints step/cycle/instruction counters, plus a register line
+/// (<c>PC=... A=... X=... Y=... SP=... P=...</c>) whenever <see cref="Processor"/> implements
+/// the optional <see cref="IDebuggableProcessor"/> - omitted entirely for a plain
+/// <see cref="IProcessor"/> that doesn't (this contract is intentionally CPU-agnostic).</item>
+/// <item><c>break-pc</c> is supported only when <see cref="IDebuggableProcessor"/> is available
+/// (checked at the point the command runs, not at construction - a future CPU-agnostic caller
+/// gets a clear error instead of a silent no-op); <c>break-cycle</c>/<c>break-instruction-count</c>
+/// stay as the two counters every <see cref="IProcessor"/> exposes regardless.</item>
 /// <item>The source's separate <c>run</c> command (advance + report watch hits, no per-step print)
 /// is folded into <c>trace</c> since this contract has only one stepping primitive
 /// (<see cref="IMachine.StepInstruction"/>) and nothing extra to print per step for <c>run</c> to skip.</item>
@@ -32,6 +36,7 @@ public sealed class MachineDebugger
     private readonly Dictionary<ushort, byte> _lastWatched = [];
     private ulong? _breakCycle;
     private ulong? _breakInstructionCount;
+    private ushort? _breakPc;
 
     public MachineDebugger(IMachine machine) => _machine = machine;
 
@@ -49,6 +54,7 @@ public sealed class MachineDebugger
                 "trace" => Trace(int.Parse(parts[1], CultureInfo.InvariantCulture)),
                 "break-cycle" => BreakCycle(ulong.Parse(parts[1], CultureInfo.InvariantCulture)),
                 "break-instruction-count" => BreakInstructionCount(ulong.Parse(parts[1], CultureInfo.InvariantCulture)),
+                "break-pc" => BreakPc(Convert.ToUInt16(parts[1], 16)),
                 "watch" => Watch(parts[1..]),
                 "watch-range" => WatchRange(parts[1], parts[2]),
                 "unwatch" => Unwatch(),
@@ -81,6 +87,13 @@ public sealed class MachineDebugger
             var instructions = _machine.Processor.InstructionCount;
             var halted = _machine.Processor.Halted;
             sb.AppendLine($"[{i}] cycles={cycles} instructions={instructions} halted={halted}");
+            ushort? pc = null;
+            if (_machine.Processor is IDebuggableProcessor dbg)
+            {
+                var regs = dbg.GetRegisters();
+                pc = (ushort)regs["PC"];
+                sb.AppendLine($"[{i}]   PC={pc:X4} A={regs["A"]:X2} X={regs["X"]:X2} Y={regs["Y"]:X2} SP={regs["SP"]:X2} P={regs["P"]:X2}");
+            }
             ReportWatchChanges(sb, i);
 
             if (halted)
@@ -100,6 +113,12 @@ public sealed class MachineDebugger
                 sb.AppendLine($"[{i}] break-instruction-count hit: instructions={instructions} >= {targetInstructions}");
                 break;
             }
+
+            if (_breakPc is { } targetPc && pc == targetPc)
+            {
+                sb.AppendLine($"[{i}] break-pc hit: PC={pc:X4} == {targetPc:X4}");
+                break;
+            }
         }
 
         return sb.ToString();
@@ -115,6 +134,14 @@ public sealed class MachineDebugger
     {
         _breakInstructionCount = target;
         return $"break-instruction-count set at {target}";
+    }
+
+    private string BreakPc(ushort target)
+    {
+        if (_machine.Processor is not IDebuggableProcessor)
+            return "error: break-pc requires an IDebuggableProcessor (this IProcessor exposes no PC)";
+        _breakPc = target;
+        return $"break-pc set at {target:X4}";
     }
 
     private string Watch(string[] addresses)

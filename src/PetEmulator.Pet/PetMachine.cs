@@ -30,6 +30,7 @@ public sealed class PetMachine : IMachine
     private readonly List<PetIeeeDriveStatus> _mountedDrives = [];
     private byte _keyboardSelectedRow;
     private bool _diskActivityPending;
+    private long _ieeeByteCount;
 
     // PIA1's CB1 line (not VIA CA1 - a prior version of this wiring targeted the wrong chip
     // entirely, confirmed against personal-001's PetMachine.ClockPia1Cb1) carries the ~60Hz video
@@ -64,7 +65,10 @@ public sealed class PetMachine : IMachine
         _ieeeBus.Activity += activity =>
         {
             if (activity.Kind == "byte")
+            {
                 _diskActivityPending = true;
+                _ieeeByteCount++;
+            }
         };
 
         // PIA1 port A: writing selects the keyboard row (low nibble); reading it back echoes
@@ -151,6 +155,13 @@ public sealed class PetMachine : IMachine
         _diskActivityPending = false;
         return pending;
     }
+
+    /// <summary>Every "byte" activity (LISTEN/TALK addressing, filename, or file data - real bus
+    /// traffic, never a line-change) this machine's IEEE-488 bus has ever processed, cumulative
+    /// (unlike <see cref="PollDiskActivity"/>, which latches and clears). A natural progress
+    /// signal for <see cref="RunUntilOrStalled"/> when diagnosing a LOAD/SAVE that isn't
+    /// finishing - if this stops advancing, the transfer, not just the CPU, is stuck.</summary>
+    public long IeeeByteTransferCount => _ieeeByteCount;
 
     public static PetMachine Create(PetProfile profile, string romsRoot) => new(profile, romsRoot);
 
@@ -240,4 +251,46 @@ public sealed class PetMachine : IMachine
 
         return condition(Memory);
     }
+
+    /// <summary>Like <see cref="RunUntil"/>, but also watches <paramref name="progress"/> (e.g.
+    /// <see cref="IeeeByteTransferCount"/>) for a plateau: if it hasn't changed for
+    /// <paramref name="stallWindow"/> instructions, stops early with
+    /// <see cref="StallCheckResult.Stalled"/> set instead of running blind all the way to
+    /// <paramref name="maxInstructions"/> before reporting failure. Built to replace the manual
+    /// bisection (halving the instruction budget, rerunning, re-reading a trace by hand) this
+    /// repo's own large-file LOAD stall took to root-cause - see
+    /// docs/pet-disk-testing-strategy.md.</summary>
+    public StallCheckResult RunUntilOrStalled(Func<IMemoryBus, bool> condition, Func<long> progress, ulong maxInstructions, ulong stallWindow = 50_000)
+    {
+        ArgumentNullException.ThrowIfNull(condition);
+        ArgumentNullException.ThrowIfNull(progress);
+
+        var lastProgress = progress();
+        var lastProgressAt = 0UL;
+        for (var i = 0UL; i < maxInstructions; i++)
+        {
+            if (condition(Memory))
+                return new StallCheckResult(true, false, i);
+
+            StepInstruction();
+
+            var current = progress();
+            if (current != lastProgress)
+            {
+                lastProgress = current;
+                lastProgressAt = i + 1;
+            }
+            else if (i + 1 - lastProgressAt >= stallWindow)
+            {
+                return new StallCheckResult(condition(Memory), true, i + 1);
+            }
+        }
+
+        return new StallCheckResult(condition(Memory), false, maxInstructions);
+    }
 }
+
+/// <summary>Result of <see cref="PetMachine.RunUntilOrStalled"/>: whether <c>condition</c> was
+/// met, whether a stall (no progress for the configured window) was detected instead, and how
+/// many instructions actually ran.</summary>
+public readonly record struct StallCheckResult(bool ConditionMet, bool Stalled, ulong InstructionsRun);

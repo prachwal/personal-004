@@ -109,6 +109,52 @@ public sealed class MachineDebuggerTests
     }
 
     [Test]
+    public void Trace_includes_a_register_line_when_the_processor_is_debuggable()
+    {
+        var machine = new FakeDebuggableMachine();
+        var debugger = new MachineDebugger(machine);
+
+        var output = debugger.Execute("trace 1");
+
+        output.Should().Contain("[0]   PC=1235 A=00 X=00 Y=00 SP=00 P=00");
+    }
+
+    [Test]
+    public void Trace_omits_the_register_line_when_the_processor_is_not_debuggable()
+    {
+        var machine = new FakeMachine();
+        var debugger = new MachineDebugger(machine);
+
+        var output = debugger.Execute("trace 1");
+
+        output.Should().NotContain("PC=");
+    }
+
+    [Test]
+    public void BreakPc_stops_stepping_once_pc_reaches_the_target()
+    {
+        var machine = new FakeDebuggableMachine();
+        var debugger = new MachineDebugger(machine);
+        debugger.Execute("break-pc 1237");
+
+        var output = debugger.Execute("trace 100");
+
+        machine.FakeProcessor.InstructionCount.Should().Be(3);
+        output.Should().Contain("break-pc hit: PC=1237 == 1237");
+    }
+
+    [Test]
+    public void BreakPc_on_a_non_debuggable_processor_returns_an_error_instead_of_a_silent_no_op()
+    {
+        var machine = new FakeMachine();
+        var debugger = new MachineDebugger(machine);
+
+        var output = debugger.Execute("break-pc 1234");
+
+        output.Should().Contain("error").And.Contain("IDebuggableProcessor");
+    }
+
+    [Test]
     public void Unknown_command_returns_an_error_string_instead_of_throwing()
     {
         var machine = new FakeMachine();
@@ -175,5 +221,61 @@ public sealed class MachineDebuggerTests
         public byte Read(ushort address) => Data[address];
 
         public void Write(ushort address, byte value) => Data[address] = value;
+    }
+
+    /// <summary>Same shape as <see cref="FakeMachine"/>, but its processor also implements
+    /// <see cref="IDebuggableProcessor"/> - exercises <c>trace</c>'s register line and
+    /// <c>break-pc</c>, both gated on that optional capability.</summary>
+    private sealed class FakeDebuggableMachine : IMachine
+    {
+        public string Name => "fake-debuggable";
+        public bool IsReady => true;
+        public FakeDebuggableProcessor FakeProcessor { get; } = new();
+        public FakeMemoryBus FakeMemory { get; } = new();
+        public IProcessor Processor => FakeProcessor;
+        public IMemoryBus Memory => FakeMemory;
+        public ulong CycleCount => FakeProcessor.CycleCount;
+
+        public void Reset() => FakeProcessor.Reset();
+
+        public void StepInstruction() => FakeProcessor.StepInstruction();
+
+        public void Run(ulong instructionCount)
+        {
+            for (var i = 0UL; i < instructionCount; i++)
+                StepInstruction();
+        }
+    }
+
+    private sealed class FakeDebuggableProcessor : IProcessor, IDebuggableProcessor
+    {
+        public bool Halted { get; private set; }
+        public ulong CycleCount { get; private set; }
+        public ulong InstructionCount { get; private set; }
+        private ushort _pc = 0x1234;
+
+        public void Reset()
+        {
+            Halted = false;
+            CycleCount = 0;
+            InstructionCount = 0;
+            _pc = 0x1234;
+        }
+
+        public void StepInstruction()
+        {
+            CycleCount++;
+            InstructionCount++;
+            _pc++;
+        }
+
+        public void SetIRQ(bool active) { }
+
+        public void SetNMI(bool active) { }
+
+        public IReadOnlyDictionary<string, ulong> GetRegisters() => new Dictionary<string, ulong>
+        {
+            ["PC"] = _pc, ["A"] = 0, ["X"] = 0, ["Y"] = 0, ["SP"] = 0, ["P"] = 0,
+        };
     }
 }

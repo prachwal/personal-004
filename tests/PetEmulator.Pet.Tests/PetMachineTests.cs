@@ -62,6 +62,65 @@ public sealed class PetMachineTests
     }
 
     [Test]
+    public void RunUntilOrStalled_MeetsCondition_WhenItBecomesTrueBeforeAnyStallWindow()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+
+        var result = machine.RunUntilOrStalled(
+            _ => machine.Processor.InstructionCount >= 10,
+            () => (long)machine.Processor.InstructionCount, // always "progresses" every instruction
+            maxInstructions: 1_000,
+            stallWindow: 500);
+
+        result.ConditionMet.Should().BeTrue();
+        result.Stalled.Should().BeFalse();
+        result.InstructionsRun.Should().Be(10);
+    }
+
+    [Test]
+    public void RunUntilOrStalled_DetectsAPlateau_LongBeforeMaxInstructions()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+
+        var result = machine.RunUntilOrStalled(
+            _ => false, // never met - only a stall or the max budget can end this
+            () => 0, // never changes - an immediate, permanent plateau
+            maxInstructions: 1_000_000,
+            stallWindow: 200);
+
+        result.ConditionMet.Should().BeFalse();
+        result.Stalled.Should().BeTrue();
+        result.InstructionsRun.Should().Be(200, "it should stop at the stall window, not run to maxInstructions");
+    }
+
+    [Test]
+    public void RunUntilOrStalled_RunsToMaxInstructions_WhenNeitherConditionNorStallFires()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+        long counter = 0;
+
+        var result = machine.RunUntilOrStalled(
+            _ => false,
+            () => ++counter, // always progresses - never plateaus
+            maxInstructions: 300,
+            stallWindow: 200);
+
+        result.ConditionMet.Should().BeFalse();
+        result.Stalled.Should().BeFalse();
+        result.InstructionsRun.Should().Be(300);
+    }
+
+    [Test]
+    public void IeeeByteTransferCount_IsCumulative_UnlikePollDiskActivity()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_32);
+        var testDisksDir = RomLocator.Directory("test-disks", "games-1.d64");
+        machine.MountDisk(Path.Combine(testDisksDir, "games-1.d64"));
+
+        machine.IeeeByteTransferCount.Should().Be(0);
+    }
+
+    [Test]
     public void Name_And_IsReady_ReflectProfile()
     {
         var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
