@@ -89,7 +89,7 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
             Path.Combine(romsRoot, profile.RomDirectory, profile.CharacterRomPath));
 
         _machine = new PetMachine(profile, romsRoot);
-        _display = new PetRasterDisplay(profile, _machine.Memory, font, _machine.Crtc);
+        _display = new PetRasterDisplay(profile, _machine.Memory, font);
         FrameBuffer = new uint[_display.PixelWidth * _display.PixelHeight];
 
         _keyboardMap = profile.BasicVersion != "BASIC 4"

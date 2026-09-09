@@ -1,7 +1,6 @@
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Core;
-using PetEmulator.Pet.Chips;
 using PetEmulator.Pet.Display;
 using PetEmulator.Pet.Fonts;
 using PetEmulator.Pet.Tests.Roms;
@@ -125,35 +124,34 @@ public class PetRasterDisplayTests
     }
 
     [Test]
-    public void Cursor_WithCrtc_LocatedByCrtcCursorRegister()
+    public void Cursor_OnACrtcEquippedProfile_StillLocatedByTheZeroPagePointer_NotACrtcRegister()
     {
+        // Was: a CRTC-equipped profile (BASIC 4, CBM 4032/8032) located the cursor via the CRTC's
+        // own hardware cursor register (R14/R15) instead of the zero-page pointer. Wrong - traced
+        // against a real boot (see PetRasterDisplay.GetCursorPosition's doc comment): the real
+        // BASIC 4 KERNAL writes R14/R15 exactly once during CRTC init (to $0000 - immediately
+        // invalid) and never touches them again; $C4/$C5/$C6 track a genuinely live, valid
+        // position throughout. This test used to write directly to a standalone Crtc6545's
+        // register (mimicking what the OLD, wrong code path read) - now it writes the zero-page
+        // pointer instead, the same way the no-CRTC test above does, proving a CRTC-equipped
+        // profile's cursor works identically.
         var font = LoadRealFont();
         var profile = PetProfileCatalog.Cbm8032;
         var memory = new FakeMemoryBus();
         const int cursorCol = 10;
         const int cursorRow = 3;
-        var cursorOffset = (ushort)(cursorRow * profile.Columns + cursorCol);
-        memory.Write((ushort)(profile.VideoRamStart + cursorOffset), SpaceScreenCode);
+        var cursorAddress = (ushort)(profile.VideoRamStart + cursorRow * profile.Columns + cursorCol);
+        memory.Write(cursorAddress, SpaceScreenCode);
+        memory.Write(0x00C4, (byte)(cursorAddress & 0xFF));
+        memory.Write(0x00C5, (byte)(cursorAddress >> 8));
+        memory.Write(0x00C6, cursorCol);
 
-        // The CRTC is a standalone chip here, not routed through `memory` - PetRasterDisplay reads
-        // its cursor register directly off the chip instance, the same way PetMachine's bus wiring
-        // would, so register writes go straight to `crtc`, not through the fake screen-RAM bus.
-        var crtc = new Crtc6545();
-        WriteCrtcRegister(crtc, 14, (byte)(cursorOffset >> 8));
-        WriteCrtcRegister(crtc, 15, (byte)(cursorOffset & 0xFF));
-
-        var display = new PetRasterDisplay(profile, memory, font, crtc);
+        var display = new PetRasterDisplay(profile, memory, font);
         var frame = new uint[display.PixelWidth * display.PixelHeight];
 
         display.Render(frame);
 
         CellPixels(frame, display.PixelWidth, font, cursorCol, cursorRow).Should().OnlyContain(p => p == 0xFF8DFF72u);
-    }
-
-    private static void WriteCrtcRegister(Crtc6545 crtc, byte register, byte value)
-    {
-        crtc.Write(0, register);
-        crtc.Write(1, value);
     }
 
     private static IEnumerable<uint> CellPixels(uint[] frame, int pixelWidth, IGlyphFont font, int col, int row)

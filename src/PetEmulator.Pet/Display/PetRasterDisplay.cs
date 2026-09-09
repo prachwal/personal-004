@@ -1,5 +1,4 @@
 using PetEmulator.Core;
-using PetEmulator.Pet.Chips;
 using PetEmulator.Pet.Fonts;
 
 namespace PetEmulator.Pet.Display;
@@ -19,9 +18,10 @@ public sealed class PetRasterDisplay
     /// happens to call <see cref="Tick"/>.</summary>
     private const int BlinkPeriodTicks = 30;
 
-    // PET KERNAL zero-page cursor tracking, used when the profile has no CRTC to ask directly
-    // (the original PET 2001/BASIC 1-2 machines have none): current screen line pointer lo/hi,
-    // then cursor column. Real hardware addresses, not this repo's invention.
+    // PET KERNAL zero-page cursor tracking: current screen line pointer lo/hi, then cursor
+    // column. Real hardware addresses, not this repo's invention - and used for EVERY profile,
+    // CRTC-equipped or not (see GetCursorPosition's doc comment for why a CRTC-branch used to
+    // exist here and why it was wrong).
     private const ushort CursorLineLowAddress = 0x00C4;
     private const ushort CursorLineHighAddress = 0x00C5;
     private const ushort CursorColumnAddress = 0x00C6;
@@ -29,11 +29,10 @@ public sealed class PetRasterDisplay
     private readonly PetProfile _profile;
     private readonly IMemoryBus _memory;
     private readonly IGlyphFont _font;
-    private readonly Crtc6545? _crtc;
     private int _blinkTicks;
     private bool _cursorVisible = true;
 
-    public PetRasterDisplay(PetProfile profile, IMemoryBus memory, IGlyphFont font, Crtc6545? crtc = null)
+    public PetRasterDisplay(PetProfile profile, IMemoryBus memory, IGlyphFont font)
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(memory);
@@ -51,7 +50,6 @@ public sealed class PetRasterDisplay
         _profile = profile;
         _memory = memory;
         _font = font;
-        _crtc = crtc;
         PixelWidth = profile.Columns * font.GlyphWidth;
         PixelHeight = profile.Rows * font.GlyphHeight;
     }
@@ -109,19 +107,23 @@ public sealed class PetRasterDisplay
         }
     }
 
-    /// <summary>Locates the text cursor: via the CRTC's cursor register when the profile has one,
-    /// else via the PET KERNAL's zero-page screen-line pointer. Returns null off-screen (cursor
-    /// address outside the visible cell range - blanked, or between frames on real hardware).</summary>
+    /// <summary>Locates the text cursor via the KERNAL's own zero-page screen-line pointer
+    /// (same $C4/$C5/$C6 convention for every profile - CRTC-equipped or not). Returns null
+    /// off-screen (cursor address outside the visible cell range - blanked, or between frames on
+    /// real hardware).
+    ///
+    /// Was branched on <see cref="_crtc"/> - CRTC-equipped profiles (BASIC 4, CBM 4032/8032) used
+    /// the CRTC's own hardware cursor register (R14/R15) instead. Wrong: traced with
+    /// <see cref="PetMachine.BusObserver"/> against a real boot - the real BASIC 4 KERNAL writes
+    /// R14/R15 exactly once during CRTC init (to $0000, immediately invalid - offset
+    /// $0000-DisplayStartAddress is always negative) and never touches them again for the rest of
+    /// a session; $C4/$C5/$C6 hold a genuinely valid, live-tracked position throughout (confirmed
+    /// against both cbm-4032 and cbm-8032). This KERNAL simply doesn't drive the CRTC's hardware
+    /// cursor feature - real PET/CBM firmware blinks the cursor entirely in software (screen-RAM
+    /// character inversion, same as every other profile), regardless of whether a CRTC is
+    /// present.</summary>
     private (int Row, int Column)? GetCursorPosition()
     {
-        if (_crtc is { } crtc)
-        {
-            var offset = crtc.CursorAddress - crtc.DisplayStartAddress;
-            return offset >= 0 && offset < _profile.Columns * _profile.Rows
-                ? (offset / _profile.Columns, offset % _profile.Columns)
-                : null;
-        }
-
         var pointer = (ushort)(_memory.Read(CursorLineLowAddress) | (_memory.Read(CursorLineHighAddress) << 8));
         var row = (int)((long)pointer - _profile.VideoRamStart) / _profile.Columns;
         int column = _memory.Read(CursorColumnAddress);
