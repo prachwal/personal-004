@@ -23,10 +23,11 @@ public sealed class Vic20Machine : IMachine
     private readonly Vic20ColorRam _colorRam;
     private readonly Vic20KeyboardMatrix _keyboard = new();
 
-    public Vic20Machine(string romsRoot)
+    public Vic20Machine(string romsRoot, Vic20DisplayConfig? displayConfig = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
 
+        DisplayConfig = displayConfig ?? Vic20DisplayConfig.Ntsc;
         var roms = Vic20RomLoader.Load(romsRoot, Vic20RomManifest.Ntsc);
 
         _vic = new Vic6560("VIC", Vic20MemoryMap.VicBaseAddress);
@@ -51,6 +52,11 @@ public sealed class Vic20Machine : IMachine
     /// <summary>The keyboard matrix VIA1 scans. A caller (e.g. a GUI's key handler) presses/
     /// releases cells on this directly.</summary>
     public Vic20KeyboardMatrix Keyboard => _keyboard;
+
+    /// <summary>Display geometry this machine was constructed with - see
+    /// <see cref="Vic20DisplayConfig"/>'s doc comment for why this is a passed-in config rather
+    /// than hardcoded downstream (e.g. in a Desktop ViewModel).</summary>
+    public Vic20DisplayConfig DisplayConfig { get; }
 
     public Vic6560 Vic => _vic;
 

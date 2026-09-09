@@ -5,6 +5,7 @@
     <Project Path="src/PetEmulator.DebugApi/PetEmulator.DebugApi.csproj" />
     <Project Path="src/PetEmulator.Pet/PetEmulator.Pet.csproj" />
     <Project Path="src/PetEmulator.Vic20/PetEmulator.Vic20.csproj" />
+    <Project Path="src/PetEmulator.Screenshot/PetEmulator.Screenshot.csproj" />
     <Project Path="src/PetEmulator.Debugger/PetEmulator.Debugger.csproj" />
     <Project Path="src/PetEmulator.Desktop/PetEmulator.Desktop.csproj" />
     <Project Path="src/PetEmulator.Cli/PetEmulator.Cli.csproj" />

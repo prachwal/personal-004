@@ -65,6 +65,7 @@ public sealed class Vic20RasterDisplay
 
         var screenAddr = _vic.ScreenAddr;
         var charAddr = _vic.CharAddr;
+        var colorAddr = Vic20MemoryMap.ColorRamStart + _vic.ColorMatrixOffset;
         var screenColor = _vic.ScreenColor;
         var auxColor = _vic.AuxColor;
         var reverse = _vic.ReverseMode;
@@ -77,7 +78,7 @@ public sealed class Vic20RasterDisplay
                 var screenCode = _memory.Read((ushort)(screenAddr + row * cols + col));
                 var charReverse = (screenCode & 0x80) != 0;
                 var charIndex = screenCode & 0x7F;
-                var colorIndex = (byte)(_memory.Read((ushort)(Vic20MemoryMap.ColorRamStart + col + row * cols)) & 0x0F);
+                var colorIndex = (byte)(_memory.Read((ushort)(colorAddr + col + row * cols)) & 0x0F);
 
                 var ink = colorIndex;
                 var paper = screenColor;

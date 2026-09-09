@@ -29,11 +29,17 @@ public sealed class Vic20KeyboardBootTests
         if (cols == 0 || rows == 0)
             return false;
         var screenAddr = machine.Vic.ScreenAddr;
-        var nonSpace = 0;
+        var letters = 0;
         for (var i = 0; i < cols * rows; i++)
-            if (machine.Memory.Read((ushort)(screenAddr + i)) != 0x20)
-                nonSpace++;
-        return nonSpace > 10;
+        {
+            // Screen-code letters are 1-26 - "!= space" alone is a false positive on zeroed RAM
+            // (0x00), which a provisional pre-relocation screen address can show - see
+            // Vic20BootTests.HasScreenText's identical fix and doc comment.
+            var code = machine.Memory.Read((ushort)(screenAddr + i));
+            if (code is >= 1 and <= 26)
+                letters++;
+        }
+        return letters > 10;
     }
 
     private static bool ScreenContainsDigitFive(Vic20Machine machine)

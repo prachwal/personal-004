@@ -45,14 +45,20 @@ public sealed class Vic20BootTests
             return false; // KERNAL hasn't configured the VIC yet
 
         var screenAddr = machine.Vic.ScreenAddr;
-        var nonSpace = 0;
+        var letters = 0;
         for (var i = 0; i < cols * rows; i++)
         {
-            if (machine.Memory.Read((ushort)(screenAddr + i)) != 0x20) // screen-code space
-                nonSpace++;
+            // Screen-code letters are 1-26 - zeroed RAM (0x00, e.g. a provisional pre-relocation
+            // screen address still showing cleared memory) is trivially "!= space" (0x20) too, a
+            // real false positive this session's own VIC-20 boot investigation hit (see
+            // docs/vic20-migration-plan.md's boot-detection note): checking for an actual letter
+            // can't pass on cleared memory.
+            var code = machine.Memory.Read((ushort)(screenAddr + i));
+            if (code is >= 1 and <= 26)
+                letters++;
         }
 
-        return nonSpace > 10;
+        return letters > 10;
     }
 
     private static Vic20Machine CreateMachine() => new(RomsRoot());

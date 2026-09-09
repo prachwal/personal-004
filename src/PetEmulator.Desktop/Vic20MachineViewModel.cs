@@ -47,11 +47,7 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
 
     public int PixelHeight => _display.PixelHeight;
 
-    /// <summary>Square pixels - the VIC-I doesn't have PET's non-square pixel-aspect quirk (or
-    /// this port doesn't model it yet; real VIC-20 NTSC pixels are close enough to square that
-    /// getting this wrong wouldn't be obviously visible - a documented simplification, not a
-    /// verified fact).</summary>
-    public (int Width, int Height) PixelAspect => (1, 1);
+    public (int Width, int Height) PixelAspect => (_machine.DisplayConfig.PixelAspectWidth, _machine.DisplayConfig.PixelAspectHeight);
 
     public event EventHandler? FrameReady;
 

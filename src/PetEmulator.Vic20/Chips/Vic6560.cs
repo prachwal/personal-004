@@ -57,6 +57,18 @@ public sealed class Vic6560 : IMemoryMappedDevice
     public int CharMatrixBase => (_registers[0x05] & 0x0F) << 10;
     public int ScreenAddr => ToCpuAddress(ScreenMatrixBase);
     public int CharAddr => ToCpuAddress(CharMatrixBase);
+
+    /// <summary>Offset into the fixed $9400-$97FF color-RAM window for this screen's cell 0 -
+    /// real hardware fetches color RAM using the SAME low 10 bits of the video matrix address as
+    /// the screen fetch (color RAM only has 10 useful address lines; the video matrix's high bits
+    /// select which 512-byte-aligned page it lives in, but its low 10 bits still land somewhere
+    /// within color RAM's own window and must be added to <c>ColorRamStart</c> - reading straight
+    /// from offset 0 is wrong whenever the low 10 bits aren't already 0). Confirmed empirically
+    /// against the real KERNAL: with <see cref="ScreenMatrixBase"/>=$3E00 (this repo's real,
+    /// final boot-time value - see docs/vic20-migration-plan.md's color-RAM bug note), real
+    /// KERNAL writes to color RAM land at $9600-$97F9 (offset $200), exactly
+    /// <c>ScreenMatrixBase &amp; 0x3FF</c> = $3E00 &amp; 0x3FF = $200.</summary>
+    public int ColorMatrixOffset => ScreenMatrixBase & 0x3FF;
     public byte AuxColor => (byte)((_registers[0x0E] >> 4) & 0x0F);
     public byte ScreenColor => (byte)((_registers[0x0F] >> 4) & 0x0F);
     public bool ReverseMode => (_registers[0x0F] & 0x08) != 0;
