@@ -13,7 +13,7 @@ dotnet run --project src/PetEmulator.Cli --no-restore -- debug scripts/pet-tape-
 log="$out/pet-tape-loading.log"
 grep -q '📼 Datasette: No tape' "$log"
 grep -q '^tape loaded: tower-and-dragon-town.tap (549507 pulses)$' "$log"
-grep -q '📼 Datasette: tower-and-dragon-town.tap$' "$log"
+grep -q '📼 Datasette: tower-and-dragon-town.tap - press play$' "$log"
 grep -q 'halted=False' "$log"
 ! grep -q '^error:' "$log"
 

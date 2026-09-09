@@ -18,6 +18,7 @@ public sealed class CbmDosEngine
     private bool _saveMode;
     private List<byte> _saveFilenameBytes = [];
     private bool _saveDataPhase;
+    private bool _channelOpen;
 
     public bool DataAvailable =>
         _currentSecAddr == 15
@@ -39,6 +40,7 @@ public sealed class CbmDosEngine
     {
         _currentSecAddr = secAddr;
         _commandBuffer.Clear();
+        _channelOpen = true;
 
         switch (secAddr)
         {
@@ -74,6 +76,18 @@ public sealed class CbmDosEngine
 
     public void CloseChannel()
     {
+        // The bus closes the addressed device twice per ATN cycle in the common case: once
+        // automatically when ATN reasserts after a DataOut transfer (PetIeeeBus.OnATNWrite), and
+        // again when it decodes the UNLISTEN byte that follows (or BASIC 4's CLOSE-SA, which
+        // skips UNLISTEN but hits the same auto-close) - both are legitimate real-hardware
+        // signals a device must tolerate, not a bug in the bus. Without this guard, the second
+        // call finds the just-received filename/data still sitting in _commandBuffer with
+        // _waitingForFilename already cleared by the first call, and misreads it as a DOS command
+        // (typically producing a bogus "30, SYNTAX ERROR" instead of the real LOAD/SAVE result).
+        if (!_channelOpen)
+            return;
+        _channelOpen = false;
+
         if (_saveMode && _saveDataPhase)
         {
             if (_commandBuffer.Count > 0)

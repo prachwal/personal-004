@@ -30,6 +30,7 @@ public sealed class PetIeeeBus
     private bool _hasCachedInput;
     private bool _dataInRead;
     private int _dataInFetchDelay;
+    private int _writeAckDelay;
     private bool _lastAtn;
     private bool _pendingCommand;
 
@@ -119,6 +120,7 @@ public sealed class PetIeeeBus
                 return;
             ProcessCommandByte(data);
             AcceptHandshake();
+            ArmWriteAck();
             return;
         }
 
@@ -128,13 +130,27 @@ public sealed class PetIeeeBus
                 if (IsUnaddressedChannelByte(data))
                     return;
                 ProcessCommandByte(data);
+                ArmWriteAck();
                 break;
             case BusState.DataOut:
                 _listenerDevice?.Write(data);
                 AcceptHandshake();
+                ArmWriteAck();
                 break;
         }
     }
+
+    /// <summary>Schedules <see cref="CompleteHandshake"/> a few cycles after any byte this bus
+    /// just finished processing (LISTEN/TALK/SECONDARY under ATN, or a filename/data byte to the
+    /// listener) - every one of those paths leaves NRFD asserted (busy) via
+    /// <see cref="AcceptHandshake"/> or <see cref="CommandHandshake"/> with nothing to release it
+    /// again. Real listener firmware would release it almost immediately once done; our
+    /// processing already finished synchronously by the time this is called, so a short settle
+    /// delay (mirroring <see cref="Tick"/>'s own <c>_dataInFetchDelay</c> for the read side) is
+    /// all that's needed - without it, the KERNAL's own "wait for the listener to be ready before
+    /// sending the next byte" poll loop (real IEEE-488 behavior, not a bug in the ROM) never sees
+    /// NRFD go ready and hangs forever, e.g. stuck printing "SEARCHING FOR ..." on a real LOAD.</summary>
+    private void ArmWriteAck() => _writeAckDelay = 32;
 
     public byte OnDioRead()
     {
@@ -198,9 +214,21 @@ public sealed class PetIeeeBus
         RaiseActivity("line-change", "NRFD=true NDAC=false");
     }
 
-    /// <summary>Advances the talker-side data fetch delay; call once per bus/device tick.</summary>
+    /// <summary>Advances the talker-side data fetch delay and the write-ack settle delay (see
+    /// <see cref="ArmWriteAck"/>); call once per bus/device tick.</summary>
     public void Tick()
     {
+        if (_writeAckDelay > 0 && --_writeAckDelay == 0)
+        {
+            CompleteHandshake();
+            // CommandHandshake() (every command byte) and AcceptHandshake() both leave DAV
+            // asserted - real protocol only releases it once the talker (the PET, driving DAV
+            // itself via PIA2 CB2) sees NDAC go ready and lets go. The auto-processed bypass path
+            // never does that CB2 toggle, so nothing else ever clears it; left stuck asserted,
+            // the KERNAL's own "wait for DAV to settle before the next byte" check hangs forever.
+            SetDAVState(false);
+        }
+
         if (_hasCachedInput || _state != BusState.DataIn || _talkerDevice is not { } device)
             return;
 
@@ -242,6 +270,7 @@ public sealed class PetIeeeBus
         _hasCachedInput = false;
         _dataInRead = false;
         _dataInFetchDelay = 0;
+        _writeAckDelay = 0;
     }
 
     private void ProcessCommandByte(byte cmd)
