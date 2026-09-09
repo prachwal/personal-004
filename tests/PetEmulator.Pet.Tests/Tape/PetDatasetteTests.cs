@@ -36,6 +36,7 @@ public sealed class PetDatasetteTests
         pia.Write(1, 0x04); // select CRA's data register so reading Port A clears the CA1 flag, as real KERNAL code does
         var datasette = new PetDatasette(pia);
         datasette.LoadTape([100, 200, 50]);
+        datasette.PressPlay();
         pia.Write(3, MotorOnControlB);
 
         datasette.MotorOn.Should().BeTrue();
@@ -74,6 +75,7 @@ public sealed class PetDatasetteTests
         pia.Write(1, 0x04); // select CRA's data register so reading Port A clears the CA1 flag
         var datasette = new PetDatasette(pia);
         datasette.LoadTape([10, 10, 10]);
+        datasette.PressPlay();
         pia.Write(3, MotorOnControlB);
         for (var i = 0; i < 10; i++) datasette.Tick();
         Ca1FlagSet(pia).Should().BeTrue();
@@ -97,6 +99,7 @@ public sealed class PetDatasetteTests
         var pia = new Pia();
         var datasette = new PetDatasette(pia);
         datasette.LoadTape([5, 5]);
+        datasette.PressPlay();
         pia.Write(3, MotorOnControlB);
         for (var i = 0; i < 5; i++) datasette.Tick();
         Ca1FlagSet(pia).Should().BeTrue();
@@ -107,15 +110,61 @@ public sealed class PetDatasetteTests
     }
 
     [Test]
-    public void Sense_reflects_whether_a_tape_is_loaded_independent_of_motor_state()
+    public void Sense_reflects_whether_play_is_pressed_independent_of_tape_or_motor_state()
     {
         var pia = new Pia();
         var datasette = new PetDatasette(pia);
 
-        datasette.Sense.Should().BeFalse("no tape is loaded yet");
+        datasette.Sense.Should().BeFalse("play hasn't been pressed yet");
+
+        datasette.PressPlay();
+        datasette.Sense.Should().BeTrue("a real deck's sense switch closes on ANY transport button, even with no tape loaded");
+        datasette.MotorOn.Should().BeFalse("pressing play doesn't turn the motor on by itself - that's software-driven");
+
+        datasette.Stop();
+        datasette.Sense.Should().BeFalse();
+    }
+
+    [Test]
+    public void LoadingATape_DoesNotPressPlayForYou()
+    {
+        var pia = new Pia();
+        var datasette = new PetDatasette(pia);
+        datasette.PressPlay();
 
         datasette.LoadTape([10]);
-        datasette.Sense.Should().BeTrue();
-        datasette.MotorOn.Should().BeFalse("loading a tape doesn't turn the motor on by itself");
+
+        datasette.Sense.Should().BeFalse("loading a fresh tape releases play, matching a real deck");
+        datasette.HasTape.Should().BeTrue();
+    }
+
+    [Test]
+    public void Eject_ClearsTheTapeAndReleasesPlay()
+    {
+        var pia = new Pia();
+        var datasette = new PetDatasette(pia);
+        datasette.LoadTape([10, 20], "game.tap");
+        datasette.PressPlay();
+
+        datasette.Eject();
+
+        datasette.HasTape.Should().BeFalse();
+        datasette.TapeName.Should().BeNull();
+        datasette.Sense.Should().BeFalse();
+    }
+
+    [Test]
+    [CancelAfter(5_000)]
+    public void PlayPressed_ButMotorOff_DoesNotAdvanceTheTape()
+    {
+        var pia = new Pia();
+        pia.Write(1, 0x04);
+        var datasette = new PetDatasette(pia);
+        datasette.LoadTape([10, 10]);
+        datasette.PressPlay(); // motor never turned on via CB2
+
+        for (var i = 0; i < 100; i++) datasette.Tick();
+
+        Ca1FlagSet(pia).Should().BeFalse("real tape only moves when both the motor is on AND play is pressed");
     }
 }

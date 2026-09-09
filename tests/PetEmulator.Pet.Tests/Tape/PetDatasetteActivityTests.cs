@@ -53,6 +53,7 @@ public sealed class PetDatasetteActivityTests
         var pia = new Pia();
         var datasette = new PetDatasette(pia);
         datasette.LoadTape([100, 200]);
+        datasette.PressPlay();
         pia.Write(3, MotorOnControlB);
         datasette.Tick(); // motor-on tick, index still 0
 
@@ -71,6 +72,7 @@ public sealed class PetDatasetteActivityTests
         var pia = new Pia();
         var datasette = new PetDatasette(pia);
         datasette.LoadTape([10]);
+        datasette.PressPlay();
         var act = () =>
         {
             pia.Write(3, MotorOnControlB);

@@ -13,7 +13,8 @@ public readonly record struct DatasetteActivity(string Kind, string Detail);
 /// line) is pulsed at each pulse boundary, gated by CB2 (output, cassette motor control - PET
 /// wiring is active-low: false/0 = motor on, true/1 = off).
 ///
-/// Call <see cref="Tick"/> once per CPU cycle while a tape is loaded and the motor is on.
+/// Call <see cref="Tick"/> once per CPU cycle while a tape is loaded, the motor is on, and PLAY
+/// is pressed (see <see cref="PlayPressed"/>).
 ///
 /// Motor state is read directly from PIA1's CB2 on every tick (not cached from a change event):
 /// the motor is only ever "on" once the ROM has actually configured CB2 as an output AND driven
@@ -55,9 +56,18 @@ public sealed class PetDatasette
 
     public bool HasTape => _pulseCycles.Count > 0;
 
-    /// <summary>Cassette #1 sense line (PIA1 PA4, active low): mirrors whether a tape is
-    /// mechanically loaded, independent of motor/play state.</summary>
-    public bool Sense => HasTape;
+    /// <summary>Whether the (emulated) physical PLAY button is currently held down - real hardware
+    /// has a switch under the transport buttons, independent of the software-controlled motor
+    /// relay: the KERNAL's LOAD routine turns the motor on via <see cref="MotorOn"/> but then
+    /// blocks printing "PRESS PLAY ON TAPE #1" until this switch closes too, exactly like a human
+    /// needing to physically press play on a real datasette before tape actually moves. See
+    /// <see cref="PressPlay"/>/<see cref="Stop"/>.</summary>
+    public bool PlayPressed { get; private set; }
+
+    /// <summary>Cassette #1 sense line (PIA1 PA4, active low): closes whenever a transport button
+    /// is physically held down, regardless of whether a tape is even loaded - matching real
+    /// hardware (you can press play on an empty deck; it just won't produce any pulses).</summary>
+    public bool Sense => PlayPressed;
 
     /// <summary>True once every pulse in the loaded tape has been played past.</summary>
     public bool IsAtEnd => _pulseIndex >= _pulseCycles.Count;
@@ -72,8 +82,26 @@ public sealed class PetDatasette
         ArgumentNullException.ThrowIfNull(pulseCycles);
         _pulseCycles = pulseCycles;
         TapeName = name;
+        PlayPressed = false; // loading a fresh tape doesn't press play for you - matches a real deck
         Rewind();
     }
+
+    /// <summary>Ejects whatever tape is loaded: clears its pulses/name, releases play, and rewinds.</summary>
+    public void Eject()
+    {
+        _pulseCycles = [];
+        TapeName = null;
+        PlayPressed = false;
+        Rewind();
+    }
+
+    /// <summary>Presses the (emulated) PLAY button - see <see cref="PlayPressed"/>. Always
+    /// available, even with no tape loaded (a real button doesn't know or care), so a caller never
+    /// needs to check <see cref="HasTape"/> first.</summary>
+    public void PressPlay() => PlayPressed = true;
+
+    /// <summary>Releases the PLAY button (or STOP, on a real deck) - see <see cref="PlayPressed"/>.</summary>
+    public void Stop() => PlayPressed = false;
 
     public void Rewind()
     {
@@ -83,8 +111,8 @@ public sealed class PetDatasette
 
     public void Reset() => Rewind();
 
-    /// <summary>Advances the tape by one CPU cycle. No-op if the motor is off, no tape is loaded,
-    /// or the loaded tape has already played to the end.</summary>
+    /// <summary>Advances the tape by one CPU cycle. No-op if the motor is off, PLAY isn't pressed,
+    /// no tape is loaded, or the loaded tape has already played to the end.</summary>
     public void Tick()
     {
         var motorOn = MotorOn;
@@ -94,7 +122,7 @@ public sealed class PetDatasette
             Activity?.Invoke(new DatasetteActivity("motor", motorOn ? "on" : "off"));
         }
 
-        if (!motorOn || IsAtEnd)
+        if (!motorOn || !PlayPressed || IsAtEnd)
             return;
 
         if (--_cyclesUntilNextEdge > 0)

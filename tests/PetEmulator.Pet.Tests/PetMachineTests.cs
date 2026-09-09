@@ -2,6 +2,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Core;
 using PetEmulator.Pet.Keyboard;
+using PetEmulator.Pet.Tape;
 using PetEmulator.Pet.Tests.Roms;
 
 namespace PetEmulator.Pet.Tests;
@@ -172,19 +173,68 @@ public sealed class PetMachineTests
         after.Should().NotEqual(before, "typing PRINT2+2<Enter> should produce visible output");
     }
 
-    private static bool ContainsReady(IMemoryBus memory, PetProfile profile)
+    // "PRESS PLAY ON TAPE #1" in PET screen codes: A-Z map to 1-26 (see ReadyBytes above),
+    // space/digits/'#' are ASCII-identical.
+    private static readonly byte[] PressPlayBytes =
+    [
+        0x10, 0x12, 0x05, 0x13, 0x13, 0x20, // PRESS
+        0x10, 0x0C, 0x01, 0x19, 0x20,       // PLAY
+        0x0F, 0x0E, 0x20,                   // ON
+        0x14, 0x01, 0x10, 0x05, 0x20,       // TAPE
+        0x23, 0x31,                         // #1
+    ];
+
+    // "SEARCHING" - what LOAD prints next once it actually starts reading. The PET screen never
+    // clears/overwrites the prompt line (it just scrolls up), so a passing test has to look for
+    // this appearing, not for PressPlayBytes disappearing - see the test's own history for why an
+    // earlier draft asserting the prompt's absence failed against a real ROM.
+    private static readonly byte[] SearchingBytes =
+        [0x13, 0x05, 0x01, 0x12, 0x03, 0x08, 0x09, 0x0E, 0x07];
+
+    /// <summary>Reproduces the real hang this session's screenshot showed: the KERNAL's LOAD
+    /// routine turns the cassette motor on via CB2 but then blocks on PIA1 PA4 (cassette sense)
+    /// until PLAY is physically pressed - a real datasette behavior <see cref="PetMachine"/>
+    /// didn't model at all (PA4 was hardcoded high, so the prompt would never clear no matter
+    /// what). Proves both halves of the fix: PA4 actually reaches <see cref="PetDatasette.Sense"/>,
+    /// and pressing play is what makes LOAD proceed - not just having a tape attached.</summary>
+    [Test]
+    [CancelAfter(60_000)]
+    public void PressPlay_LetsLoadProceedPastThePressPlayPrompt()
     {
-        for (var start = profile.VideoRamStart; start + ReadyBytes.Length <= profile.VideoRamStart + profile.VideoRamLength; start++)
+        var profile = PetProfileCatalog.Pet2001_32;
+        var machine = CreateMachine(profile);
+        var map = new Pet2001GraphicsKeyboardMap();
+        var tapDirectory = RomLocator.Directory("test-tapes", "tower-and-dragon-town.tap");
+        var tap = PetTapFile.Parse(File.ReadAllBytes(Path.Combine(tapDirectory, "tower-and-dragon-town.tap")));
+        machine.Datasette.LoadTape(tap.PulseCycles, "tower-and-dragon-town.tap");
+
+        machine.RunUntil(mem => ContainsReady(mem, profile), 1_000_000).Should().BeTrue();
+        TextTyper.Type(machine, map, "LOAD\n");
+
+        machine.RunUntil(mem => ScreenContains(mem, profile, PressPlayBytes), 2_000_000)
+            .Should().BeTrue("LOAD should turn the motor on and then block waiting for PLAY, printing this prompt");
+
+        machine.Datasette.PressPlay();
+
+        machine.RunUntil(mem => ScreenContains(mem, profile, SearchingBytes), 2_000_000)
+            .Should().BeTrue("pressing play should close the PA4 sense line and let LOAD proceed to actually read the tape");
+    }
+
+    private static bool ScreenContains(IMemoryBus memory, PetProfile profile, byte[] pattern)
+    {
+        for (var start = profile.VideoRamStart; start + pattern.Length <= profile.VideoRamStart + profile.VideoRamLength; start++)
         {
             var match = true;
-            for (var j = 0; j < ReadyBytes.Length; j++)
+            for (var j = 0; j < pattern.Length; j++)
             {
-                if (memory.Read((ushort)(start + j)) != ReadyBytes[j]) { match = false; break; }
+                if (memory.Read((ushort)(start + j)) != pattern[j]) { match = false; break; }
             }
             if (match) return true;
         }
         return false;
     }
+
+    private static bool ContainsReady(IMemoryBus memory, PetProfile profile) => ScreenContains(memory, profile, ReadyBytes);
 
     private static byte[] SnapshotScreen(PetMachine machine, PetProfile profile)
     {
@@ -210,7 +260,7 @@ public sealed class PetMachineTests
 
         machine.Datasette.LoadTape([100, 200], "starwars.tap");
 
-        machine.Devices.Single(d => d.Id == "datasette").StatusText.Should().Be("starwars.tap");
+        machine.Devices.Single(d => d.Id == "datasette").StatusText.Should().Be("starwars.tap - press play");
     }
 
     [Test]

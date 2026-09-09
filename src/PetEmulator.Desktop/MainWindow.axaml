@@ -36,25 +36,37 @@
             <TextBlock FontFamily="monospace" Foreground="#FF8DFF72" Text="{Binding StatusText}" />
         </Border>
 
-        <!-- Where the keyboard-test input box used to live: one chip per attached peripheral
-             (see PetMachine.Devices) - dynamic, so a profile with more/fewer/different devices
-             (an extra disk drive, a future printer) needs no XAML change here. -->
+        <!-- Where the keyboard-test input box used to live. The datasette gets its own transport
+             widget (real PET hardware needs a physical PLAY press before LOAD can proceed past
+             "PRESS PLAY ON TAPE #1" - a level this repo's PIA1 PA4 wiring now genuinely models,
+             not just a status label); every other attached peripheral (see PetMachine.Devices,
+             minus the datasette) gets a plain icon+status chip, dynamic so a profile with more/
+             fewer/different devices needs no XAML change here. -->
         <Border DockPanel.Dock="Bottom" Background="#FF161616" Padding="8,4">
-            <ItemsControl ItemsSource="{Binding Devices}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" Spacing="16" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="devices:IPetDeviceStatus">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="{Binding Icon}" FontSize="14" />
-                            <TextBlock FontFamily="monospace" Foreground="#FFAAAAAA" Text="{Binding StatusText}" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <StackPanel Orientation="Horizontal" Spacing="4" ToolTip.Tip="Datasette">
+                    <TextBlock Text="📼" FontSize="14" Foreground="{Binding TapeIconBrush}" />
+                    <Button Content="▶" Padding="4,0" Command="{Binding PlayTapeCommand}" ToolTip.Tip="Press play" />
+                    <Button Content="⏹" Padding="4,0" Command="{Binding StopTapeCommand}" ToolTip.Tip="Stop" />
+                    <Button Content="⏏" Padding="4,0" Command="{Binding EjectTapeCommand}" ToolTip.Tip="Eject" />
+                </StackPanel>
+
+                <ItemsControl ItemsSource="{Binding OtherDevices}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="16" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="devices:IPetDeviceStatus">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="{Binding Icon}" FontSize="14" />
+                                <TextBlock FontFamily="monospace" Foreground="#FFAAAAAA" Text="{Binding StatusText}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
         </Border>
 
         <local:PetScreenControl Name="Screen" Focusable="True" />

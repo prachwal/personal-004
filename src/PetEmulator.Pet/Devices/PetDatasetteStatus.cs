@@ -13,7 +13,11 @@ public sealed class PetDatasetteStatus(PetDatasette datasette) : IPetDeviceStatu
 
     public string DisplayName => "Datasette";
 
-    public string StatusText => datasette.HasTape
-        ? $"{datasette.TapeName ?? "(unnamed tape)"}{(datasette.MotorOn ? " - playing" : "")}"
-        : "No tape";
+    public string StatusText => datasette switch
+    {
+        { HasTape: false } => "No tape",
+        { PlayPressed: false } => $"{datasette.TapeName ?? "(unnamed tape)"} - press play",
+        { MotorOn: false } => $"{datasette.TapeName ?? "(unnamed tape)"} - play pressed, waiting for motor",
+        _ => $"{datasette.TapeName ?? "(unnamed tape)"} - playing",
+    };
 }

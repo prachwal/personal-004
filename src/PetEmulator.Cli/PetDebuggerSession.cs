@@ -16,7 +16,8 @@ namespace PetEmulator.Cli;
 /// </summary>
 /// <remarks>
 /// Construction commands (<c>profile</c>/<c>roms</c>/<c>keymap</c>/<c>tape</c>/<c>disk</c>/
-/// <c>key</c>/<c>type</c>/<c>devices</c>/<c>status</c>) live here, PET-specific. Everything else
+/// <c>play</c>/<c>stop</c>/<c>eject</c>/<c>key</c>/<c>type</c>/<c>devices</c>/<c>status</c>) live
+/// here, PET-specific. Everything else
 /// (<c>trace</c>/<c>watch</c>/<c>watch-range</c>/<c>unwatch</c>/<c>break-cycle</c>/
 /// <c>break-instruction-count</c>/<c>dump</c>) is CPU-agnostic and already implemented once in
 /// <see cref="MachineDebugger"/> - this class delegates to it rather than duplicating it, once the
@@ -48,6 +49,9 @@ public sealed class PetDebuggerSession
                 "keymap" => SetKeymap(parts[1]),
                 "tape" => LoadTape(Argument(commandLine, parts[0])),
                 "disk" => LoadDisk(parts),
+                "play" => PlayTape(),
+                "stop" => StopTape(),
+                "eject" => EjectTape(),
                 "key" => Key(parts),
                 "type" => Type(commandLine[(parts[0].Length + 1)..]),
                 "devices" => Devices(),
@@ -96,6 +100,27 @@ public sealed class PetDebuggerSession
         var tap = PetTapFile.Parse(File.ReadAllBytes(path));
         machine.Datasette.LoadTape(tap.PulseCycles, Path.GetFileName(path));
         return $"tape loaded: {Path.GetFileName(path)} ({tap.PulseCycles.Count} pulses)";
+    }
+
+    /// <summary>Presses the (emulated) PLAY button - the real-hardware step the KERNAL's
+    /// "PRESS PLAY ON TAPE #1" prompt is actually waiting for, distinct from just attaching a
+    /// tape file. See <see cref="PetDatasette"/>'s <c>PlayPressed</c>.</summary>
+    private string PlayTape()
+    {
+        EnsureMachine().Datasette.PressPlay();
+        return "play pressed";
+    }
+
+    private string StopTape()
+    {
+        EnsureMachine().Datasette.Stop();
+        return "stopped";
+    }
+
+    private string EjectTape()
+    {
+        EnsureMachine().Datasette.Eject();
+        return "tape ejected";
     }
 
     private string LoadDisk(string[] parts)

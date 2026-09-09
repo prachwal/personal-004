@@ -1,4 +1,5 @@
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -36,11 +37,28 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _statusText = "PC=0x0000 A=0x00 X=0x00 Y=0x00 SP=0x00 P=0x00 Cycles=0 Instructions=0";
 
-    /// <summary>Refreshed every <see cref="Tick"/> from <see cref="PetMachine.Devices"/> - the
-    /// status bar's ItemsControl binds directly to this, so a device attached/replaced mid-session
-    /// (a tape loaded, a disk swapped) shows up within one tick with no extra event wiring.</summary>
+    /// <summary>Refreshed every <see cref="Tick"/> from <see cref="PetMachine.Devices"/>, minus
+    /// the datasette (it gets its own dedicated transport widget - see
+    /// <see cref="TapeIconColor"/>/<see cref="PlayTapeCommand"/> - not a generic read-only status
+    /// chip). The status bar's ItemsControl binds directly to this, so a device attached/replaced
+    /// mid-session (a disk swapped) shows up within one tick with no extra event wiring.</summary>
     [ObservableProperty]
-    private IReadOnlyList<IPetDeviceStatus> _devices = [];
+    private IReadOnlyList<IPetDeviceStatus> _otherDevices = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TapeIconBrush))]
+    private bool _tapeLoaded;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TapeIconBrush))]
+    private bool _tapePlaying;
+
+    /// <summary>Drives the tape icon's color: gray with nothing loaded, green once PLAY is
+    /// actually engaged (see <see cref="PetDatasette.PlayPressed"/>), the default foreground
+    /// otherwise (loaded but stopped) - the real feedback loop this widget exists for, since
+    /// without it a real PET sits stuck forever on "PRESS PLAY ON TAPE #1" with no way to
+    /// answer it.</summary>
+    public IBrush TapeIconBrush => !TapeLoaded ? Brushes.Gray : TapePlaying ? Brushes.LimeGreen : Brushes.LightGray;
 
     public MainWindowViewModel()
     {
@@ -115,6 +133,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <inheritdoc cref="LoadTape"/>
     public void LoadDisk(string path) => _machine.MountDisk(path);
 
+    [RelayCommand]
+    private void PlayTape() => _machine.Datasette.PressPlay();
+
+    [RelayCommand]
+    private void StopTape() => _machine.Datasette.Stop();
+
+    [RelayCommand]
+    private void EjectTape() => _machine.Datasette.Eject();
+
     /// <summary>Translates one Avalonia key event into matrix presses/releases on the running
     /// machine's keyboard. The View owns the Avalonia <see cref="Key"/> -&gt; host-key-string
     /// mapping (<see cref="KeyMapping"/>) since that's purely an Avalonia input concern.</summary>
@@ -145,7 +172,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             $"SP=0x{regs["SP"]:X2} P=0x{regs["P"]:X2} " +
             $"Cycles={_machine.Processor.CycleCount} Instructions={_machine.Processor.InstructionCount}";
 
-        Devices = _machine.Devices;
+        OtherDevices = _machine.Devices.Where(d => d.Id != "datasette").ToList();
+        TapeLoaded = _machine.Datasette.HasTape;
+        TapePlaying = _machine.Datasette.PlayPressed && _machine.Datasette.MotorOn;
         FrameReady?.Invoke(this, EventArgs.Empty);
     }
 

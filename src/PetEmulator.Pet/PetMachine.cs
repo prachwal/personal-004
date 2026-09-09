@@ -55,17 +55,25 @@ public sealed class PetMachine : IMachine
         _cpu = new Cpu6502Classic(_memoryBus);
 
         _datasette = new PetDatasette(_pia1);
+        _ieeeBus = new PetIeeeBus();
 
         // PIA1 port A: writing selects the keyboard row (low nibble); reading it back echoes
-        // that row plus sense bits this repo doesn't model yet (cassette/IEEE EOI - see
-        // personal-001's PetPia1Binding, which this wiring mirrors). Port B reads back which
-        // columns are held down in the currently selected row.
+        // that row plus PA4 (cassette #1 sense, active low - see PetDatasette.Sense) and PA6
+        // (IEEE EOI, active low - see PetIeeeBus.EOI), ported from personal-001's
+        // PetPia1Binding.ReadPortA. PA5 (cassette #2 sense) is left high - no cassette #2 on any
+        // profile this repo models. Port B reads back which columns are held down in the
+        // currently selected row.
         Keyboard = keyboard ?? new PetKeyboardMatrix();
         _pia1.PortAWritten = value => _keyboardSelectedRow = (byte)(value & 0x0F);
-        _pia1.PortAInput = () => (byte)(0xF0 | _keyboardSelectedRow);
+        _pia1.PortAInput = () =>
+        {
+            var value = (byte)(0xF0 | _keyboardSelectedRow);
+            if (_datasette.Sense) value &= 0xEF;
+            if (_ieeeBus.EOI) value &= 0xBF;
+            return value;
+        };
         _pia1.PortBInput = () => Keyboard.ReadColumns(_keyboardSelectedRow);
 
-        _ieeeBus = new PetIeeeBus();
         _ieeeBusBinding = new PetIeeeBusBinding(_pia2, _via, _ieeeBus);
 
         Reset();
