@@ -4,6 +4,12 @@ using PetEmulator.Pet.Roms;
 
 namespace PetEmulator.Pet;
 
+/// <summary>One real access this bus served - the CPU (or any other bus master) reading or
+/// writing one byte at one address, with the value actually transferred. Doesn't distinguish an
+/// opcode fetch from an operand/data access (this bus has no way to tell them apart, unlike a
+/// cycle-accurate CPU core's own bus-cycle stream).</summary>
+public readonly record struct BusAccess(bool IsWrite, ushort Address, byte Value);
+
 /// <summary>
 /// Address decoder for a PET machine: RAM (video RAM is a subrange of the same array, per
 /// <see cref="PetProfile.VideoRamStart"/>/<see cref="PetProfile.VideoRamLength"/> - not a
@@ -15,6 +21,15 @@ namespace PetEmulator.Pet;
 /// </summary>
 public sealed class PetMemoryBus : IMemoryBus
 {
+    /// <summary>Fires for every real Read/Write this bus serves - the debugging "actions" pattern
+    /// personal-002's Z80Cpu.BusCycleObserver uses for cycle-level visibility into what the CPU is
+    /// actually touching, ported here as a bus-level hook instead of a CPU-core change (this
+    /// repo's CLAUDE.md routes src/PetEmulator.Cpu6502/ changes through a dedicated subagent; a
+    /// bus-level observer needs none of that, and "which chip/address did this instruction just
+    /// touch" is exactly what it's for). Optional (nullable) - zero added cost on the hot Read/
+    /// Write path when nobody's watching.</summary>
+    public Action<BusAccess>? Observer { get; set; }
+
     public const ushort Pia1Base = 0xE810;
     public const ushort Pia2Base = 0xE820;
     public const ushort ViaBase = 0xE840;
@@ -51,6 +66,13 @@ public sealed class PetMemoryBus : IMemoryBus
 
     public byte Read(ushort address)
     {
+        var value = ReadCore(address);
+        Observer?.Invoke(new BusAccess(IsWrite: false, address, value));
+        return value;
+    }
+
+    private byte ReadCore(ushort address)
+    {
         if (IsRam(address))
             return _ram[address];
 
@@ -70,6 +92,12 @@ public sealed class PetMemoryBus : IMemoryBus
     }
 
     public void Write(ushort address, byte value)
+    {
+        WriteCore(address, value);
+        Observer?.Invoke(new BusAccess(IsWrite: true, address, value));
+    }
+
+    private void WriteCore(ushort address, byte value)
     {
         if (IsRam(address))
         {

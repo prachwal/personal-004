@@ -47,13 +47,17 @@ public sealed class PetIeeeBusTests
         bus.OnDioWrite(0x60);
         bus.OnATNWrite(false);
 
+        // PetIeeeBus.SettleDelayCycles ticks (4,000) must fully elapse before the next byte is
+        // pre-fetched - see that constant's doc comment for why it isn't 32 any more.
+        const int settleDelayCycles = 4_000;
+
         bus.Tick();
         bus.OnDioRead().Should().Be(0x01);
         bus.SetNdacAccepted(true);
-        for (int i = 0; i < 33; i++) bus.Tick();
+        for (int i = 0; i < settleDelayCycles + 1; i++) bus.Tick();
         bus.OnDioRead().Should().Be(0x02);
         bus.SetNdacAccepted(true);
-        for (int i = 0; i < 33; i++) bus.Tick();
+        for (int i = 0; i < settleDelayCycles + 1; i++) bus.Tick();
         bus.OnDioRead().Should().Be(0x03);
         dev.LastWriteSec.Should().Be(0);
     }

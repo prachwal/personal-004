@@ -101,6 +101,15 @@ public sealed class PetMachine : IMachine
     /// <summary>The VIA - exposed for debug tooling (timer/IRQ state).</summary>
     public Via6522 Via => _via;
 
+    /// <summary>Fires for every real bus access (RAM/ROM/chip read or write) the CPU makes - see
+    /// <see cref="BusAccess"/>'s doc comment. Optional; zero added cost on the hot path when
+    /// unset.</summary>
+    public Action<BusAccess>? BusObserver
+    {
+        get => _memoryBus.Observer;
+        set => _memoryBus.Observer = value;
+    }
+
     /// <summary>The cassette #1 datasette - a caller (GUI menu, debugger script) loads a tape
     /// through this directly.</summary>
     public PetDatasette Datasette => _datasette;

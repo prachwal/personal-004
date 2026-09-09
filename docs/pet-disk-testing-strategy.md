@@ -58,18 +58,35 @@ reference PET/CBM emulator's IEEE-488 bus implementation):
    actual data phase, where 0x00 is a legitimate BASIC line terminator) - fixed, narrowly scoped,
    with the ambiguity documented in place.
 
-With all three fixed, SAVE and small LOADs (a reloaded few-line BASIC program) now complete
-fully from real BASIC - see `SaveCompletesAndReturnsToReady` and
-`SaveThenLoadRoundTripsARealProgramThroughARealDisk`, both genuinely passing (the round trip
-types the program, `SAVE`s it, `NEW`s memory clear, `LOAD`s it back, `RUN`s it, and checks the
-real evaluated output on screen - proof the whole path works, not just that the KERNAL stopped
-hanging).
+5. **Large real-file `LOAD` stalled at a fixed byte offset (326 of 4,486)** - root-caused with a
+   new bus-level debugging tool, `PetMachine.BusObserver`/`PetMemoryBus.Observer` (a
+   `Action<BusAccess>` fired on every real Read/Write, modeled on personal-002's
+   `Z80Cpu.BusCycleObserver`; deliberately built at the `PetMemoryBus` level, not inside
+   `src/PetEmulator.Cpu6502/`, so it needs none of that project's subagent routing) plus a full
+   instruction-level PC+bus trace saved to disk around the exact stall. The trace showed the
+   ~60Hz keyboard-scan IRQ (~550-600 instructions, 1,000+ cycles) landing mid-read and outlasting
+   `PetIeeeBus`'s read-side settle delay (32 cycles): the emulation silently pre-fetched and
+   re-asserted DAV for the *next* byte while the KERNAL's read-wait loop was still parked inside
+   the ISR, permanently hiding the DAV release it needed to see on resume. Disassembling the real
+   ACPTR/read-byte KERNAL routine (`da65` on the real `kernal-2.901465-03.bin`, $F18C-$F1D1)
+   confirmed it has no SEI/CLI guard either - real hardware only avoids this race because a real
+   drive's own controller firmware is far slower than either delay. Fixed by raising the settle
+   delay (`PetIeeeBus.SettleDelayCycles`, used by both the read-side prefetch and
+   `ArmWriteAck`'s write-side release) from 32 to 4,000 cycles - comfortably past a keyboard-scan
+   ISR's worst case, comfortably under the ~16,667-cycle jiffy period so it doesn't perceptibly
+   slow real transfers. A first attempted fix (make the read-side prefetch wait for a genuine
+   `SetNdacAccepted`-driven acknowledgment instead of arming unconditionally) made things *worse*
+   (stalled after 1 byte, not 325) and was reverted before this fix was found.
 
-**Still open**: loading a large real file (`LOAD"HELLO",8`, a 4,486-byte PRG from
-`games-1.d64`) stalls partway through - progress was tracked at a fixed byte offset (326) that
-never advances even after tens of millions of further instructions, not merely slow. Root cause
-not yet identified; `LoadReadsARealFilesBytesCorrectly` is `[Explicit]` documenting exactly this.
-Small transfers never reach whatever triggers it.
+With all four fixed, SAVE, small LOADs, and large real-file LOADs now complete fully from real
+BASIC - see `SaveCompletesAndReturnsToReady`, `SaveThenLoadRoundTripsARealProgramThroughARealDisk`,
+and `LoadReadsARealFilesBytesCorrectly` (no longer `[Explicit]`; loads all 4,486 bytes of "HELLO"
+from `games-1.d64` and checks every byte against an independently re-opened `D64Image`), all
+genuinely passing. The round-trip test types a program, `SAVE`s it, `NEW`s memory clear, `LOAD`s
+it back, `RUN`s it, and checks the real evaluated output on screen - proof the whole path works,
+not just that the KERNAL stopped hanging. Note: `LoadReadsARealFilesBytesCorrectly` now needs a
+generous instruction budget and `[CancelAfter]` (~1,250 instructions/byte at the fixed settle
+delay) - the honest cost of a delay long enough to actually be safe, not a residual bug.
 
 ## Layer 3 — scripted smoke tests
 

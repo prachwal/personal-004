@@ -20,6 +20,48 @@ public sealed class PetMachineTests
     private static readonly byte[] ReadyBytes = [0x12, 0x05, 0x01, 0x04, 0x19, 0x2E]; // "READY."
 
     [Test]
+    public void BusObserver_FiresForEveryRealReadAndWrite()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+        var accesses = new List<BusAccess>();
+        machine.BusObserver = accesses.Add;
+
+        machine.Memory.Write(0x0100, 0x42);
+        machine.Memory.Read(0x0100);
+
+        accesses.Should().Equal(
+            new BusAccess(IsWrite: true, 0x0100, 0x42),
+            new BusAccess(IsWrite: false, 0x0100, 0x42));
+    }
+
+    [Test]
+    public void BusObserver_ObservesRealChipAccessesDuringRealExecution()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+        var pia1Accesses = 0;
+        machine.BusObserver = access =>
+        {
+            if (access.Address is >= 0xE810 and < 0xE820)
+                pia1Accesses++;
+        };
+
+        machine.Run(2_000);
+
+        pia1Accesses.Should().BeGreaterThan(0, "real KERNAL boot code touches PIA1 (keyboard/cassette) within the first 2,000 instructions");
+    }
+
+    [Test]
+    public void BusObserver_IsOptOutWithZeroBehaviorChangeWhenUnset()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+
+        var act = () => machine.Run(500);
+
+        act.Should().NotThrow();
+        machine.BusObserver.Should().BeNull();
+    }
+
+    [Test]
     public void Name_And_IsReady_ReflectProfile()
     {
         var machine = CreateMachine(PetProfileCatalog.Pet2001_8);

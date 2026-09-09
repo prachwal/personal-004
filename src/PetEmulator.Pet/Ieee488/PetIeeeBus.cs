@@ -155,8 +155,24 @@ public sealed class PetIeeeBus
     /// delay (mirroring <see cref="Tick"/>'s own <c>_dataInFetchDelay</c> for the read side) is
     /// all that's needed - without it, the KERNAL's own "wait for the listener to be ready before
     /// sending the next byte" poll loop (real IEEE-488 behavior, not a bug in the ROM) never sees
-    /// NRFD go ready and hangs forever, e.g. stuck printing "SEARCHING FOR ..." on a real LOAD.</summary>
-    private void ArmWriteAck() => _writeAckDelay = 32;
+    /// NRFD go ready and hangs forever, e.g. stuck printing "SEARCHING FOR ..." on a real LOAD.
+    /// Uses the same <see cref="SettleDelayCycles"/> as the read side for the identical reason -
+    /// see that constant's doc comment.</summary>
+    private void ArmWriteAck() => _writeAckDelay = SettleDelayCycles;
+
+    /// <summary>Cycles a talker/listener settle delay ticks down before releasing a handshake line
+    /// or pre-fetching the next byte (see <see cref="ArmWriteAck"/> and <see cref="OnDioRead"/>/
+    /// <see cref="Tick"/>). Was 32 - too short: traced with <see cref="PetEmulator.Pet.PetMachine.BusObserver"/>
+    /// against a real multi-hundred-byte LOAD (see docs/pet-disk-testing-strategy.md), the
+    /// periodic ~60Hz keyboard-scan IRQ takes ~550-600 instructions (>1,000 cycles) to run, comfortably
+    /// outlasting a 32-cycle window; this let the read side silently pre-fetch and re-assert DAV
+    /// for the *next* byte while the KERNAL's read-wait loop was still parked inside that ISR,
+    /// permanently hiding the DAV release the resumed KERNAL code was waiting to see. 4,000 clears
+    /// that ISR with margin while staying well under the ~16,667-cycle jiffy period, so it doesn't
+    /// perceptibly slow real transfers (disassembly of the real ACPTR routine at $F18C confirms it
+    /// has no SEI/CLI guard either - real hardware only avoids this race because a real drive's own
+    /// firmware is far slower than either delay).</summary>
+    private const int SettleDelayCycles = 4_000;
 
     public byte OnDioRead()
     {
@@ -166,7 +182,7 @@ public sealed class PetIeeeBus
             _lastDio = _cachedInput;
             _dataInRead = true;
             DAV = false;
-            _dataInFetchDelay = 32;
+            _dataInFetchDelay = SettleDelayCycles;
             ProvideHandshake();
             RaiseActivity("byte", $"0x{_cachedInput:X2} read");
             return _cachedInput;
@@ -208,7 +224,7 @@ public sealed class PetIeeeBus
         {
             DAV = false;
             _dataInRead = false;
-            _dataInFetchDelay = 32;
+            _dataInFetchDelay = SettleDelayCycles;
             RaiseActivity("line-change", "DAV=false");
         }
     }

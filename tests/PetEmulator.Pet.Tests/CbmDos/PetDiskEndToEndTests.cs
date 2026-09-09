@@ -21,21 +21,20 @@ public sealed class PetDiskEndToEndTests
     private static readonly byte[] ReadyBytes = [0x12, 0x05, 0x01, 0x04, 0x19, 0x2E]; // "READY."
     private static readonly byte[] ErrorBytes = [0x05, 0x12, 0x12, 0x0F, 0x12]; // "ERROR"
 
-    /// <summary>Root cause not yet pinned down (see <see cref="LoadReadsARealFilesBytesCorrectly"/>'s
-    /// doc comment for what IS confirmed): a multi-hundred-byte real TALK/read transfer stalls at
-    /// a fixed byte offset (observed at byte 326 of "HELLO"'s 4,486) and never resumes, even after
-    /// tens of millions of extra instructions - not merely slow. Small transfers (a few dozen
-    /// bytes, see <see cref="SaveThenLoadRoundTripsARealProgramThroughARealDisk"/> and
-    /// <see cref="SaveCompletesAndReturnsToReady"/>, both genuinely passing) never reach it.</summary>
-    private const string KnownLargeReadStallBug =
-        "Known bug: a real multi-hundred-byte TALK/read transfer stalls at a fixed byte offset " +
-        "and never resumes - see this class's KnownLargeReadStallBug doc comment. Small transfers " +
-        "(SaveThenLoadRoundTripsARealProgramThroughARealDisk, SaveCompletesAndReturnsToReady) " +
-        "pass; loading a real multi-KB PRG like \"HELLO\" (4,486 bytes) does not.";
-
+    /// <summary>Was a known bug: a real multi-hundred-byte TALK/read transfer stalled at a fixed
+    /// byte offset (byte 326 of "HELLO"'s 4,486) and never resumed. Root-caused with
+    /// <see cref="PetMachine.BusObserver"/> plus a full instruction-level trace: <c>PetIeeeBus</c>'s
+    /// read-side settle delay (32 cycles) was shorter than the periodic ~60Hz keyboard-scan IRQ
+    /// (~550-600 instructions, 1,000+ cycles), so the emulation silently pre-fetched and
+    /// re-asserted DAV for the *next* byte while the KERNAL's read-wait loop was still parked
+    /// inside that ISR, permanently hiding the DAV release it needed to see on resume. Fixed by
+    /// raising the settle delay to a value that clears a real ISR with margin while staying well
+    /// under the jiffy period - see <c>PetIeeeBus.SettleDelayCycles</c>'s doc comment. A large
+    /// transfer now correctly takes noticeably longer in instruction-count terms (each byte pays
+    /// that settle delay), hence this test's generous <see cref="CancelAfter"/>/instruction budget
+    /// below - not a residual bug, the honest cost of a delay long enough to actually be safe.</summary>
     [Test]
-    [Explicit(KnownLargeReadStallBug)]
-    [CancelAfter(60_000)]
+    [CancelAfter(300_000)]
     public void LoadReadsARealFilesBytesCorrectly()
     {
         var profile = PetProfileCatalog.Pet2001_32;
@@ -59,7 +58,9 @@ public sealed class PetDiskEndToEndTests
         // too-short hold can land entirely inside one scan's dead time. 12,000 is what this
         // session's own manual reproduction needed for "LOAD"HELLO",8" to type reliably.
         TextTyper.Type(machine, map, "LOAD\"HELLO\",8\n", holdInstructions: 12_000, gapInstructions: 12_000);
-        machine.RunUntil(mem => ContainsReadyAfterFirst(mem, profile), 3_000_000)
+        // ~1,250 instructions/byte at the fixed settle delay (see PetIeeeBus.SettleDelayCycles) *
+        // 4,486 bytes is ~5.6M instructions - budgeted generously above that.
+        machine.RunUntil(mem => ContainsReadyAfterFirst(mem, profile), 8_000_000)
             .Should().BeTrue("LOAD should finish and print READY. again");
 
         for (var i = 2; i < expectedBytes.Length; i++)
