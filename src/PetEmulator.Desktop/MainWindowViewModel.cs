@@ -1,209 +1,94 @@
 using Avalonia.Input;
-using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using PetEmulator.Core;
 using PetEmulator.Pet;
-using PetEmulator.Pet.Devices;
-using PetEmulator.Pet.Display;
-using PetEmulator.Pet.Fonts;
 using PetEmulator.Pet.Keyboard;
-using PetEmulator.Pet.Tape;
 
 namespace PetEmulator.Desktop;
 
+/// <summary>One selectable entry in the "_Machine" menu - a label and a factory that builds a
+/// fresh <see cref="IMachineViewModel"/> for it. Uniform across machine kinds (a PET profile, the
+/// one VIC-20 configuration, and any future machine) so the menu binds to one flat list instead
+/// of one XAML block per kind.</summary>
+public sealed record MachineMenuEntry(string Label, Func<IMachineViewModel> Create);
+
 /// <summary>
-/// Owns the running <see cref="PetMachine"/>, its render loop, and keyboard translation - the
-/// View (<see cref="MainWindow"/>) only binds to this and forwards Avalonia-specific input
-/// events/frame uploads it can't otherwise express as a binding (raw pixel buffer, Key enum).
+/// The Desktop shell: owns the currently-running machine (<see cref="CurrentMachine"/>, one
+/// <see cref="IMachineViewModel"/> at a time) and the render-loop timer that ticks it. Switching
+/// machine (<see cref="SwitchMachineCommand"/>) disposes the old one and replaces
+/// <see cref="CurrentMachine"/> wholesale with a freshly-constructed instance - MainWindow.axaml's
+/// <c>DataTemplate</c>s pick which composite screen+device-bar View to show purely from the new
+/// instance's concrete type ("podmiana komponentu MVVM", not an if/else).
 /// </summary>
 public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 {
-    // ponytail: fixed per-tick instruction budget, no adaptive pacing to a wall-clock cycle
-    // rate. Good enough for a display GUI; revisit if playback speed needs to match real hardware.
-    private const ulong InstructionsPerTick = 20_000;
-
-    // How long the disk-activity LED stays visibly red after a byte transfer - PollDiskActivity
-    // is checked once per (20ms) tick, and gaps between individual bus bytes mid-transfer would
-    // otherwise make it flicker frame-to-frame instead of reading as a steady blink.
-    private static readonly TimeSpan DiskActivityLinger = TimeSpan.FromMilliseconds(200);
-
     private readonly string _romsRoot;
     private readonly DispatcherTimer _timer;
-    private DateTime _diskActivityUntilUtc = DateTime.MinValue;
-    private PetMachine _machine = null!;
-    private PetRasterDisplay _display = null!;
-    private IPetKeyboardMap _keyboardMap = null!;
-    private PetProfile _currentProfile = null!;
 
     [ObservableProperty]
-    private string _windowTitle = "PET Emulator";
-
-    [ObservableProperty]
-    private string _statusText = "PC=0x0000 A=0x00 X=0x00 Y=0x00 SP=0x00 P=0x00 Cycles=0 Instructions=0";
-
-    /// <summary>Refreshed every <see cref="Tick"/> from <see cref="PetMachine.Devices"/>, minus
-    /// the datasette and the primary (device 8) disk drive - both get their own dedicated icon
-    /// widget (<see cref="TapeIconBrush"/>/<see cref="PlayTapeCommand"/>,
-    /// <see cref="DiskIconBrush"/>) instead of a generic read-only status chip. The status bar's
-    /// ItemsControl binds directly to this, so any OTHER device attached/replaced mid-session (a
-    /// second disk drive at a different device number) shows up within one tick with no extra
-    /// event wiring.</summary>
-    [ObservableProperty]
-    private IReadOnlyList<IPetDeviceStatus> _otherDevices = [];
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(TapeIconBrush))]
-    private bool _tapeLoaded;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(TapeIconBrush))]
-    private bool _tapePlaying;
-
-    /// <summary>Drives the tape icon's color: gray with nothing loaded, green once PLAY is
-    /// actually engaged (see <see cref="PetDatasette.PlayPressed"/>), the default foreground
-    /// otherwise (loaded but stopped) - the real feedback loop this widget exists for, since
-    /// without it a real PET sits stuck forever on "PRESS PLAY ON TAPE #1" with no way to
-    /// answer it.</summary>
-    public IBrush TapeIconBrush => !TapeLoaded ? Brushes.Gray : TapePlaying ? Brushes.LimeGreen : Brushes.LightGray;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DiskIconBrush))]
-    private bool _diskLoaded;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DiskIconBrush))]
-    private bool _diskBusy;
-
-    /// <summary>Drives the disk icon's color: gray with nothing mounted, green once a disk is
-    /// mounted, briefly red (see <see cref="DiskActivityLinger"/>) while a real byte is crossing
-    /// the IEEE-488 bus - see <see cref="PetMachine.PollDiskActivity"/>.</summary>
-    public IBrush DiskIconBrush => !DiskLoaded ? Brushes.Gray : DiskBusy ? Brushes.Red : Brushes.LimeGreen;
+    private IMachineViewModel _currentMachine;
 
     public MainWindowViewModel()
     {
         _romsRoot = RomsRootLocator.Find();
-        LoadProfile(PetProfileCatalog.Pet2001_32);
+
+        MachineChoices =
+        [
+            .. PetProfileCatalog.All.Select(profile =>
+                new MachineMenuEntry(profile.Name, () => new PetMachineViewModel(profile, Path.Combine(_romsRoot, "pet")))),
+            new MachineMenuEntry("VIC-20", () => new Vic20MachineViewModel(Path.Combine(_romsRoot, "vic20"))),
+        ];
+
+        _currentMachine = MachineChoices[0].Create();
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
-        _timer.Tick += (_, _) => Tick();
+        _timer.Tick += (_, _) => CurrentMachine.Tick();
         _timer.Start();
     }
 
     /// <summary>Every selectable machine configuration, for the Machine menu.</summary>
-    public IReadOnlyList<PetProfile> Profiles => PetProfileCatalog.All;
-
-    public int PixelWidth => _display.PixelWidth;
-
-    public int PixelHeight => _display.PixelHeight;
-
-    /// <summary>Physical width:height ratio of one source pixel - see <see cref="PetProfile.PixelAspect"/>.</summary>
-    public (int Width, int Height) PixelAspect => _currentProfile.PixelAspect;
-
-    /// <summary>Raised after each render tick, once <see cref="FrameBuffer"/> holds the new frame -
-    /// the View reacts by pushing it into its screen control (not a bindable property: mutating
-    /// a uint[] in place wouldn't raise per-element change notifications anyway).</summary>
-    public event EventHandler? FrameReady;
-
-    /// <summary>Raised when a profile switch changes the native resolution - the View reacts by
-    /// resizing its screen control before the next <see cref="FrameReady"/>.</summary>
-    public event EventHandler? GeometryChanged;
+    public IReadOnlyList<MachineMenuEntry> MachineChoices { get; }
 
     /// <summary>Raised by <see cref="ExitCommand"/> - the View closes the window.</summary>
     public event EventHandler? CloseRequested;
 
-    public uint[] FrameBuffer { get; private set; } = [];
-
     [RelayCommand]
-    private void Reset() => _machine.Reset();
+    private void Reset() => CurrentMachine.Reset();
 
     [RelayCommand]
     private void Exit() => CloseRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
-    private void LoadProfile(PetProfile profile)
+    private void SwitchMachine(MachineMenuEntry entry)
     {
-        var font = new PetCharacterRomLoader().Load(
-            Path.Combine(_romsRoot, profile.RomDirectory, profile.CharacterRomPath));
-
-        _currentProfile = profile;
-        _machine = new PetMachine(profile, _romsRoot);
-        _display = new PetRasterDisplay(profile, _machine.Memory, font, _machine.Crtc);
-        FrameBuffer = new uint[_display.PixelWidth * _display.PixelHeight];
-
-        _keyboardMap = profile.BasicVersion != "BASIC 4"
-            ? new Pet2001GraphicsKeyboardMap()
-            : profile.Id == PetProfileCatalog.Cbm8032.Id
-                ? new Cbm8032KeyboardMap()
-                : new Cbm4032KeyboardMap();
-
-        WindowTitle = $"PET Emulator — {profile.Name}";
-        GeometryChanged?.Invoke(this, EventArgs.Empty);
+        var old = CurrentMachine;
+        CurrentMachine = entry.Create();
+        old.Dispose();
     }
 
-    /// <summary>Loads a VICE-style .tap file into the running machine's datasette - the file-picker
-    /// dialog itself is Avalonia-specific glue that lives in <see cref="MainWindow"/>'s code-behind
-    /// (needs a <c>TopLevel</c>), which calls straight through to this.</summary>
+    /// <summary>Loads a VICE-style .tap file into the current machine's datasette, if it has one
+    /// (only <see cref="PetMachineViewModel"/> does - VIC-20 has no tape support in v1). The
+    /// file-picker dialog itself is Avalonia-specific glue that lives in <see cref="MainWindow"/>'s
+    /// code-behind (needs a <c>TopLevel</c>), which calls straight through to this.</summary>
     public void LoadTape(string path)
     {
-        var tap = PetTapFile.Parse(File.ReadAllBytes(path));
-        _machine.Datasette.LoadTape(tap.PulseCycles, Path.GetFileName(path));
+        if (CurrentMachine is PetMachineViewModel pet)
+            pet.LoadTape(path);
     }
 
     /// <inheritdoc cref="LoadTape"/>
-    public void LoadDisk(string path) => _machine.MountDisk(path);
-
-    [RelayCommand]
-    private void PlayTape() => _machine.Datasette.PressPlay();
-
-    [RelayCommand]
-    private void StopTape() => _machine.Datasette.Stop();
-
-    [RelayCommand]
-    private void EjectTape() => _machine.Datasette.Eject();
-
-    /// <summary>Translates one Avalonia key event into matrix presses/releases on the running
-    /// machine's keyboard. The View owns the Avalonia <see cref="Key"/> -&gt; host-key-string
-    /// mapping (<see cref="KeyMapping"/>) since that's purely an Avalonia input concern.</summary>
-    public void HandleKey(Key key, HostKeyEventKind kind)
+    public void LoadDisk(string path)
     {
-        var hostKey = KeyMapping.ToHostKey(key);
-        if (hostKey is null)
-            return;
-
-        foreach (var action in _keyboardMap.Translate(hostKey, kind))
-        {
-            if (action.Pressed)
-                _machine.Keyboard.Press(action.Row, action.Column);
-            else
-                _machine.Keyboard.Release(action.Row, action.Column);
-        }
+        if (CurrentMachine is PetMachineViewModel pet)
+            pet.LoadDisk(path);
     }
 
-    private void Tick()
+    public void HandleKey(Key key, HostKeyEventKind kind) => CurrentMachine.HandleKey(key, kind);
+
+    public void Dispose()
     {
-        _machine.Run(InstructionsPerTick);
-        _display.Tick();
-        _display.Render(FrameBuffer);
-
-        var regs = ((IDebuggableProcessor)_machine.Processor).GetRegisters();
-        StatusText =
-            $"PC=0x{regs["PC"]:X4} A=0x{regs["A"]:X2} X=0x{regs["X"]:X2} Y=0x{regs["Y"]:X2} " +
-            $"SP=0x{regs["SP"]:X2} P=0x{regs["P"]:X2} " +
-            $"Cycles={_machine.Processor.CycleCount} Instructions={_machine.Processor.InstructionCount}";
-
-        OtherDevices = _machine.Devices.Where(d => d.Id is not ("datasette" or "ieee488:8")).ToList();
-        TapeLoaded = _machine.Datasette.HasTape;
-        TapePlaying = _machine.Datasette.PlayPressed && _machine.Datasette.MotorOn;
-
-        DiskLoaded = _machine.HasDisk();
-        if (_machine.PollDiskActivity())
-            _diskActivityUntilUtc = DateTime.UtcNow + DiskActivityLinger;
-        DiskBusy = DateTime.UtcNow < _diskActivityUntilUtc;
-
-        FrameReady?.Invoke(this, EventArgs.Empty);
+        _timer.Stop();
+        CurrentMachine.Dispose();
     }
-
-    public void Dispose() => _timer.Stop();
 }

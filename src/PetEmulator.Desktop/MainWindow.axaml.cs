@@ -15,25 +15,17 @@ public partial class MainWindow : Window
         InitializeComponent();
         DataContext = _viewModel;
 
-        _viewModel.GeometryChanged += (_, _) => SetScreenSize();
-        _viewModel.FrameReady += (_, _) => Screen.UpdateFrame(_viewModel.FrameBuffer);
         _viewModel.CloseRequested += (_, _) => Close();
 
-        SetScreenSize();
-
         // Some window managers (WSLg included) don't hand a new top-level window OS keyboard
-        // focus on their own - focusing the Screen control (an Avalonia-internal focus scope) is
+        // focus on their own - focusing MachineHost (an Avalonia-internal focus scope) is
         // meaningless until the WINDOW itself actually has it, so grab both, and re-grab on every
-        // activation since a WM can silently drop it again (alt-tab away and back, etc).
-        Loaded += (_, _) => { Focus(); Screen.Focus(); };
-        Activated += (_, _) => { Focus(); Screen.Focus(); };
+        // activation since a WM can silently drop it again (alt-tab away and back, etc). Screen
+        // geometry/frame wiring now lives in PetMachineView/Vic20MachineView (see those classes'
+        // Rewire()) - swapped per machine, not owned here.
+        Loaded += (_, _) => { Focus(); MachineHost.Focus(); };
+        Activated += (_, _) => { Focus(); MachineHost.Focus(); };
         Closed += (_, _) => _viewModel.Dispose();
-    }
-
-    private void SetScreenSize()
-    {
-        var (parWidth, parHeight) = _viewModel.PixelAspect;
-        Screen.SetSize(_viewModel.PixelWidth, _viewModel.PixelHeight, parWidth, parHeight);
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e) => _viewModel.HandleKey(e.Key, HostKeyEventKind.Press);
@@ -42,8 +34,9 @@ public partial class MainWindow : Window
 
     // File pickers need a TopLevel (this window), which is why this glue lives here rather than
     // on the ViewModel - MainWindowViewModel.LoadTape/LoadDisk do the actual work once a path is
-    // picked. Best-effort: a bad file just logs instead of crashing the render loop, since there's
-    // no toast/dialog mechanism in this app yet to surface it in the UI itself.
+    // picked (a no-op if the current machine doesn't support it - see those methods). Best-effort:
+    // a bad file just logs instead of crashing the render loop, since there's no toast/dialog
+    // mechanism in this app yet to surface it in the UI itself.
     private async void OnLoadTapeClick(object? sender, RoutedEventArgs e) =>
         await LoadFileAsync("Load tape", "Tape images", ["*.tap"], _viewModel.LoadTape);
 

@@ -119,10 +119,10 @@ public sealed class PetMachine : IMachine
     public PetDatasette Datasette => _datasette;
 
     /// <summary>Every peripheral currently attached and worth a GUI status icon for - see
-    /// <see cref="IPetDeviceStatus"/>'s doc comment for why this is a dynamic list rather than a
+    /// <see cref="IDeviceStatus"/>'s doc comment for why this is a dynamic list rather than a
     /// fixed set of properties. Rebuilt on each access (cheap: a handful of entries), so it always
     /// reflects the latest <see cref="MountDisk"/>/<see cref="Datasette"/> state.</summary>
-    public IReadOnlyList<IPetDeviceStatus> Devices =>
+    public IReadOnlyList<IDeviceStatus> Devices =>
         [new PetDatasetteStatus(_datasette), .. _mountedDrives];
 
     /// <summary>Mounts a D64 disk image on the IEEE-488 bus at <paramref name="deviceNumber"/>
