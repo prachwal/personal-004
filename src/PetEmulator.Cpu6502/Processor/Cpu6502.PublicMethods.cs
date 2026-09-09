@@ -5,7 +5,7 @@ namespace Cpu6502;
 /// <summary>
 /// Reprezentacja procesora MOS 6502.
 /// </summary>
-public partial class Cpu6502 : IProcessor
+public partial class Cpu6502 : IProcessor, IDebuggableProcessor
 {
     #region Metody publiczne - Reset
 
@@ -50,6 +50,12 @@ public partial class Cpu6502 : IProcessor
     #endregion
 
     void IProcessor.Reset() => Reset();
+
+    /// <summary>Registers by name, for debug tooling (see <see cref="IDebuggableProcessor"/>).</summary>
+    public IReadOnlyDictionary<string, ulong> GetRegisters() => new Dictionary<string, ulong>
+    {
+        ["PC"] = _pc, ["A"] = _a, ["X"] = _x, ["Y"] = _y, ["SP"] = _sp, ["P"] = _p,
+    };
 
     #region Metody publiczne - Stan CPU
 

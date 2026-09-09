@@ -19,6 +19,12 @@ public interface IMachine
     /// <summary>The total number of emulated clock cycles.</summary>
     ulong CycleCount { get; }
 
+    /// <summary>The machine's processor, exposed only through its CPU-agnostic contract for debug tooling (trace, step, snapshot).</summary>
+    IProcessor Processor { get; }
+
+    /// <summary>The machine's address space, for debug memory peek/poke. Side effects on read are the bus's own concern.</summary>
+    IMemoryBus Memory { get; }
+
     /// <summary>Restores the machine and all devices to their reset state.</summary>
     void Reset();
 

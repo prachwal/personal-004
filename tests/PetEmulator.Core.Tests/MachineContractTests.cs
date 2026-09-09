@@ -25,6 +25,8 @@ public sealed class MachineContractTests
         public string Name => "test";
         public bool IsReady => true;
         public ulong CycleCount { get; private set; }
+        public IProcessor Processor { get; } = new TestProcessor();
+        public IMemoryBus Memory { get; } = new TestMemoryBus();
 
         public void Reset() => CycleCount = 0;
 
@@ -35,5 +37,22 @@ public sealed class MachineContractTests
             for (var i = 0UL; i < instructionCount; i++)
                 StepInstruction();
         }
+    }
+
+    private sealed class TestProcessor : IProcessor
+    {
+        public bool Halted => false;
+        public ulong CycleCount => 0;
+        public ulong InstructionCount => 0;
+        public void Reset() { }
+        public void StepInstruction() { }
+        public void SetIRQ(bool active) { }
+        public void SetNMI(bool active) { }
+    }
+
+    private sealed class TestMemoryBus : IMemoryBus
+    {
+        public byte Read(ushort address) => 0;
+        public void Write(ushort address, byte value) { }
     }
 }

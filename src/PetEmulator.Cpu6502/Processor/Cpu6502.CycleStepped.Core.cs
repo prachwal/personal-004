@@ -116,6 +116,15 @@ public partial class Cpu6502
 
         while (!_sync)
         {
+            // ponytail: defensive cap, not a masking fix - a real 6502 instruction never exceeds
+            // 8 cycles. If a handler forgets to set _sync, this turns a silent infinite loop (see
+            // docs/architecture.md "Znany bug w referencyjnym rdzeniu") into a fast, loud failure
+            // that names the opcode, instead of hanging the caller.
+            if (_cycleCount > 7)
+                throw new InvalidOperationException(
+                    $"Cpu6502: opcode 0x{_currentOpcode:X2} did not set _sync within 8 cycles (cycle {_cycleCount}). " +
+                    "A cycle handler for this opcode is missing its _sync=true exit.");
+
             _currentDefinition!.Handler(this, _currentOpcode, _cycleCount);
             _cycleCount++;
             _clock.Advance(1);
