@@ -19,8 +19,12 @@ public partial class MainWindow : Window
 
         SetScreenSize();
 
-        Loaded += (_, _) => Screen.Focus();
-        Activated += (_, _) => Screen.Focus();
+        // Some window managers (WSLg included) don't hand a new top-level window OS keyboard
+        // focus on their own - focusing the Screen control (an Avalonia-internal focus scope) is
+        // meaningless until the WINDOW itself actually has it, so grab both, and re-grab on every
+        // activation since a WM can silently drop it again (alt-tab away and back, etc).
+        Loaded += (_, _) => { Focus(); Screen.Focus(); };
+        Activated += (_, _) => { Focus(); Screen.Focus(); };
         Closed += (_, _) => _viewModel.Dispose();
     }
 

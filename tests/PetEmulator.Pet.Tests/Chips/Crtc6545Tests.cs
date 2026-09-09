@@ -176,6 +176,52 @@ public sealed class Crtc6545Tests
     }
 
     [Test]
+    public void InterlaceVideoMode_StepsRasterByTwoAndTogglesFieldEachFrame()
+    {
+        var crtc = new Crtc6545();
+        WriteRegister(crtc, 0, 0); // H total: 1 char clock per line
+        WriteRegister(crtc, 1, 1);
+        WriteRegister(crtc, 4, 0); // V total: 1 character row per frame
+        WriteRegister(crtc, 6, 1);
+        WriteRegister(crtc, 9, 3); // max raster address (4 lines/row in non-interlace)
+        WriteRegister(crtc, 8, 0x03); // interlace sync and video
+
+        crtc.Tick();
+        crtc.RACounter.Should().Be(2, "raster steps by 2 (not 1) in interlace video mode");
+
+        crtc.Tick(); // rolls into a new frame: field toggles, raster restarts on line 1 not 0
+        crtc.RACounter.Should().Be(1, "the first field starts on the odd raster line");
+
+        crtc.Tick();
+        crtc.RACounter.Should().Be(3);
+
+        crtc.Tick(); // second frame rollover: field toggles back
+        crtc.RACounter.Should().Be(0, "the next field starts back on the even raster line");
+    }
+
+    [Test]
+    public void DisplayEnableSkew_DelaysOutputByConfiguredClockCount()
+    {
+        var crtc = new Crtc6545();
+        WriteRegister(crtc, 0, 3); // H total 4 char clocks
+        WriteRegister(crtc, 1, 2); // 2 displayed
+        WriteRegister(crtc, 4, 0);
+        WriteRegister(crtc, 6, 1);
+        WriteRegister(crtc, 9, 0);
+        WriteRegister(crtc, 8, 0x80); // display-enable skew = 2 clocks (bits 7:6), no interlace
+
+        // Raw (unskewed) window would be true,true,false,false - skew delays it by 2 clocks.
+        crtc.Tick();
+        crtc.DisplayEnable.Should().BeFalse("skewed output hasn't caught up to the raw rising edge yet");
+        crtc.Tick();
+        crtc.DisplayEnable.Should().BeFalse();
+        crtc.Tick();
+        crtc.DisplayEnable.Should().BeTrue("2 clocks after the raw signal rose");
+        crtc.Tick();
+        crtc.DisplayEnable.Should().BeTrue("still delayed-high 2 clocks after the raw signal fell");
+    }
+
+    [Test]
     public void KeepsTwoInstancesIndependentWhenMappedAtDifferentBaseAddresses()
     {
         var first = new Crtc6545("CRTC1", 0xE880);

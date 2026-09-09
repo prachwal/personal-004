@@ -207,6 +207,90 @@ public sealed class PiaTests
     }
 
     [Test]
+    public void ManualOutputMode_SetsCa2AndCb2LevelDirectlyFromControlRegister()
+    {
+        var pia = new Pia();
+
+        pia.Write(1, 0x38); // CRA: output(bit5) + manual(bit4) + level=high(bit3)
+        pia.CA2.Should().BeTrue();
+        pia.Write(1, 0x30); // level=low
+        pia.CA2.Should().BeFalse();
+
+        pia.Write(3, 0x38);
+        pia.CB2.Should().BeTrue();
+        pia.Write(3, 0x30);
+        pia.CB2.Should().BeFalse();
+    }
+
+    [Test]
+    public void Ca2HandshakeMode_GoesLowOnPortARead_RestoresOnNextActiveCa1Edge()
+    {
+        var pia = new Pia { PortAInput = () => 0 };
+        // CRA: data-select(bit2) + CA1 active=rising(bit1) + CA2 output(bit5) handshake(bit4=0,bit3=0)
+        pia.Write(1, 0x26);
+
+        pia.CA2.Should().BeTrue("handshake output idles high until a Port A read pulls it low");
+
+        pia.Read(0);
+        pia.CA2.Should().BeFalse("reading Port A's data register should drop CA2 in handshake mode");
+
+        pia.Tick(1_000);
+        pia.CA2.Should().BeFalse("handshake mode waits for a CA1 edge, not time, to restore");
+
+        pia.CA1 = true; // configured active edge
+        pia.CA2.Should().BeTrue("the next active CA1 edge should restore CA2 high");
+    }
+
+    [Test]
+    public void Ca2PulseMode_AutoRestoresAfterOneCycle_WithoutNeedingACa1Edge()
+    {
+        var pia = new Pia { PortAInput = () => 0 };
+        // CRA: data-select(bit2) + CA2 output(bit5) pulse(bit4=0,bit3=1)
+        pia.Write(1, 0x2C);
+
+        pia.Read(0);
+        pia.CA2.Should().BeFalse();
+
+        pia.Tick(1);
+
+        pia.CA2.Should().BeTrue("pulse mode restores on its own after one cycle, with no CA1 edge");
+    }
+
+    [Test]
+    public void Cb2HandshakeMode_GoesLowOnPortBWrite_RestoresOnNextActiveCb1Edge()
+    {
+        var pia = new Pia();
+        // CRB: data-select(bit2) + CB1 active=rising(bit1) + CB2 output(bit5) handshake(bit4=0,bit3=0)
+        pia.Write(3, 0x26);
+
+        pia.CB2.Should().BeTrue();
+
+        pia.Write(2, 0x55); // Port B write is CB2's trigger (the write-side mirror of CA2's read-side trigger)
+        pia.CB2.Should().BeFalse();
+
+        pia.Tick(1_000);
+        pia.CB2.Should().BeFalse("handshake mode waits for a CB1 edge, not time, to restore");
+
+        pia.CB1 = true;
+        pia.CB2.Should().BeTrue();
+    }
+
+    [Test]
+    public void Cb2PulseMode_AutoRestoresAfterOneCycle_WithoutNeedingACb1Edge()
+    {
+        var pia = new Pia();
+        // CRB: data-select(bit2) + CB2 output(bit5) pulse(bit4=0,bit3=1)
+        pia.Write(3, 0x2C);
+
+        pia.Write(2, 0x55);
+        pia.CB2.Should().BeFalse();
+
+        pia.Tick(1);
+
+        pia.CB2.Should().BeTrue();
+    }
+
+    [Test]
     public void TickIsANoOp()
     {
         var pia = new Pia { PortAInput = () => 0x3C };

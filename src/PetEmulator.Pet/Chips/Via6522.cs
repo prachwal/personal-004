@@ -57,6 +57,8 @@ public sealed class Via6522 : IMemoryMappedDevice
     private bool _previousCb2;
     private bool _t1Running;
     private bool _t2Running;
+    private bool _t1OneShotArmed;
+    private bool _t2OneShotArmed;
     private bool _t1Pb7;
     private int _shiftCount;
 
@@ -184,6 +186,7 @@ public sealed class Via6522 : IMemoryMappedDevice
                 _t1Latch = (ushort)((_t1Latch & 0x00FF) | (value << 8));
                 _t1Counter = _t1Latch;
                 _t1Running = true;
+                _t1OneShotArmed = true;
                 _t1Pb7 = false;
                 ClearInterrupt(Timer1Interrupt);
                 break;
@@ -197,6 +200,7 @@ public sealed class Via6522 : IMemoryMappedDevice
                 _t2Latch = (ushort)((_t2Latch & 0x00FF) | (value << 8));
                 _t2Counter = _t2Latch;
                 _t2Running = true;
+                _t2OneShotArmed = true;
                 ClearInterrupt(Timer2Interrupt);
                 break;
             case ShiftRegister:
@@ -230,7 +234,7 @@ public sealed class Via6522 : IMemoryMappedDevice
         _t1Counter = _t1Latch = _t2Counter = _t2Latch = 0;
         _latchedPortA = _latchedPortB = 0;
         _ca1 = _ca2 = _cb1 = _cb2 = _previousCa1 = _previousCa2 = _previousCb1 = _previousCb2 = false;
-        _t1Running = _t2Running = _t1Pb7 = false;
+        _t1Running = _t2Running = _t1OneShotArmed = _t2OneShotArmed = _t1Pb7 = false;
         _shiftCount = 0;
         CA2Output = CB2Output = IRQ = false;
         PortAInput = PortBInput = 0;
@@ -265,14 +269,18 @@ public sealed class Via6522 : IMemoryMappedDevice
 
     private byte ReadPortA()
     {
-        ClearInterrupt((byte)(Ca1Interrupt | Ca2Interrupt));
+        // PCR "independent interrupt" input sub-modes (0x02/0x06) mean CA2's flag is NOT
+        // acknowledged by a Port A data read - only an explicit IFR write clears it.
+        var mask = IsCa2InterruptIndependent(_pcr) ? Ca1Interrupt : (byte)(Ca1Interrupt | Ca2Interrupt);
+        ClearInterrupt(mask);
         SetPortAHandshakeLow();
         return CombinePort(_ora, _ddra, (_acr & 0x01) != 0 ? _latchedPortA : PortAInput);
     }
 
     private byte ReadPortB()
     {
-        ClearInterrupt((byte)(Cb1Interrupt | Cb2Interrupt));
+        var mask = IsCb2InterruptIndependent(_pcr) ? Cb1Interrupt : (byte)(Cb1Interrupt | Cb2Interrupt);
+        ClearInterrupt(mask);
         var input = (_acr & 0x02) != 0 ? _latchedPortB : PortBInput;
         var value = CombinePort(_orb, _ddrb, input);
         return (_acr & 0x80) != 0 ? (byte)((value & 0x7F) | (_t1Pb7 ? 0x80 : 0)) : value;
@@ -322,14 +330,23 @@ public sealed class Via6522 : IMemoryMappedDevice
 
     private void UpdateTimers()
     {
+        // T1 keeps decrementing/wrapping forever once started, in both modes - real 6522 hardware
+        // never stops the counter itself; one-shot mode (ACR6=0) only stops firing REPEAT
+        // interrupts (and doesn't reload from the latch) until T1CH is written again, tracked by
+        // _t1OneShotArmed. Free-run mode (ACR6=1) always fires and always reloads.
         if (_t1Running && --_t1Counter == ushort.MaxValue)
         {
-            SetInterrupt(Timer1Interrupt);
             _t1Pb7 = !_t1Pb7;
             if ((_acr & 0x40) != 0)
+            {
+                SetInterrupt(Timer1Interrupt);
                 _t1Counter = _t1Latch;
-            else
-                _t1Running = false;
+            }
+            else if (_t1OneShotArmed)
+            {
+                SetInterrupt(Timer1Interrupt);
+                _t1OneShotArmed = false;
+            }
         }
 
         if (_t2Running && (_acr & 0x20) == 0)
@@ -338,17 +355,32 @@ public sealed class Via6522 : IMemoryMappedDevice
 
     private void DecrementTimer2()
     {
+        // Same "keeps counting, one-shot only suppresses repeat interrupts" fix as T1 - see
+        // UpdateTimers. T2 has no free-run mode of its own, so there's no reload branch here.
         if (--_t2Counter == ushort.MaxValue)
         {
-            _t2Running = false;
-            SetInterrupt(Timer2Interrupt);
+            if (_t2OneShotArmed)
+            {
+                SetInterrupt(Timer2Interrupt);
+                _t2OneShotArmed = false;
+            }
+
+            // ponytail: SR modes clocked by T2 (0x04 in, 0x10 out-free-run, 0x14 out-once) all
+            // shift one bit per T2 underflow here - real 0x10 additionally free-runs T2 itself
+            // (reloading from the latch forever, ignoring one-shot) to keep generating a
+            // continuous shift clock; that reload isn't implemented, so 0x10 clocks the same
+            // single bit as 0x14 then goes quiet like any other one-shot T2. Upgrade path: give
+            // 0x10 its own always-reload branch here if a real shift-out-free-running user shows up.
+            var srMode = (byte)(_acr & 0x1C);
+            if (srMode is 0x04 or 0x10 or 0x14)
+                ClockShiftRegister();
         }
     }
 
     private void UpdateShiftRegister()
     {
         var mode = (byte)(_acr & 0x1C);
-        if (mode is 0x08 or 0x10 or 0x18)
+        if (mode is 0x08 or 0x18)
             ClockShiftRegister();
     }
 
@@ -361,7 +393,7 @@ public sealed class Via6522 : IMemoryMappedDevice
 
     private void ClockShiftRegister()
     {
-        var input = (_acr & 0x1C) is 0x08 or 0x0C;
+        var input = (_acr & 0x1C) is 0x04 or 0x08 or 0x0C;
         _shiftRegister = input
             ? (byte)((_shiftRegister >> 1) | (_cb2 ? 0x80 : 0))
             : (byte)(_shiftRegister << 1);
@@ -413,6 +445,13 @@ public sealed class Via6522 : IMemoryMappedDevice
     private static bool IsCa2Input(byte mode) => mode <= 0x06;
 
     private static bool IsCb2Input(byte mode) => mode <= 0x60;
+
+    /// <summary>PCR "independent interrupt" input sub-modes (raw CA2 field 0x02/0x06): the CA2
+    /// interrupt flag is NOT cleared by a Port A data read, only by an explicit IFR write - unlike
+    /// the non-independent input modes (0x00/0x04), which <see cref="ReadPortA"/> normally clears.</summary>
+    private static bool IsCa2InterruptIndependent(byte pcr) => (pcr & 0x0E) is 0x02 or 0x06;
+
+    private static bool IsCb2InterruptIndependent(byte pcr) => (pcr & 0xE0) is 0x20 or 0x60;
 
     private static byte CombinePort(byte outputLatch, byte direction, byte input)
         => (byte)((outputLatch & direction) | (input & ~direction));

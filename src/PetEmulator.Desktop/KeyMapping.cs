@@ -14,7 +14,11 @@ internal static class KeyMapping
         >= Key.A and <= Key.Z => "Key" + key,
         >= Key.D0 and <= Key.D9 => "Digit" + (key - Key.D0),
         Key.Space => "Space",
-        Key.Enter => "Enter",
+        // Avalonia's Key enum names the physical Enter/Return key "Return" - Key.Enter exists
+        // separately (numpad enter on some layouts) and never fires for the main key. Confirmed
+        // empirically: a real KeyDown for the main Enter key reports e.Key == Key.Return, not
+        // Key.Enter - mapping only Key.Enter silently ate every Enter press.
+        Key.Enter or Key.Return => "Enter",
         Key.Back => "Backspace",
         Key.LeftShift => "ShiftLeft",
         Key.RightShift => "ShiftRight",
@@ -23,6 +27,9 @@ internal static class KeyMapping
         Key.OemMinus => "Minus",
         Key.OemQuotes => "Quote",
         Key.OemComma => "Comma",
+        Key.OemPeriod => "Period",
+        Key.OemQuestion => "Slash",
+        Key.OemSemicolon => "Semicolon",
         _ => null
     };
 }

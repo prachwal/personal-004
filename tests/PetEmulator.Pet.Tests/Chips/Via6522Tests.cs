@@ -113,6 +113,101 @@ public sealed class Via6522Tests
     }
 
     [Test]
+    public void Timer1_oneShot_keeps_counting_and_wrapping_after_it_fires()
+    {
+        var via = new Via6522();
+        via.Write(Via6522.T1CounterLow, 0x02);
+        via.Write(Via6522.T1CounterHigh, 0x00); // ACR bit6=0: one-shot
+        via.Update(); // 0x0002 -> 0x0001
+        via.Update(); // 0x0001 -> 0x0000
+        via.Update(); // 0x0000 -> 0xFFFF: fires once
+
+        (via.Read(Via6522.InterruptFlag) & Via6522.Timer1Interrupt).Should().NotBe(0);
+        via.Write(Via6522.InterruptFlag, Via6522.Timer1Interrupt);
+
+        via.Update(); // 0xFFFF -> 0xFFFE: real hardware keeps decrementing, doesn't freeze
+        via.Timer1Counter.Should().Be(0xFFFE);
+        (via.Read(Via6522.InterruptFlag) & Via6522.Timer1Interrupt).Should().Be(0,
+            "one-shot mode fires exactly once per T1CH write, not on every subsequent wrap");
+    }
+
+    [Test]
+    public void Timer2_oneShot_keeps_counting_and_wrapping_after_it_fires()
+    {
+        var via = new Via6522();
+        via.Write(Via6522.T2CounterLow, 0x01);
+        via.Write(Via6522.T2CounterHigh, 0x00);
+        via.Update();
+        via.Update(); // underflows, fires once
+
+        (via.Read(Via6522.InterruptFlag) & Via6522.Timer2Interrupt).Should().NotBe(0);
+        via.Read(Via6522.T2CounterLow); // acknowledges the interrupt
+
+        via.Update();
+        var counterAfterOneMoreTick = via.Read(Via6522.T2CounterLow);
+        counterAfterOneMoreTick.Should().Be(0xFE, "T2 keeps decrementing/wrapping after a one-shot fire");
+        (via.Read(Via6522.InterruptFlag) & Via6522.Timer2Interrupt).Should().Be(0);
+    }
+
+    [Test]
+    public void Ca2_independent_input_mode_interrupt_survives_a_port_a_read()
+    {
+        var via = new Via6522();
+        via.Write(Via6522.PeripheralControl, 0x02); // CA2 negative-edge, INDEPENDENT (bit1 set)
+        via.CA2 = true; // idle high first so the next transition is a real negative edge
+        via.Update(); // captures the high level into _previousCa2 before the actual transition
+        via.CA2 = false;
+        via.Update();
+
+        (via.Read(Via6522.InterruptFlag) & Via6522.Ca2Interrupt).Should().NotBe(0);
+        via.Read(Via6522.Ora); // a normal (non-independent) CA2 mode would clear the flag here
+
+        (via.Read(Via6522.InterruptFlag) & Via6522.Ca2Interrupt).Should().NotBe(0,
+            "independent mode's CA2 flag is only cleared by an explicit IFR write, not a Port A read");
+
+        via.Write(Via6522.InterruptFlag, Via6522.Ca2Interrupt);
+        (via.Read(Via6522.InterruptFlag) & Via6522.Ca2Interrupt).Should().Be(0);
+    }
+
+    [Test]
+    public void Cb2_independent_input_mode_interrupt_survives_a_port_b_read()
+    {
+        var via = new Via6522();
+        via.Write(Via6522.PeripheralControl, 0x20); // CB2 negative-edge, INDEPENDENT
+        via.CB2 = true;
+        via.Update();
+        via.CB2 = false;
+        via.Update();
+
+        (via.Read(Via6522.InterruptFlag) & Via6522.Cb2Interrupt).Should().NotBe(0);
+        via.Read(Via6522.Orb);
+
+        (via.Read(Via6522.InterruptFlag) & Via6522.Cb2Interrupt).Should().NotBe(0);
+    }
+
+    [Test]
+    public void ShiftRegister_inT2Mode_clocksOnceEveryTimer2Underflow()
+    {
+        var via = new Via6522();
+        via.Write(Via6522.AuxiliaryControl, 0x04); // SR mode 100=0x04: shift IN under T2 control
+        via.CB2 = true; // the bit that gets shifted in on each T2 underflow
+
+        via.Write(Via6522.T2CounterLow, 0x01);
+        via.Write(Via6522.T2CounterHigh, 0x00);
+        for (var i = 0; i < 8; i++)
+        {
+            via.Update(); // -> 0
+            via.Update(); // -> underflow, shifts one bit, re-arm not needed for SR clocking itself
+            via.Write(Via6522.T2CounterLow, 0x01);
+            via.Write(Via6522.T2CounterHigh, 0x00);
+        }
+
+        (via.Read(Via6522.InterruptFlag) & Via6522.ShiftRegisterInterrupt).Should().NotBe(0,
+            "eight T2-driven shifts should complete the byte and set the SR interrupt");
+        via.SR.Should().Be(0xFF, "CB2 was held high for all eight shifts-in");
+    }
+
+    [Test]
     public void Pcr_configures_ca1_and_cb1_edges()
     {
         var via = new Via6522();

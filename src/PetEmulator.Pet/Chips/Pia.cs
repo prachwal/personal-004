@@ -22,6 +22,8 @@ public sealed class Pia : IMemoryMappedDevice
     private bool _ca2Flag;
     private bool _cb1Flag;
     private bool _cb2Flag;
+    private byte _ca2PulseCyclesRemaining;
+    private byte _cb2PulseCyclesRemaining;
 
     public Pia(string name = "PIA", ushort baseAddress = 0)
     {
@@ -81,7 +83,11 @@ public sealed class Pia : IMemoryMappedDevice
     public bool CA1
     {
         get => _ca1;
-        set => SetControlInput(ref _ca1, value, IsRisingEdge(_cra), ref _ca1Flag);
+        set
+        {
+            if (SetControlInput(ref _ca1, value, IsRisingEdge(_cra), ref _ca1Flag))
+                RestoreCa2Handshake();
+        }
     }
 
     public bool CA2
@@ -97,7 +103,11 @@ public sealed class Pia : IMemoryMappedDevice
     public bool CB1
     {
         get => _cb1;
-        set => SetControlInput(ref _cb1, value, IsRisingEdge(_crb), ref _cb1Flag);
+        set
+        {
+            if (SetControlInput(ref _cb1, value, IsRisingEdge(_crb), ref _cb1Flag))
+                RestoreCb2Handshake();
+        }
     }
 
     public bool CB2
@@ -145,7 +155,8 @@ public sealed class Pia : IMemoryMappedDevice
                 break;
             case 1:
                 _cra = (byte)(value & WritableControlBits);
-                SetControl2Output(ref _ca2, _cra, Ca2OutputChanged);
+                _ca2PulseCyclesRemaining = 0;
+                ApplyControl2OutputMode(_cra, SetCa2Output);
                 ControlAWritten?.Invoke(_cra);
                 break;
             case 2 when !IsPortBDataSelected():
@@ -154,10 +165,12 @@ public sealed class Pia : IMemoryMappedDevice
             case 2:
                 _orb = value;
                 PortBWritten?.Invoke(value);
+                TriggerCb2Handshake();
                 break;
             case 3:
                 _crb = (byte)(value & WritableControlBits);
-                SetControl2Output(ref _cb2, _crb, Cb2OutputChanged);
+                _cb2PulseCyclesRemaining = 0;
+                ApplyControl2OutputMode(_crb, SetCb2Output);
                 ControlBWritten?.Invoke(_crb);
                 break;
             default:
@@ -170,12 +183,29 @@ public sealed class Pia : IMemoryMappedDevice
         _ddra = _ddrb = _ora = _orb = _cra = _crb = 0;
         _ca1 = _ca2 = _cb1 = _cb2 = false;
         _ca1Flag = _ca2Flag = _cb1Flag = _cb2Flag = false;
+        _ca2PulseCyclesRemaining = _cb2PulseCyclesRemaining = 0;
     }
 
-    /// <summary>Pia has no internal cycle-driven timing; all state changes happen on
-    /// bus access or explicit control-line assignment.</summary>
+    /// <summary>Auto-restores CA2/CB2 after a "pulse" output (CRA/CRB bit4=0, bit3=1): the line
+    /// goes low for exactly one PHI2 cycle after the triggering Port A read / Port B write, then
+    /// comes back high on its own - unlike "handshake" mode (bit3=0), which instead waits for the
+    /// next active CA1/CB1 edge. Everything else on this chip is bus/control-line-driven with no
+    /// cycle-accurate timing of its own, so this is the one place Tick actually does something.</summary>
     public void Tick(ulong cycles)
     {
+        if (_ca2PulseCyclesRemaining > 0)
+        {
+            _ca2PulseCyclesRemaining -= cycles >= _ca2PulseCyclesRemaining ? _ca2PulseCyclesRemaining : (byte)cycles;
+            if (_ca2PulseCyclesRemaining == 0)
+                SetCa2Output(true);
+        }
+
+        if (_cb2PulseCyclesRemaining > 0)
+        {
+            _cb2PulseCyclesRemaining -= cycles >= _cb2PulseCyclesRemaining ? _cb2PulseCyclesRemaining : (byte)cycles;
+            if (_cb2PulseCyclesRemaining == 0)
+                SetCb2Output(true);
+        }
     }
 
     private bool IsPortADataSelected() => SelectPortADataRegister?.Invoke(_cra) ?? (_cra & DataRegisterSelect) != 0;
@@ -189,6 +219,7 @@ public sealed class Pia : IMemoryMappedDevice
 
         var value = CombinePort(_ora, _ddra, PortAInput?.Invoke() ?? 0);
         _ca1Flag = _ca2Flag = false;
+        TriggerCa2Handshake();
         PortARead?.Invoke();
         return value;
     }
@@ -207,28 +238,92 @@ public sealed class Pia : IMemoryMappedDevice
     private static byte ReadControl(byte control, bool control1Flag, bool control2Flag)
         => (byte)(control | (control1Flag ? 0x80 : 0) | (control2Flag ? 0x40 : 0));
 
-    private static void SetControlInput(ref bool line, bool value, bool risingEdge, ref bool interruptFlag)
+    /// <summary>Returns whether the transition was the control register's configured active edge
+    /// (the same edge that also drives the C1 interrupt flag).</summary>
+    private static bool SetControlInput(ref bool line, bool value, bool risingEdge, ref bool interruptFlag)
     {
         if (line == value)
-            return;
+            return false;
 
         var isActiveEdge = value == risingEdge;
         line = value;
         if (isActiveEdge)
             interruptFlag = true;
+        return isActiveEdge;
     }
 
-    private static void SetControl2Output(ref bool line, byte control, Action<bool>? outputChanged)
+    /// <summary>Applies the level a CRA/CRB write establishes for CA2/CB2 when configured as an
+    /// output: manual mode (bit4=1) sets it directly from bit3; handshake/pulse mode (bit4=0)
+    /// idles high (real 6520 behavior - it only pulses low when the mode's actual trigger fires:
+    /// a Port A read for CA2, a Port B write for CB2 - see <see cref="TriggerCa2Handshake"/>/
+    /// <see cref="TriggerCb2Handshake"/>), not whatever the line happened to read before this
+    /// control-register write. Leaves input mode (bit5=0) alone entirely.</summary>
+    private static void ApplyControl2OutputMode(byte control, Action<bool> setOutput)
     {
         if (!IsControl2Output(control))
             return;
 
-        var value = (control & 0x08) != 0;
-        if (line == value)
+        setOutput(IsControl2Manual(control) ? (control & 0x08) != 0 : true);
+    }
+
+    /// <summary>Fires on every Port A data-register read: in handshake/pulse output mode
+    /// (CRA bit5=1, bit4=0), CA2 drops low. Pulse mode (bit3=1) also arms a one-cycle
+    /// auto-restore; handshake mode (bit3=0) instead waits for the next active CA1 edge
+    /// (<see cref="RestoreCa2Handshake"/>).</summary>
+    private void TriggerCa2Handshake()
+    {
+        if (!IsControl2Output(_cra) || IsControl2Manual(_cra))
             return;
 
-        line = value;
-        outputChanged?.Invoke(value);
+        SetCa2Output(false);
+        if (IsControl2Pulse(_cra))
+            _ca2PulseCyclesRemaining = 1;
+    }
+
+    private void RestoreCa2Handshake()
+    {
+        if (!IsControl2Output(_cra) || IsControl2Manual(_cra) || IsControl2Pulse(_cra))
+            return;
+
+        SetCa2Output(true);
+    }
+
+    /// <summary>Fires on every Port B write: the write-side mirror of
+    /// <see cref="TriggerCa2Handshake"/> (CB2 instead of CA2, triggered by writing ORB instead of
+    /// reading Port A - real hardware ties CA2's automatic modes to the read side and CB2's to the
+    /// write side).</summary>
+    private void TriggerCb2Handshake()
+    {
+        if (!IsControl2Output(_crb) || IsControl2Manual(_crb))
+            return;
+
+        SetCb2Output(false);
+        if (IsControl2Pulse(_crb))
+            _cb2PulseCyclesRemaining = 1;
+    }
+
+    private void RestoreCb2Handshake()
+    {
+        if (!IsControl2Output(_crb) || IsControl2Manual(_crb) || IsControl2Pulse(_crb))
+            return;
+
+        SetCb2Output(true);
+    }
+
+    private void SetCa2Output(bool value)
+    {
+        if (_ca2 == value)
+            return;
+        _ca2 = value;
+        Ca2OutputChanged?.Invoke(value);
+    }
+
+    private void SetCb2Output(bool value)
+    {
+        if (_cb2 == value)
+            return;
+        _cb2 = value;
+        Cb2OutputChanged?.Invoke(value);
     }
 
     private static bool IsRisingEdge(byte control) => (control & 0x02) != 0;
@@ -236,6 +331,14 @@ public sealed class Pia : IMemoryMappedDevice
     private static bool IsRisingEdge2(byte control) => (control & 0x10) != 0;
 
     private static bool IsControl2Output(byte control) => (control & 0x20) != 0;
+
+    /// <summary>CRA/CRB bit4: 1 = manual output (bit3 sets the level directly), 0 = automatic
+    /// handshake/pulse (see <see cref="IsControl2Pulse"/> for which of the two).</summary>
+    private static bool IsControl2Manual(byte control) => (control & 0x10) != 0;
+
+    /// <summary>Only meaningful when output and not manual: CRA/CRB bit3, 0 = handshake
+    /// (restores on the next active C1 edge), 1 = pulse (restores automatically after one cycle).</summary>
+    private static bool IsControl2Pulse(byte control) => (control & 0x08) != 0;
 
     private static bool IsControl2InputInterruptEnabled(byte control)
         => !IsControl2Output(control) && (control & 0x08) != 0;

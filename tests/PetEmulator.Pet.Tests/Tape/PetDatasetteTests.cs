@@ -7,8 +7,8 @@ namespace PetEmulator.Pet.Tests.Tape;
 
 public sealed class PetDatasetteTests
 {
-    private const byte MotorOnControlB = 0x20 | 0x00; // CB2 output mode, value 0 = motor on (active low)
-    private const byte MotorOffControlB = 0x20 | 0x08; // CB2 output mode, value 1 = motor off
+    private const byte MotorOnControlB = 0x20 | 0x10 | 0x00; // CB2 output, manual mode, value 0 = motor on (active low)
+    private const byte MotorOffControlB = 0x20 | 0x10 | 0x08; // CB2 output, manual mode, value 1 = motor off
     private const byte Ca1FlagBit = 0x80; // PIA control register bit set by an active CA1 edge
 
     /// <summary>CRA's reset value (0) makes CA1 falling-edge sensitive, matching the KERNAL's

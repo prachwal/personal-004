@@ -2,7 +2,13 @@ using PetEmulator.Core;
 
 namespace PetEmulator.Pet.Chips;
 
-/// <summary>Minimal, renderer-independent Motorola 6545 CRT controller.</summary>
+/// <summary>Minimal, renderer-independent Motorola 6545 CRT controller.
+/// NOT modeled: the Rockwell/Hitachi 6545-specific "Update"/"Transparent" alternate memory-access
+/// modes and their status-bit7 "Update Ready" flag (R8 bits 6:5 select them on some 6545 variants).
+/// No PET ROM ever selects them (R8 is always written 0 by the KERNAL), and this class's
+/// 18-register model has no update-address register pair to back them - left as a documented gap
+/// rather than a guessed implementation. R8's interlace (bits 1:0) and skew (bits 7:4, standard
+/// 6845 features) ARE modeled.</summary>
 public sealed class Crtc6545 : IMemoryMappedDevice
 {
     private const byte StatusVerticalRetrace = 0x20;
@@ -25,6 +31,9 @@ public sealed class Crtc6545 : IMemoryMappedDevice
     private bool _lightPenRegistered;
     private bool _cursorBlinkVisible = true;
     private byte _cursorBlinkFrames;
+    private bool _interlaceField;
+    private readonly bool[] _dePipe = new bool[4];
+    private readonly bool[] _cursorPipe = new bool[4];
 
     public Crtc6545(string name = "CRTC", ushort baseAddress = 0)
     {
@@ -116,6 +125,9 @@ public sealed class Crtc6545 : IMemoryMappedDevice
         _lightPenRegistered = false;
         _cursorBlinkVisible = true;
         _cursorBlinkFrames = 0;
+        _interlaceField = false;
+        Array.Clear(_dePipe);
+        Array.Clear(_cursorPipe);
         MACounter = 0;
         HSync = false;
         VSync = false;
@@ -165,7 +177,7 @@ public sealed class Crtc6545 : IMemoryMappedDevice
     {
         var horizontalDisplay = _horizontalCounter < _registers[1];
         var verticalDisplay = !_inVerticalAdjust && _verticalCounter < _registers[6];
-        DisplayEnable = horizontalDisplay && verticalDisplay;
+        var rawDisplayEnable = horizontalDisplay && verticalDisplay;
         VerticalBlanking = _inVerticalAdjust || _verticalCounter >= _registers[6];
 
         var hSyncWidth = SyncWidth((byte)(_registers[3] & 0x0F));
@@ -176,9 +188,32 @@ public sealed class Crtc6545 : IMemoryMappedDevice
         MACounter = (ushort)((_lineStartAddress + _horizontalCounter) & 0x3FFF);
         var cursorMode = (byte)((_registers[10] >> 5) & 0x03);
         var cursorRaster = _rasterCounter >= (_registers[10] & 0x1F) && _rasterCounter <= _registers[11];
-        CursorEnable = DisplayEnable && MACounter == CursorAddress && cursorRaster &&
+        var rawCursorEnable = rawDisplayEnable && MACounter == CursorAddress && cursorRaster &&
             cursorMode != 1 && (cursorMode == 0 || _cursorBlinkVisible);
+
+        // R8 bits 7:6 = display-enable skew, bits 5:4 = cursor skew (both 0-3 character clocks) -
+        // pipeline the raw signals so the public property lags by the configured clock count,
+        // matching the 6845/6545's character-generator pipeline-latency compensation.
+        ShiftPipe(_dePipe, rawDisplayEnable);
+        ShiftPipe(_cursorPipe, rawCursorEnable);
+        DisplayEnable = _dePipe[(_registers[8] >> 6) & 0x03];
+        CursorEnable = _cursorPipe[(_registers[8] >> 4) & 0x03];
     }
+
+    private static void ShiftPipe(bool[] pipe, bool value)
+    {
+        for (var i = pipe.Length - 1; i > 0; i--)
+            pipe[i] = pipe[i - 1];
+        pipe[0] = value;
+    }
+
+    /// <summary>R8 bits 1:0 = interlace mode. Only "interlace sync and video" (0b11) is modeled:
+    /// the raster counter steps by 2 instead of 1, and each frame alternates which raster line it
+    /// starts on (0 or 1), doubling the apparent vertical resolution across two fields. "Interlace
+    /// sync only" (0b01) is 6845-datasheet-documented to affect only VSync pulse alignment, not
+    /// the raster/MA sequence this class exposes, so it is treated the same as non-interlace (0b00
+    /// /0b10) here.</summary>
+    private bool IsInterlaceVideoMode => (_registers[8] & 0x03) == 0x03;
 
     private void AdvanceCounters()
     {
@@ -193,7 +228,8 @@ public sealed class Crtc6545 : IMemoryMappedDevice
             return;
         }
 
-        if (++_rasterCounter <= _registers[9])
+        _rasterCounter += (byte)(IsInterlaceVideoMode ? 2 : 1);
+        if (_rasterCounter <= _registers[9])
             return;
 
         _rasterCounter = 0;
@@ -214,6 +250,11 @@ public sealed class Crtc6545 : IMemoryMappedDevice
     {
         _verticalCounter = 0;
         _rasterCounter = 0;
+        if (IsInterlaceVideoMode)
+        {
+            _interlaceField = !_interlaceField;
+            _rasterCounter = (byte)(_interlaceField ? 1 : 0);
+        }
         _verticalAdjustCounter = 0;
         _inVerticalAdjust = false;
         _lineStartAddress = DisplayStartAddress;

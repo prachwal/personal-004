@@ -9,8 +9,8 @@ namespace PetEmulator.Pet.Tests.Tape;
 /// boundary - not just that CA1 toggled.</summary>
 public sealed class PetDatasetteActivityTests
 {
-    private const byte MotorOnControlB = 0x20 | 0x00; // CB2 output mode, value 0 = motor on (active low)
-    private const byte MotorOffControlB = 0x20 | 0x08; // CB2 output mode, value 1 = motor off
+    private const byte MotorOnControlB = 0x20 | 0x10 | 0x00; // CB2 output, manual mode, value 0 = motor on (active low)
+    private const byte MotorOffControlB = 0x20 | 0x10 | 0x08; // CB2 output, manual mode, value 1 = motor off
 
     [Test]
     public void MotorOn_RaisesMotorOnActivity()
