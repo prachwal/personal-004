@@ -77,10 +77,13 @@ public sealed class Vic20KeyboardMatrixTests
     }
 
     [Test]
-    public void Vic20HostKeyMap_Enter_IsRowThreeColSeven()
+    public void Vic20HostKeyMap_Enter_IsRowOneColSeven()
     {
-        // Confirmed via the real KERNAL's screen line-pointer advancing by exactly one row
-        // (22 = the profile's column count) after this cell alone - see the investigation doc.
-        Vic20HostKeyMap.Find('\n').Should().Be((3, 7));
+        // A screen line-pointer advancing by one row after this cell alone is NOT sufficient
+        // proof of Enter - CRSR-DOWN (a real, different key: (3,7), this table's first, wrong
+        // guess) produces the exact same pointer movement without ever executing anything typed.
+        // See Vic20MachineTests.Enter_ActuallyExecutesTheTypedLine_NotJustCrsrDown for the real
+        // test that distinguishes them.
+        Vic20HostKeyMap.Find('\n').Should().Be((1, 7));
     }
 }

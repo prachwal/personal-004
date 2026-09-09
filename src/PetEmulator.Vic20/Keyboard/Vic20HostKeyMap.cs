@@ -24,11 +24,18 @@ public static class Vic20HostKeyMap
         (7, 0, '2'), (7, 1, '4'), (7, 2, '6'), (7, 3, '8'), (7, 4, '0'), (7, 5, '-'),
     ];
 
-    // Confirmed separately from LetterMap (see the investigation doc): Enter verified by the
-    // KERNAL's screen line-pointer ($D1/$D2) advancing by exactly one row (22 = the profile's
-    // column count) after this cell alone; Space by "A" + this cell + "B" echoing as "A B" with a
-    // real blank cell between them, not "AB".
-    private const int ReturnRow = 3, ReturnCol = 7;
+    // Confirmed separately from LetterMap (see the investigation doc). Space: "A" + this cell +
+    // "B" echoes as "A B" with a real blank cell between them, not "AB".
+    //
+    // Enter went through TWO rounds of verification, and the first one was wrong: (3,7)'s screen
+    // line-pointer ($D1/$D2) also advances by exactly one row after that cell alone, which looks
+    // identical to a real Enter/newline by that test - but (3,7) is CRSR-DOWN, not Enter: typing
+    // a full command ("PRINT2+2") followed by (3,7) moves the cursor down and NEVER executes the
+    // line (no "4" ever appears on screen, however long it's given to run). (1,7) does execute -
+    // confirmed the same way. A line-pointer/cursor-position check alone can't tell "the KERNAL's
+    // line editor really processed and ran this line" from "the cursor just moved" - only
+    // watching for the command's actual, real effect can.
+    private const int ReturnRow = 1, ReturnCol = 7;
     private const int SpaceRow = 4, SpaceCol = 0;
 
     /// <summary>Maps a character to its (row, column); <c>null</c> if this keyboard can't type

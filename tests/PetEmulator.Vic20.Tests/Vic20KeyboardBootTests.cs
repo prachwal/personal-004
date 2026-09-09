@@ -11,15 +11,22 @@ public sealed class Vic20KeyboardBootTests
 {
     [Test]
     [CancelAfter(30_000)]
-    public void TypingPrintInDirectMode_PrintsTheDigitToScreen()
+    public void TypingPrintInDirectMode_ActuallyExecutesTheLine_NotJustEchoesTheTypedText()
     {
+        // "PRINT2+2" -> checking for a literal '2' on screen would be a false positive: '2' is
+        // typed input, echoed to screen regardless of whether Enter ever actually ran anything
+        // (this repo's own first version of this test made exactly that mistake, checking for
+        // the literal digit in "PRINT5" - it stayed green through a real bug where Enter was
+        // wired to CRSR-DOWN and never executed a single typed line - see
+        // docs/vic20-rendering-fixes.md's Enter investigation). '4' cannot appear from echoing
+        // the typed characters alone - only real execution proves it.
         var machine = new Vic20Machine(RomsRoot());
         machine.RunUntil(_ => HasScreenText(machine), 2_000_000).Should().BeTrue("must boot first");
 
-        Vic20TextTyper.Type(machine, "PRINT5\n", holdInstructions: 8_000, gapInstructions: 8_000);
+        Vic20TextTyper.Type(machine, "PRINT2+2\n", holdInstructions: 8_000, gapInstructions: 8_000);
         machine.Run(200_000);
 
-        ScreenContainsDigitFive(machine).Should().BeTrue("PRINT5 typed in direct mode should evaluate and print '5'");
+        ScreenContainsDigitFour(machine).Should().BeTrue("PRINT2+2 typed in direct mode should actually evaluate and print '4'");
     }
 
     private static bool HasScreenText(Vic20Machine machine)
@@ -42,13 +49,13 @@ public sealed class Vic20KeyboardBootTests
         return letters > 10;
     }
 
-    private static bool ScreenContainsDigitFive(Vic20Machine machine)
+    private static bool ScreenContainsDigitFour(Vic20Machine machine)
     {
         var cols = machine.Vic.Columns;
         var rows = machine.Vic.Rows;
         var screenAddr = machine.Vic.ScreenAddr;
         for (var i = 0; i < cols * rows; i++)
-            if (machine.Memory.Read((ushort)(screenAddr + i)) == 0x35) // screen-code '5' (unshifted 0x20-0x3F mirrors ASCII)
+            if (machine.Memory.Read((ushort)(screenAddr + i)) == 0x34) // screen-code '4' (unshifted 0x20-0x3F mirrors ASCII)
                 return true;
         return false;
     }

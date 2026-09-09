@@ -125,6 +125,41 @@ out to be why typing failed here (the headless test harness routes key events by
 independently of the OS-level quirk this was guarding against), but it's a real gap the same
 investigation surfaced and a legitimate fix regardless.
 
+## Bug 5: Enter didn't execute typed lines, just moved the cursor down
+
+Reported as "po wciśnięciu enter przeskakuje mnie o wiersz do dołu a nie wysyła enter". The
+`Vic20HostKeyMap.LetterMap` fix (Bug 4) had already shipped a wrong Enter cell, and the test that
+should have caught it (`Vic20KeyboardBootTests`) was **itself a false positive** of exactly the
+same shape as the boot-detection bug in Bug 3: it typed `"PRINT5\n"` and checked for a literal
+`'5'` screen code - but `'5'` is *typed input*, echoed to screen the moment it's pressed,
+regardless of whether Enter ever ran anything. The test stayed green through the entire time
+Enter was broken.
+
+The original Enter verification (Bug 4) picked `(3,7)` because pressing it alone advanced the
+KERNAL's screen line-pointer (`$D1`/`$D2`) by exactly one row - the same signature a genuine
+newline produces. But `(3,7)` is **CRSR-DOWN**, a different real key that moves the cursor with
+the identical pointer arithmetic and never touches the input line at all. Line-pointer movement
+alone can't distinguish "the KERNAL's line editor really processed and ran this line" from "the
+cursor just moved" - re-verified properly by typing a full command
+(`"PRINT2+2"` + candidate) and checking whether it actually *executes* (does `'4'` - a value that
+cannot appear from echoing the typed digits - show up on screen). `(3,7)` never executes anything
+however long it's given to run; `(1,7)` does. Fixed `Vic20HostKeyMap`'s `ReturnRow`/`ReturnCol` to
+`(1, 7)`, and rewrote both the false-positive test (now types `"PRINT2+2"`, checks for `'4'`) and
+`Vic20KeyboardMatrixTests`'s Enter assertion to match, plus added
+`Vic20MachineTests.Enter_ActuallyExecutesTheTypedLine_NotJustCrsrDown` as an explicit regression
+test for this exact CRSR-DOWN-vs-Enter confusion.
+
+Also checked while investigating (a real question, not a bug): whether the char ROM was being
+read with inverted bits. It isn't - dumped the raw glyph for screen code 1 ('A') and it's a clean,
+recognizable 'A' shape. The white-on-blue look everywhere (see the "colors wrong" question
+resolved in this session's earlier conversation) is genuine, documented real VIC-20 default
+behavior, not an inverted font.
+
+Verified end-to-end through the real GUI pipeline again (`PetEmulator.Screenshot --type`): typing
+`"PRINT2+2\n"` now genuinely echoes `PRINT22` (`+` still isn't in the tool's own tiny
+char-to-`Key` table), executes on Enter, prints `22`, and a fresh `READY.` prompt appears - the
+complete, correct real BASIC direct-mode round trip.
+
 ## Screenshot tool
 
 This dev environment has no screenshot utility (`import`/`scrot`/`xwd`) and no root to install
