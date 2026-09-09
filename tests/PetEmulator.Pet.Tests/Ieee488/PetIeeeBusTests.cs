@@ -275,6 +275,28 @@ public sealed class PetIeeeBusTests
         dev.ReceivedBytes.Should().Equal((byte)(0x42 ^ 0xFF));
     }
 
+    [Test]
+    public void AttachDevice_ReplacesAnExistingDeviceAtTheSamePrimaryAddress()
+    {
+        var bus = new PetIeeeBus();
+        var original = new MockDevice(8);
+        original.QueueBytes(0x11);
+        bus.AttachDevice(original);
+
+        var replacement = new MockDevice(8);
+        replacement.QueueBytes(0x22);
+        bus.AttachDevice(replacement);
+
+        bus.OnATNWrite(true);
+        bus.OnDioWrite(0x48);
+        bus.OnDioWrite(0x60);
+        bus.OnATNWrite(false);
+        bus.Tick();
+
+        bus.OnDioRead().Should().Be(0x22,
+            "the second AttachDevice at address 8 should replace the first, not sit alongside it");
+    }
+
     // The original project's own "WritePins_IgnoredWhenNotAllOutput" test is not ported: its
     // expectation (a no-op when ddrMask is 0) does not hold against PetIeeePortBBinding.WritePins
     // as ported verbatim from source, which always forwards regardless of ddrMask. See that

@@ -1,6 +1,8 @@
 using Cpu6502.Variants;
 using PetEmulator.Core;
+using PetEmulator.Pet.CbmDos;
 using PetEmulator.Pet.Chips;
+using PetEmulator.Pet.Devices;
 using PetEmulator.Pet.Ieee488;
 using PetEmulator.Pet.Keyboard;
 using PetEmulator.Pet.Roms;
@@ -25,6 +27,7 @@ public sealed class PetMachine : IMachine
     private readonly PetDatasette _datasette;
     private readonly PetIeeeBus _ieeeBus;
     private readonly PetIeeeBusBinding _ieeeBusBinding;
+    private readonly List<PetIeeeDriveStatus> _mountedDrives = [];
     private byte _keyboardSelectedRow;
 
     // PIA1's CB1 line (not VIA CA1 - a prior version of this wiring targeted the wrong chip
@@ -79,6 +82,32 @@ public sealed class PetMachine : IMachine
 
     /// <summary>The VIA - exposed for debug tooling (timer/IRQ state).</summary>
     public Via6522 Via => _via;
+
+    /// <summary>The cassette #1 datasette - a caller (GUI menu, debugger script) loads a tape
+    /// through this directly.</summary>
+    public PetDatasette Datasette => _datasette;
+
+    /// <summary>Every peripheral currently attached and worth a GUI status icon for - see
+    /// <see cref="IPetDeviceStatus"/>'s doc comment for why this is a dynamic list rather than a
+    /// fixed set of properties. Rebuilt on each access (cheap: a handful of entries), so it always
+    /// reflects the latest <see cref="MountDisk"/>/<see cref="Datasette"/> state.</summary>
+    public IReadOnlyList<IPetDeviceStatus> Devices =>
+        [new PetDatasetteStatus(_datasette), .. _mountedDrives];
+
+    /// <summary>Mounts a D64 disk image on the IEEE-488 bus at <paramref name="deviceNumber"/>
+    /// (8 is the PET/CBM DOS convention for the first drive). Replaces whatever was already
+    /// mounted at that device number rather than attaching a second device under the same
+    /// address.</summary>
+    public void MountDisk(string path, int deviceNumber = 8)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        var image = D64Image.Load(path);
+        var drive = new PetIeeeDiskDrive(deviceNumber);
+        drive.Engine.AttachImage(image);
+        _ieeeBus.AttachDevice(drive);
+        _mountedDrives.RemoveAll(d => d.Id == $"ieee488:{deviceNumber}");
+        _mountedDrives.Add(new PetIeeeDriveStatus(deviceNumber, Path.GetFileName(path)));
+    }
 
     public static PetMachine Create(PetProfile profile, string romsRoot) => new(profile, romsRoot);
 

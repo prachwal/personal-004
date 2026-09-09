@@ -40,13 +40,54 @@ internal static class CliCommandFactory
                 (registry, request, token) => registry.RunAsync(
                     parseResult.GetValue(application)!, request, token), cancellationToken));
 
+        var script = new Argument<string?>("script")
+        {
+            Description = "Path to a debugger script (one command per line, '#' starts a comment) - omit to read stdin.",
+            Arity = ArgumentArity.ZeroOrOne
+        };
+        var debug = new Command("debug",
+            "Run a scripted PetDebuggerSession: profile/roms/tape/disk/key/type/devices/status, " +
+            "plus trace/watch/watch-range/unwatch/break-cycle/break-instruction-count/dump.");
+        debug.Arguments.Add(script);
+        debug.SetAction((parseResult, _) => Task.FromResult(RunDebugScript(parseResult.GetValue(script))));
+
         root.Subcommands.Add(apps);
         root.Subcommands.Add(run);
+        root.Subcommands.Add(debug);
         root.SetAction(async (parseResult, cancellationToken) =>
             await ExecuteAsync(parseResult, rootOptions, null,
                 static (registry, request, token) => registry.RunAsync(
                     request.Settings.DefaultApplication, request, token), cancellationToken));
         return root;
+    }
+
+    /// <summary>Runs a <see cref="PetDebuggerSession"/> script line by line, printing whatever
+    /// each command returns. Mirrors <see cref="MachineDebugger"/>/<see cref="PetDebuggerSession"/>'s
+    /// own "never throw, report as an 'error: ...' string" convention - one bad line doesn't stop
+    /// the rest of the script; the exit code just reflects whether any line failed.</summary>
+    private static int RunDebugScript(string? scriptPath)
+    {
+        using var reader = scriptPath is not null
+            ? new StreamReader(scriptPath)
+            : new StreamReader(Console.OpenStandardInput());
+
+        var session = new PetDebuggerSession();
+        var hadError = false;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0 || trimmed.StartsWith('#'))
+                continue;
+
+            var output = session.Execute(trimmed);
+            if (output.Length > 0)
+                Console.Write(output.EndsWith('\n') ? output : output + Environment.NewLine);
+            if (output.StartsWith("error:", StringComparison.Ordinal))
+                hadError = true;
+        }
+
+        return hadError ? 1 : 0;
     }
 
     private static CliOptionSet AddOptions(Command command)

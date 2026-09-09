@@ -4,9 +4,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PetEmulator.Core;
 using PetEmulator.Pet;
+using PetEmulator.Pet.Devices;
 using PetEmulator.Pet.Display;
 using PetEmulator.Pet.Fonts;
 using PetEmulator.Pet.Keyboard;
+using PetEmulator.Pet.Tape;
 
 namespace PetEmulator.Desktop;
 
@@ -33,6 +35,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string _statusText = "PC=0x0000 A=0x00 X=0x00 Y=0x00 SP=0x00 P=0x00 Cycles=0 Instructions=0";
+
+    /// <summary>Refreshed every <see cref="Tick"/> from <see cref="PetMachine.Devices"/> - the
+    /// status bar's ItemsControl binds directly to this, so a device attached/replaced mid-session
+    /// (a tape loaded, a disk swapped) shows up within one tick with no extra event wiring.</summary>
+    [ObservableProperty]
+    private IReadOnlyList<IPetDeviceStatus> _devices = [];
 
     public MainWindowViewModel()
     {
@@ -95,6 +103,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         GeometryChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>Loads a VICE-style .tap file into the running machine's datasette - the file-picker
+    /// dialog itself is Avalonia-specific glue that lives in <see cref="MainWindow"/>'s code-behind
+    /// (needs a <c>TopLevel</c>), which calls straight through to this.</summary>
+    public void LoadTape(string path)
+    {
+        var tap = PetTapFile.Parse(File.ReadAllBytes(path));
+        _machine.Datasette.LoadTape(tap.PulseCycles, Path.GetFileName(path));
+    }
+
+    /// <inheritdoc cref="LoadTape"/>
+    public void LoadDisk(string path) => _machine.MountDisk(path);
+
     /// <summary>Translates one Avalonia key event into matrix presses/releases on the running
     /// machine's keyboard. The View owns the Avalonia <see cref="Key"/> -&gt; host-key-string
     /// mapping (<see cref="KeyMapping"/>) since that's purely an Avalonia input concern.</summary>
@@ -125,6 +145,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             $"SP=0x{regs["SP"]:X2} P=0x{regs["P"]:X2} " +
             $"Cycles={_machine.Processor.CycleCount} Instructions={_machine.Processor.InstructionCount}";
 
+        Devices = _machine.Devices;
         FrameReady?.Invoke(this, EventArgs.Empty);
     }
 

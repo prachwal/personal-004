@@ -194,6 +194,50 @@ public sealed class PetMachineTests
         return bytes;
     }
 
+    [Test]
+    public void Devices_ReportsTheDatasetteEvenWithNoTapeLoaded()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+
+        machine.Devices.Should().ContainSingle(d => d.Id == "datasette")
+            .Which.StatusText.Should().Be("No tape");
+    }
+
+    [Test]
+    public void Devices_ReflectsALoadedTapesName()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+
+        machine.Datasette.LoadTape([100, 200], "starwars.tap");
+
+        machine.Devices.Single(d => d.Id == "datasette").StatusText.Should().Be("starwars.tap");
+    }
+
+    [Test]
+    public void MountDisk_AddsADriveDeviceStatus()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+        var diskPath = Path.Combine(RomLocator.Directory("test-disks", "games-1.d64"), "games-1.d64");
+
+        machine.MountDisk(diskPath);
+
+        machine.Devices.Should().ContainSingle(d => d.Id == "ieee488:8")
+            .Which.StatusText.Should().Be("games-1.d64");
+    }
+
+    [Test]
+    public void MountDisk_OnTheSameDeviceNumber_ReplacesTheStatusInsteadOfAddingASecondOne()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+        var testDisksDir = RomLocator.Directory("test-disks", "games-1.d64");
+
+        machine.MountDisk(Path.Combine(testDisksDir, "games-1.d64"));
+        machine.MountDisk(Path.Combine(testDisksDir, "utils.d64"));
+
+        machine.Devices.Should().ContainSingle(d => d.Id == "ieee488:8")
+            .Which.StatusText.Should().Be("utils.d64");
+    }
+
     private static PetMachine CreateMachine(PetProfile profile)
     {
         var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);

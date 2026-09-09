@@ -62,10 +62,16 @@ public sealed class PetDatasette
     /// <summary>True once every pulse in the loaded tape has been played past.</summary>
     public bool IsAtEnd => _pulseIndex >= _pulseCycles.Count;
 
-    public void LoadTape(IReadOnlyList<int> pulseCycles)
+    /// <summary>Display name of the currently loaded tape (e.g. a .tap file's name), or null when
+    /// none was given - purely cosmetic, for a status display (see <c>PetEmulator.Pet.Devices</c>);
+    /// nothing about tape playback itself depends on it.</summary>
+    public string? TapeName { get; private set; }
+
+    public void LoadTape(IReadOnlyList<int> pulseCycles, string? name = null)
     {
         ArgumentNullException.ThrowIfNull(pulseCycles);
         _pulseCycles = pulseCycles;
+        TapeName = name;
         Rewind();
     }
 

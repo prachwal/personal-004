@@ -49,7 +49,15 @@ public sealed class PetIeeeBus
 
     public byte GetCurrentDio() => _hasCachedInput ? _cachedInput : (byte)0xFF;
 
-    public void AttachDevice(IIeeeDevice device) => _devices.Add(device);
+    /// <summary>Attaches a device, replacing whatever was already at the same
+    /// <see cref="IIeeeDevice.PrimaryAddress"/> - two devices sharing an address would otherwise
+    /// both sit in <see cref="_devices"/> with the older one still winning every lookup (it's a
+    /// <c>FirstOrDefault</c>), silently ignoring a re-mount (e.g. swapping the disk in drive 8).</summary>
+    public void AttachDevice(IIeeeDevice device)
+    {
+        _devices.RemoveAll(d => d.PrimaryAddress == device.PrimaryAddress);
+        _devices.Add(device);
+    }
 
     public void OnATNWrite(bool atn)
     {
