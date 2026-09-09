@@ -24,8 +24,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     // rate. Good enough for a display GUI; revisit if playback speed needs to match real hardware.
     private const ulong InstructionsPerTick = 20_000;
 
+    // How long the disk-activity LED stays visibly red after a byte transfer - PollDiskActivity
+    // is checked once per (20ms) tick, and gaps between individual bus bytes mid-transfer would
+    // otherwise make it flicker frame-to-frame instead of reading as a steady blink.
+    private static readonly TimeSpan DiskActivityLinger = TimeSpan.FromMilliseconds(200);
+
     private readonly string _romsRoot;
     private readonly DispatcherTimer _timer;
+    private DateTime _diskActivityUntilUtc = DateTime.MinValue;
     private PetMachine _machine = null!;
     private PetRasterDisplay _display = null!;
     private IPetKeyboardMap _keyboardMap = null!;
@@ -38,10 +44,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private string _statusText = "PC=0x0000 A=0x00 X=0x00 Y=0x00 SP=0x00 P=0x00 Cycles=0 Instructions=0";
 
     /// <summary>Refreshed every <see cref="Tick"/> from <see cref="PetMachine.Devices"/>, minus
-    /// the datasette (it gets its own dedicated transport widget - see
-    /// <see cref="TapeIconColor"/>/<see cref="PlayTapeCommand"/> - not a generic read-only status
-    /// chip). The status bar's ItemsControl binds directly to this, so a device attached/replaced
-    /// mid-session (a disk swapped) shows up within one tick with no extra event wiring.</summary>
+    /// the datasette and the primary (device 8) disk drive - both get their own dedicated icon
+    /// widget (<see cref="TapeIconBrush"/>/<see cref="PlayTapeCommand"/>,
+    /// <see cref="DiskIconBrush"/>) instead of a generic read-only status chip. The status bar's
+    /// ItemsControl binds directly to this, so any OTHER device attached/replaced mid-session (a
+    /// second disk drive at a different device number) shows up within one tick with no extra
+    /// event wiring.</summary>
     [ObservableProperty]
     private IReadOnlyList<IPetDeviceStatus> _otherDevices = [];
 
@@ -59,6 +67,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// without it a real PET sits stuck forever on "PRESS PLAY ON TAPE #1" with no way to
     /// answer it.</summary>
     public IBrush TapeIconBrush => !TapeLoaded ? Brushes.Gray : TapePlaying ? Brushes.LimeGreen : Brushes.LightGray;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DiskIconBrush))]
+    private bool _diskLoaded;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DiskIconBrush))]
+    private bool _diskBusy;
+
+    /// <summary>Drives the disk icon's color: gray with nothing mounted, green once a disk is
+    /// mounted, briefly red (see <see cref="DiskActivityLinger"/>) while a real byte is crossing
+    /// the IEEE-488 bus - see <see cref="PetMachine.PollDiskActivity"/>.</summary>
+    public IBrush DiskIconBrush => !DiskLoaded ? Brushes.Gray : DiskBusy ? Brushes.Red : Brushes.LimeGreen;
 
     public MainWindowViewModel()
     {
@@ -172,9 +193,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             $"SP=0x{regs["SP"]:X2} P=0x{regs["P"]:X2} " +
             $"Cycles={_machine.Processor.CycleCount} Instructions={_machine.Processor.InstructionCount}";
 
-        OtherDevices = _machine.Devices.Where(d => d.Id != "datasette").ToList();
+        OtherDevices = _machine.Devices.Where(d => d.Id is not ("datasette" or "ieee488:8")).ToList();
         TapeLoaded = _machine.Datasette.HasTape;
         TapePlaying = _machine.Datasette.PlayPressed && _machine.Datasette.MotorOn;
+
+        DiskLoaded = _machine.HasDisk();
+        if (_machine.PollDiskActivity())
+            _diskActivityUntilUtc = DateTime.UtcNow + DiskActivityLinger;
+        DiskBusy = DateTime.UtcNow < _diskActivityUntilUtc;
+
         FrameReady?.Invoke(this, EventArgs.Empty);
     }
 

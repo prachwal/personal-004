@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Core;
+using PetEmulator.Pet.Chips;
 using PetEmulator.Pet.Keyboard;
 using PetEmulator.Pet.Tape;
 using PetEmulator.Pet.Tests.Roms;
@@ -286,6 +287,55 @@ public sealed class PetMachineTests
 
         machine.Devices.Should().ContainSingle(d => d.Id == "ieee488:8")
             .Which.StatusText.Should().Be("utils.d64");
+    }
+
+    [Test]
+    public void HasDisk_ReflectsWhetherDeviceEightIsMounted()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+
+        machine.HasDisk().Should().BeFalse();
+
+        var testDisksDir = RomLocator.Directory("test-disks", "games-1.d64");
+        machine.MountDisk(Path.Combine(testDisksDir, "games-1.d64"));
+
+        machine.HasDisk().Should().BeTrue();
+        machine.HasDisk(9).Should().BeFalse("nothing is mounted at device 9");
+    }
+
+    /// <summary>Drives a real LISTEN/TALK exchange over the memory-mapped PIA2/VIA registers -
+    /// the same sequence PetIeeeBusBindingTests proves at the bare-chip level - through the full
+    /// PetMachine, to prove PollDiskActivity's peek-and-clear wiring against real bus traffic
+    /// (not just that PetIeeeBus.Activity itself fires, which is already covered elsewhere).</summary>
+    [Test]
+    [CancelAfter(10_000)]
+    public void PollDiskActivity_ReportsRealIeee488Traffic_ThenClearsUntilTheNextByte()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+        var testDisksDir = RomLocator.Directory("test-disks", "games-1.d64");
+        machine.MountDisk(Path.Combine(testDisksDir, "games-1.d64"));
+
+        machine.PollDiskActivity().Should().BeFalse("nothing has touched the bus yet");
+
+        const byte AtnOutViaDdrb = 0x04;
+        var pia2Base = PetMemoryBus.Pia2Base;
+        var viaBase = PetMemoryBus.ViaBase;
+
+        machine.Memory.Write((ushort)(viaBase + Via6522.Ddrb), AtnOutViaDdrb);
+        machine.Memory.Write((ushort)(viaBase + Via6522.Orb), 0x00); // ATN asserted -> command phase
+        machine.Memory.Write((ushort)(pia2Base + 3), 0x04); // select PIA2 CRB's data register
+        machine.Memory.Write((ushort)(pia2Base + 2), (byte)(0x48 ^ 0xFF)); // TALK device 8
+        machine.Memory.Write((ushort)(pia2Base + 2), (byte)(0x6F ^ 0xFF)); // SECONDARY 15 (error channel)
+        machine.Memory.Write((ushort)(viaBase + Via6522.Orb), 0x04); // ATN released -> device becomes talker
+
+        for (var i = 0; i < 8; i++) machine.StepInstruction(); // let the talker-side prefetch delay elapse
+
+        machine.Memory.Write((ushort)(pia2Base + 1), 0x04); // select PIA2 CRA's data register
+        var read = machine.Memory.Read((ushort)(pia2Base + 0));
+        ((byte)(read ^ 0xFF)).Should().Be((byte)'7', "the status channel starts \"73,CBM DOS...\"");
+
+        machine.PollDiskActivity().Should().BeTrue("a real byte just crossed the IEEE-488 bus");
+        machine.PollDiskActivity().Should().BeFalse("polling again immediately should find nothing new");
     }
 
     private static PetMachine CreateMachine(PetProfile profile)

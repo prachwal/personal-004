@@ -29,6 +29,7 @@ public sealed class PetMachine : IMachine
     private readonly PetIeeeBusBinding _ieeeBusBinding;
     private readonly List<PetIeeeDriveStatus> _mountedDrives = [];
     private byte _keyboardSelectedRow;
+    private bool _diskActivityPending;
 
     // PIA1's CB1 line (not VIA CA1 - a prior version of this wiring targeted the wrong chip
     // entirely, confirmed against personal-001's PetMachine.ClockPia1Cb1) carries the ~60Hz video
@@ -56,6 +57,15 @@ public sealed class PetMachine : IMachine
 
         _datasette = new PetDatasette(_pia1);
         _ieeeBus = new PetIeeeBus();
+        // Latches true on any real byte transfer (LISTEN/TALK addressing, filename, or file data -
+        // all real bus traffic, not just payload) for a GUI's disk-activity LED - see
+        // PollDiskActivity. Line-change events (ATN/DAV/NRFD/NDAC) don't count; they fire on
+        // nearly every bus cycle even when idle and would make the LED look permanently lit.
+        _ieeeBus.Activity += activity =>
+        {
+            if (activity.Kind == "byte")
+                _diskActivityPending = true;
+        };
 
         // PIA1 port A: writing selects the keyboard row (low nibble); reading it back echoes
         // that row plus PA4 (cassette #1 sense, active low - see PetDatasette.Sense) and PA6
@@ -115,6 +125,22 @@ public sealed class PetMachine : IMachine
         _ieeeBus.AttachDevice(drive);
         _mountedDrives.RemoveAll(d => d.Id == $"ieee488:{deviceNumber}");
         _mountedDrives.Add(new PetIeeeDriveStatus(deviceNumber, Path.GetFileName(path)));
+    }
+
+    /// <summary>Whether a disk is currently mounted at <paramref name="deviceNumber"/> - for a
+    /// GUI's single dedicated disk-drive icon (device 8 is the PET/CBM DOS convention for "the"
+    /// drive; see <see cref="MountDisk"/>'s default), as opposed to <see cref="Devices"/>'s full
+    /// dynamic list.</summary>
+    public bool HasDisk(int deviceNumber = 8) => _mountedDrives.Any(d => d.Id == $"ieee488:{deviceNumber}");
+
+    /// <summary>Returns whether any real byte crossed the IEEE-488 bus since the last call, then
+    /// clears the flag - a GUI polls this once per render tick to drive a brief activity-LED
+    /// blink without needing its own event subscription.</summary>
+    public bool PollDiskActivity()
+    {
+        var pending = _diskActivityPending;
+        _diskActivityPending = false;
+        return pending;
     }
 
     public static PetMachine Create(PetProfile profile, string romsRoot) => new(profile, romsRoot);
