@@ -1,0 +1,10 @@
+# PET disk-loading smoke test - real D64 image (roms/pet/test-disks/games-1.d64, imported from
+# personal-001), driven through PetDebuggerSession the same way personal-003's Retro.Debugger
+# .dbg scripts drive an attach + boot check. See scripts/pet-tape-loading.dbg for the tape analog.
+profile pet-2001-32
+roms roms/pet
+devices
+disk roms/pet/test-disks/games-1.d64
+devices
+trace 50
+status
