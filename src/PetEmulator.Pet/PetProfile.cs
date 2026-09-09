@@ -39,4 +39,14 @@ public sealed record PetProfile(
 
     /// <summary>Subfolder name under <c>roms/pet/</c> holding this profile's ROM set.</summary>
     public string RomDirectory => Id;
+
+    /// <summary>
+    /// Physical width:height ratio of one on-screen pixel on real PET/CBM hardware - pixels are
+    /// not square. 40-column models are 5:6 (slightly taller than wide); 80-column models double
+    /// the horizontal resolution into the same physical screen width, so their pixel is half as
+    /// wide again: 5:12. Both correction factors resolve the same ~4:3 physical CRT (320x5 /
+    /// 200x6 = 640x5 / 200x12 = 4:3) - real period monitors, not square pixels, are what made
+    /// both column counts look right on the same tube.
+    /// </summary>
+    public (int Width, int Height) PixelAspect => Columns == 40 ? (5, 6) : (5, 12);
 }

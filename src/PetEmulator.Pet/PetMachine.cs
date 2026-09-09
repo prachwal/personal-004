@@ -2,6 +2,7 @@ using Cpu6502.Variants;
 using PetEmulator.Core;
 using PetEmulator.Pet.Chips;
 using PetEmulator.Pet.Ieee488;
+using PetEmulator.Pet.Keyboard;
 using PetEmulator.Pet.Roms;
 using PetEmulator.Pet.Tape;
 
@@ -24,8 +25,9 @@ public sealed class PetMachine : IMachine
     private readonly PetDatasette _datasette;
     private readonly PetIeeeBus _ieeeBus;
     private readonly PetIeeeBusBinding _ieeeBusBinding;
+    private byte _keyboardSelectedRow;
 
-    public PetMachine(PetProfile profile, string romsRoot)
+    public PetMachine(PetProfile profile, string romsRoot, PetKeyboardMatrix? keyboard = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
@@ -43,14 +45,29 @@ public sealed class PetMachine : IMachine
 
         _datasette = new PetDatasette(_pia1);
 
-        // TODO: PetKeyboardMatrix is imported but not wired to PIA1 here - the real PET key->row/
-        // column map (PetKeyboardMap) was explicitly not ported (depends on a framework this repo
-        // doesn't have), so a wired matrix would have no meaningful key data behind it yet.
+        // PIA1 port A: writing selects the keyboard row (low nibble); reading it back echoes
+        // that row plus sense bits this repo doesn't model yet (cassette/IEEE EOI - see
+        // personal-001's PetPia1Binding, which this wiring mirrors). Port B reads back which
+        // columns are held down in the currently selected row.
+        Keyboard = keyboard ?? new PetKeyboardMatrix();
+        _pia1.PortAWritten = value => _keyboardSelectedRow = (byte)(value & 0x0F);
+        _pia1.PortAInput = () => (byte)(0xF0 | _keyboardSelectedRow);
+        _pia1.PortBInput = () => Keyboard.ReadColumns(_keyboardSelectedRow);
+
         _ieeeBus = new PetIeeeBus();
         _ieeeBusBinding = new PetIeeeBusBinding(_pia2, _via, _ieeeBus);
 
         Reset();
     }
+
+    /// <summary>The keyboard matrix PIA1 scans. A caller (e.g. a GUI's key handler, via
+    /// <see cref="Keyboard.IPetKeyboardMap"/>) presses/releases cells on this directly.</summary>
+    public PetKeyboardMatrix Keyboard { get; }
+
+    /// <summary>The CRTC, when this profile has one (<see cref="PetProfile.RequiresCrtc"/>) - null
+    /// otherwise. A caller (e.g. a display renderer locating the text cursor) reads
+    /// <see cref="Crtc6545.CursorAddress"/>/<see cref="Crtc6545.DisplayStartAddress"/> from this.</summary>
+    public Crtc6545? Crtc => _crtc;
 
     public static PetMachine Create(PetProfile profile, string romsRoot) => new(profile, romsRoot);
 
@@ -75,6 +92,8 @@ public sealed class PetMachine : IMachine
         _crtc?.Reset();
         _datasette.Reset();
         _ieeeBusBinding.Reset();
+        Keyboard.Reset();
+        _keyboardSelectedRow = 0;
         _cpu.Reset();
     }
 

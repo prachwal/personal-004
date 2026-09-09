@@ -58,6 +58,31 @@ public sealed class PetMachineTests
         machine.Processor.InstructionCount.Should().Be(0);
     }
 
+    [Test]
+    public void Keyboard_PressedKey_ReadableThroughPia1OverTheBus()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+        const ushort pia1Base = 0xE810;
+
+        // Select the data register (not the direction register) on PIA1's port A and B.
+        machine.Memory.Write((ushort)(pia1Base + 1), 0x04);
+        machine.Memory.Write((ushort)(pia1Base + 3), 0x04);
+
+        // KeyA on the PET 2001 graphics keyboard sits at matrix row 4, column 0.
+        machine.Keyboard.Press(4, 0);
+
+        // Software selects row 4 by writing it to port A (PA0-3); port B then echoes that row's columns.
+        machine.Memory.Write(pia1Base, 0x04);
+        var columns = machine.Memory.Read((ushort)(pia1Base + 2));
+
+        columns.Should().Be(machine.Keyboard.ReadColumns(4), "PIA1 port B should echo the selected row's live matrix state");
+        (columns & 0x01).Should().Be(0, "column 0 is held down (active-low) once KeyA is pressed");
+
+        machine.Keyboard.Release(4, 0);
+        var afterRelease = machine.Memory.Read((ushort)(pia1Base + 2));
+        (afterRelease & 0x01).Should().Be(0x01, "releasing the key should clear its active-low bit");
+    }
+
     private static PetMachine CreateMachine(PetProfile profile)
     {
         var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
