@@ -5,12 +5,11 @@ using PetEmulator.Vic20.Tape;
 
 namespace PetEmulator.Vic20.Tests.Tape;
 
-/// <summary>Unit-level tests against <see cref="Vic20Datasette"/> and a bare <see cref="Via6522"/>
-/// - no real ROM/CPU involved, mirrors <c>PetEmulator.Pet.Tests.Tape.PetDatasetteTests</c>'s shape
-/// (same lifecycle: motor gating, edge timing, sense, eject/rewind). See
-/// docs/vic20-tape.md for what IS and ISN'T verified against the real KERNAL beyond this level -
-/// a real ROM's own byte-decode timing is a separate, not-yet-confirmed question this file does
-/// not attempt to answer.</summary>
+/// <summary>Unit-level tests against <see cref="Vic20Datasette"/> and two bare <see cref="Via6522"/>
+/// instances (via1=motor/sense, via2=read/write - see <see cref="Vic20Datasette"/>'s doc comment
+/// for why they're split) - no real ROM/CPU involved, mirrors
+/// <c>PetEmulator.Pet.Tests.Tape.PetDatasetteTests</c>'s shape (same lifecycle: motor gating,
+/// edge timing, sense, eject/rewind).</summary>
 public sealed class Vic20DatasetteTests
 {
     private const byte MotorOnPcr = 0x0C; // CA2 manual output, held low - active-low motor-on (see Vic20Datasette.MotorOn)
@@ -21,88 +20,92 @@ public sealed class Vic20DatasetteTests
     [Test]
     public void Motor_stays_off_and_no_edge_occurs_until_pcr_turns_it_on()
     {
-        var via = new Via6522();
-        var datasette = new Vic20Datasette(via);
+        var via1 = new Via6522();
+        var via2 = new Via6522();
+        var datasette = new Vic20Datasette(via1, via2);
         datasette.LoadTape([100, 200]);
         datasette.PressPlay();
 
         for (var i = 0; i < 500; i++) datasette.Tick();
 
         datasette.MotorOn.Should().BeFalse();
-        Ca1FlagSet(via).Should().BeFalse();
+        Ca1FlagSet(via2).Should().BeFalse();
     }
 
     [Test]
     public void Forces_a_falling_edge_at_each_pulse_boundary_once_motor_is_on()
     {
-        var via = new Via6522();
-        var datasette = new Vic20Datasette(via);
+        var via1 = new Via6522();
+        var via2 = new Via6522();
+        var datasette = new Vic20Datasette(via1, via2);
         datasette.LoadTape([100, 200, 50]);
         datasette.PressPlay();
-        via.Write(Via6522.PeripheralControl, MotorOnPcr);
+        via1.Write(Via6522.PeripheralControl, MotorOnPcr);
 
         datasette.MotorOn.Should().BeTrue();
 
         for (var i = 0; i < 99; i++) datasette.Tick();
-        Ca1FlagSet(via).Should().BeFalse("the first pulse (100 cycles) hasn't elapsed yet");
+        Ca1FlagSet(via2).Should().BeFalse("the first pulse (100 cycles) hasn't elapsed yet");
 
         datasette.Tick(); // 100th tick: first pulse boundary
-        Ca1FlagSet(via).Should().BeTrue();
-        via.CA1.Should().BeTrue("the line always settles high after a boundary");
-        via.Read(Via6522.OraWithoutHandshake); // reading Port A clears the CA1 flag, same as the real KERNAL ISR would
+        Ca1FlagSet(via2).Should().BeTrue();
+        via2.CA1.Should().BeTrue("the line always settles high after a boundary");
+        via2.Read(Via6522.OraWithoutHandshake); // reading Port A clears the CA1 flag, same as the real KERNAL ISR would
 
         for (var i = 0; i < 199; i++) datasette.Tick();
-        Ca1FlagSet(via).Should().BeFalse("the second pulse (200 cycles) hasn't elapsed yet");
+        Ca1FlagSet(via2).Should().BeFalse("the second pulse (200 cycles) hasn't elapsed yet");
 
         datasette.Tick(); // second boundary
-        Ca1FlagSet(via).Should().BeTrue("every boundary is a falling edge, not just every other one");
-        via.Read(Via6522.OraWithoutHandshake);
+        Ca1FlagSet(via2).Should().BeTrue("every boundary is a falling edge, not just every other one");
+        via2.Read(Via6522.OraWithoutHandshake);
 
         for (var i = 0; i < 49; i++) datasette.Tick();
         datasette.IsAtEnd.Should().BeFalse();
         datasette.Tick(); // third and final boundary
-        Ca1FlagSet(via).Should().BeTrue();
+        Ca1FlagSet(via2).Should().BeTrue();
         datasette.IsAtEnd.Should().BeTrue();
 
-        via.Read(Via6522.OraWithoutHandshake);
+        via2.Read(Via6522.OraWithoutHandshake);
         datasette.Tick(); // ticking past the end is a no-op
-        Ca1FlagSet(via).Should().BeFalse();
+        Ca1FlagSet(via2).Should().BeFalse();
     }
 
     [Test]
     public void Turning_the_motor_off_mid_tape_stops_advancing()
     {
-        var via = new Via6522();
-        var datasette = new Vic20Datasette(via);
+        var via1 = new Via6522();
+        var via2 = new Via6522();
+        var datasette = new Vic20Datasette(via1, via2);
         datasette.LoadTape([10, 10, 10]);
         datasette.PressPlay();
-        via.Write(Via6522.PeripheralControl, MotorOnPcr);
+        via1.Write(Via6522.PeripheralControl, MotorOnPcr);
         for (var i = 0; i < 10; i++) datasette.Tick();
-        Ca1FlagSet(via).Should().BeTrue();
-        via.Read(Via6522.OraWithoutHandshake);
+        Ca1FlagSet(via2).Should().BeTrue();
+        via2.Read(Via6522.OraWithoutHandshake);
 
-        via.Write(Via6522.PeripheralControl, MotorOffPcr);
+        via1.Write(Via6522.PeripheralControl, MotorOffPcr);
         datasette.MotorOn.Should().BeFalse();
         for (var i = 0; i < 100; i++) datasette.Tick();
-        Ca1FlagSet(via).Should().BeFalse("the motor is off, so no further edges should occur");
+        Ca1FlagSet(via2).Should().BeFalse("the motor is off, so no further edges should occur");
 
-        via.Write(Via6522.PeripheralControl, MotorOnPcr);
+        via1.Write(Via6522.PeripheralControl, MotorOnPcr);
         for (var i = 0; i < 9; i++) datasette.Tick();
-        Ca1FlagSet(via).Should().BeFalse();
+        Ca1FlagSet(via2).Should().BeFalse();
         datasette.Tick();
-        Ca1FlagSet(via).Should().BeTrue("the second pulse's remaining count should resume, not restart");
+        Ca1FlagSet(via2).Should().BeTrue("the second pulse's remaining count should resume, not restart");
     }
 
     [Test]
     public void Rewind_resets_playback_position_without_touching_the_motor()
     {
-        var via = new Via6522();
-        var datasette = new Vic20Datasette(via);
+        var via1 = new Via6522();
+        var via2 = new Via6522();
+        var datasette = new Vic20Datasette(via1, via2);
         datasette.LoadTape([5, 5]);
         datasette.PressPlay();
-        via.Write(Via6522.PeripheralControl, MotorOnPcr);
+        via1.Write(Via6522.PeripheralControl, MotorOnPcr);
         for (var i = 0; i < 5; i++) datasette.Tick();
-        Ca1FlagSet(via).Should().BeTrue();
+        Ca1FlagSet(via2).Should().BeTrue();
 
         datasette.Rewind();
         datasette.IsAtEnd.Should().BeFalse();
@@ -112,13 +115,14 @@ public sealed class Vic20DatasetteTests
     [Test]
     public void Sense_reflects_whether_play_is_pressed_independent_of_tape_or_motor_state()
     {
-        var via = new Via6522();
-        var datasette = new Vic20Datasette(via);
+        var via1 = new Via6522();
+        var via2 = new Via6522();
+        var datasette = new Vic20Datasette(via1, via2);
 
         datasette.Sense.Should().BeFalse("play hasn't been pressed yet");
 
         datasette.PressPlay();
-        datasette.Tick(); // PA7 only updates when Tick() runs - see Vic20Datasette.Tick's doc comment
+        datasette.Tick(); // PA6 only updates when Tick() runs - see Vic20Datasette.Tick's doc comment
         datasette.Sense.Should().BeTrue("a real deck's sense switch closes on ANY transport button, even with no tape loaded");
         datasette.MotorOn.Should().BeFalse("pressing play doesn't turn the motor on by itself - that's software-driven");
 
@@ -127,26 +131,28 @@ public sealed class Vic20DatasetteTests
     }
 
     [Test]
-    public void PressPlay_ClosesThePa7SenseLineOnVia1()
+    public void PressPlay_ClosesThePa6SenseLineOnVia1()
     {
-        // The actual wiring PetMachine's PIA1 PA4 equivalent has for VIC-20: real KERNAL LOAD
-        // reads VIA1 Port A bit 7 to detect PLAY - see docs/vic20-tape.md.
-        var via = new Via6522();
-        var datasette = new Vic20Datasette(via);
+        // Real wiring per a labeled VIC-20 KERNAL disassembly (Lee Davison): VIA1 Port A bit 6,
+        // not bit 7 - see Vic20Datasette's doc comment.
+        var via1 = new Via6522();
+        var via2 = new Via6522();
+        var datasette = new Vic20Datasette(via1, via2);
         datasette.Tick();
-        (via.PortAInput & 0x80).Should().Be(0x80, "PA7 idles high (not pressed) - active low");
+        (via1.PortAInput & 0x40).Should().Be(0x40, "PA6 idles high (not pressed) - active low");
 
         datasette.PressPlay();
         datasette.Tick();
 
-        (via.PortAInput & 0x80).Should().Be(0, "PA7 goes low the instant PLAY is (emulated-)pressed");
+        (via1.PortAInput & 0x40).Should().Be(0, "PA6 goes low the instant PLAY is (emulated-)pressed");
     }
 
     [Test]
     public void LoadingATape_DoesNotPressPlayForYou()
     {
-        var via = new Via6522();
-        var datasette = new Vic20Datasette(via);
+        var via1 = new Via6522();
+        var via2 = new Via6522();
+        var datasette = new Vic20Datasette(via1, via2);
         datasette.PressPlay();
 
         datasette.LoadTape([10]);
@@ -158,8 +164,9 @@ public sealed class Vic20DatasetteTests
     [Test]
     public void Eject_ClearsTheTapeAndReleasesPlay()
     {
-        var via = new Via6522();
-        var datasette = new Vic20Datasette(via);
+        var via1 = new Via6522();
+        var via2 = new Via6522();
+        var datasette = new Vic20Datasette(via1, via2);
         datasette.LoadTape([10, 20], "game.tap");
         datasette.PressPlay();
 
@@ -174,13 +181,40 @@ public sealed class Vic20DatasetteTests
     [CancelAfter(5_000)]
     public void PlayPressed_ButMotorOff_DoesNotAdvanceTheTape()
     {
-        var via = new Via6522();
-        var datasette = new Vic20Datasette(via);
+        var via1 = new Via6522();
+        var via2 = new Via6522();
+        var datasette = new Vic20Datasette(via1, via2);
         datasette.LoadTape([10, 10]);
         datasette.PressPlay(); // motor never turned on via PCR
 
         for (var i = 0; i < 100; i++) datasette.Tick();
 
-        Ca1FlagSet(via).Should().BeFalse("real tape only moves when both the motor is on AND play is pressed");
+        Ca1FlagSet(via2).Should().BeFalse("real tape only moves when both the motor is on AND play is pressed");
+    }
+
+    [Test]
+    public void Recording_CapturesOnlyFallingPb3EdgesAsFullPeriodCycleGaps()
+    {
+        // Only falling edges are recorded (matching the real KERNAL's own CA1 convention - see
+        // Vic20Datasette's doc comment), and the counter is NOT reset on the intervening rising
+        // edge, so one recorded value spans the full falling-to-falling period: 30 idle ticks +
+        // 1 tick before the rising-edge write becomes visible + 49 more high ticks + 1 tick
+        // before the falling-edge write becomes visible = 81, not just the 50-tick high phase.
+        var via1 = new Via6522();
+        var via2 = new Via6522();
+        var datasette = new Vic20Datasette(via1, via2);
+        via2.Write(Via6522.Ddrb, 0x08); // PB3 configured as output - required before ORB drives it
+        datasette.BeginRecording();
+
+        for (var i = 0; i < 30; i++) datasette.Tick();
+        via2.Write(Via6522.Orb, 0x08); // PB3 high
+
+        for (var i = 0; i < 50; i++) datasette.Tick();
+        via2.Write(Via6522.Orb, 0x00); // PB3 low
+
+        for (var i = 0; i < 20; i++) datasette.Tick();
+        datasette.StopRecording();
+
+        datasette.RecordedPulseCycles.Should().Equal(81);
     }
 }

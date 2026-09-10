@@ -1,0 +1,9 @@
+# VIC-20 tape-loading smoke test - synthetic .tap fixture (see
+# roms/vic20/test-tapes/README.md for provenance), driven through Vic20DebuggerSession the same
+# way scripts/pet-tape-loading.dbg drives PET's.
+roms roms/vic20
+devices
+tape roms/vic20/test-tapes/hello-vic.tap
+devices
+trace 50
+status

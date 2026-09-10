@@ -1,42 +1,49 @@
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Core;
+using PetEmulator.Pet.Tape;
 using PetEmulator.Vic20.Keyboard;
 
 namespace PetEmulator.Vic20.Tests.Tape;
 
-/// <summary>Real-KERNAL-level proof that <see cref="Vic20Datasette"/>'s wiring is correct - mirrors
-/// PET's own <c>PetMachineTests.PressPlay_LetsLoadProceedPastThePressPlayPrompt</c> in scope:
-/// proves the machine reacts correctly to a tape being attached and LOAD being typed (motor
-/// engages, KERNAL prints "SEARCHING"), the same level PET's own equivalent test settles for.
-///
-/// Deliberately does NOT assert a full byte-for-byte KERNAL decode of a synthetic tape into RAM -
-/// unlike PET's tape stack (verified against a real captured Datasette recording,
-/// roms/pet/test-tapes/tower-and-dragon-town.tap), this repo has no real captured VIC-20 tape to
-/// test against, and this session's own investigation into the real KERNAL's byte-level pulse
-/// timing (docs/vic20-tape.md) did not converge on a synthetic pulse stream the real ROM fully
-/// decodes. See that doc for what's confirmed (the hardware wiring) versus open (exact
-/// pulse-width/leader-length the real KERNAL's decoder expects).</summary>
+/// <summary>Real-KERNAL-level proof that <see cref="Vic20Datasette"/>'s wiring is correct - see
+/// docs/vic20-tape.md for the investigation (an earlier, wrong VIA1-only wiring guess is why an
+/// earlier version of this file only proved the machine reaches "SEARCHING", never a full
+/// decode). <see cref="LoadDecodesARealTapeFileByteForByte"/> is the real proof: a genuine header
+/// (filename, load address) plus payload bytes, round-tripped through the real KERNAL's own tape
+/// decoder into RAM.</summary>
 public sealed class Vic20MachineTapeTests
 {
     [Test]
-    [CancelAfter(30_000)]
-    public void LoadWithATapeAttached_TurnsTheMotorOnAndReachesSearching()
+    [CancelAfter(60_000)]
+    public void LoadDecodesARealTapeFileByteForByte()
     {
+        var tapDirectory = RomLocatorDirectory("test-tapes", "hello-vic.tap");
+        var tap = PetTapFile.Parse(File.ReadAllBytes(Path.Combine(tapDirectory, "hello-vic.tap")));
+
         var machine = new Vic20Machine(RomsRoot());
         machine.RunUntil(_ => machine.Vic.Columns > 0 && machine.Vic.Rows > 0, 2_000_000).Should().BeTrue("must boot first");
-        machine.Run(200_000); // let the KERNAL fully settle its keyboard IRQ before typing - see docs/vic20-tape.md
+        machine.Run(200_000); // let the KERNAL fully settle its keyboard IRQ before typing
 
-        // A real tape's exact pulse content doesn't matter for this test - only that motor/sense
-        // wiring reacts correctly to LOAD once *something* is attached and playing.
-        machine.Datasette.LoadTape([500, 500, 500, 500], "smoke-test.tap");
-        machine.Datasette.HasTape.Should().BeTrue();
+        machine.Datasette.LoadTape(tap.PulseCycles, "hello-vic.tap");
+        // Real hardware order: PLAY is pressed before LOAD is typed (or the real KERNAL blocks on
+        // "PRESS PLAY ON TAPE" - see CSTEL in docs/vic20-tape.md) - both work, this just avoids
+        // needing to also assert the prompt appears and gets dismissed.
+        machine.Datasette.PressPlay();
 
         Vic20TextTyper.Type(machine, "LOAD\n");
-        machine.Run(300_000);
+        machine.Run(15_000_000);
 
-        machine.Datasette.MotorOn.Should().BeTrue("LOAD should turn the cassette motor on immediately, before it even needs PLAY");
-        ScreenContains(machine, SearchingBytes).Should().BeTrue("LOAD should print SEARCHING once it starts hunting for a tape header");
+        ScreenContains(machine, FoundBytes).Should().BeTrue("LOAD should find the real header (filename HELLOVIC)");
+
+        // The tape's first 3 payload bytes are a documented sacrificial pad (see
+        // roms/vic20/test-tapes/README.md) - only the real payload from there on needs to match.
+        byte[] expected = "HELLO VIC"u8.ToArray();
+        var actual = new byte[expected.Length];
+        for (var i = 0; i < actual.Length; i++)
+            actual[i] = machine.Memory.Read((ushort)(0x1000 + 3 + i));
+
+        actual.Should().Equal(expected, "the real KERNAL should have decoded the exact payload bytes into RAM at the header's load address");
     }
 
     [Test]
@@ -58,9 +65,8 @@ public sealed class Vic20MachineTapeTests
         machine.Devices.Single(d => d.Id == "datasette").StatusText.Should().Be("starwars.tap - press play");
     }
 
-    // "SEARCHING" - the KERNAL screen codes for the word it prints while hunting for a header
-    // (screen-code letters: A=1..Z=26).
-    private static readonly byte[] SearchingBytes = [19, 5, 1, 18, 3, 8, 9, 14, 7];
+    // "FOUND" - what LOAD prints once it locates a matching header (screen-code letters: A=1..Z=26).
+    private static readonly byte[] FoundBytes = [6, 15, 21, 14, 4];
 
     private static bool ScreenContains(Vic20Machine machine, byte[] pattern)
     {
@@ -79,13 +85,16 @@ public sealed class Vic20MachineTapeTests
         return false;
     }
 
-    private static string RomsRoot()
+    private static string RomsRoot() => RomLocatorDirectory(null, null);
+
+    private static string RomLocatorDirectory(string? subDir, string? file)
     {
         for (var dir = new DirectoryInfo(TestContext.CurrentContext.TestDirectory); dir is not null; dir = dir.Parent)
         {
-            var candidate = Path.Combine(dir.FullName, "roms", "vic20");
-            if (Directory.Exists(candidate))
-                return candidate;
+            var romsVic20 = Path.Combine(dir.FullName, "roms", "vic20");
+            if (!Directory.Exists(romsVic20))
+                continue;
+            return subDir is null ? romsVic20 : Path.Combine(romsVic20, subDir);
         }
 
         throw new DirectoryNotFoundException("Could not locate roms/vic20/ walking up from the test binary directory.");

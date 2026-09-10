@@ -40,7 +40,7 @@ public sealed class Vic20Machine : IMachine
 
         _memoryBus = new Vic20MemoryBus(roms, _vic, _via1, _via2, _colorRam);
         _cpu = new Cpu6502Classic(_memoryBus);
-        _datasette = new Vic20Datasette(_via1);
+        _datasette = new Vic20Datasette(_via1, _via2);
 
         // VIA2 port B ($9120): row-select (active-low, ORB & DDRB); VIA2 port A ($9121): column
         // readback for the selected row. Confirmed against the real KERNAL disassembly
