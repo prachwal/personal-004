@@ -1,4 +1,4 @@
-using PetEmulator.Pet.Chips;
+using PetEmulator.Chips;
 
 namespace PetEmulator.Vic20.Tape;
 
@@ -32,13 +32,13 @@ namespace PetEmulator.Vic20.Tape;
 /// </summary>
 public sealed class Vic20Datasette
 {
-    private readonly Via6522 _via1;
-    private readonly Via6522 _via2;
+    private readonly MOS6522 _via1;
+    private readonly MOS6522 _via2;
     private IReadOnlyList<int> _pulseCycles = [];
     private int _pulseIndex;
     private int _cyclesUntilNextEdge;
 
-    public Vic20Datasette(Via6522 via1, Via6522 via2)
+    public Vic20Datasette(MOS6522 via1, MOS6522 via2)
     {
         _via1 = via1 ?? throw new ArgumentNullException(nameof(via1));
         _via2 = via2 ?? throw new ArgumentNullException(nameof(via2));

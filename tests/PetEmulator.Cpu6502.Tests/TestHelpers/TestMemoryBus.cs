@@ -1,8 +1,8 @@
 using System;
-using Cpu6502;
+using PetEmulator.Cpu6502;
 using PetEmulator.Core;
 
-namespace Cpu6502.Tests.TestHelpers;
+namespace PetEmulator.Cpu6502.Tests.TestHelpers;
 
 /// <summary>
 /// Implementacja IMemoryBus dla testów, obsługująca pamięć RAM i ROM.

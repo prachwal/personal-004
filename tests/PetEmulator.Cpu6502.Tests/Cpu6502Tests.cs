@@ -1,4 +1,4 @@
-using Cpu6502.Variants;
+using PetEmulator.Cpu6502.Variants;
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Core;
@@ -65,11 +65,11 @@ public sealed class Cpu6502Tests
         var nes = new Cpu6502Nes(new TestMemory());
 
         classic.Variant.Name.Should().Be("MOS 6502");
-        classic.Variant.Quirks.Should().Be(global::Cpu6502.CpuQuirk.DecimalArithmetic | global::Cpu6502.CpuQuirk.JmpIndirectPageWrap);
+        classic.Variant.Quirks.Should().Be(global::PetEmulator.Cpu6502.CpuQuirk.DecimalArithmetic | global::PetEmulator.Cpu6502.CpuQuirk.JmpIndirectPageWrap);
         classic.DecimalModeEnabled.Should().BeTrue();
         classic.HasJmpIndirectBug.Should().BeTrue();
         nes.Variant.Name.Should().Be("Ricoh 2A03");
-        nes.Variant.Quirks.Should().Be(global::Cpu6502.CpuQuirk.None);
+        nes.Variant.Quirks.Should().Be(global::PetEmulator.Cpu6502.CpuQuirk.None);
         nes.DecimalModeEnabled.Should().BeFalse();
         nes.HasJmpIndirectBug.Should().BeFalse();
     }

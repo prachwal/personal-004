@@ -4,7 +4,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../PetEmulator.Core/PetEmulator.Core.csproj" />
-    <ProjectReference Include="../PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
+    <ProjectReference Include="../../lib/PetEmulator.Core/PetEmulator.Core.csproj" />
+    <ProjectReference Include="../../lib/PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
+    <ProjectReference Include="../../lib/PetEmulator.Chips/PetEmulator.Chips.csproj" />
   </ItemGroup>
 </Project>

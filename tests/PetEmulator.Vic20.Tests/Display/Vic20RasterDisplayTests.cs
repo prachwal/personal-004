@@ -1,7 +1,7 @@
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Core;
-using PetEmulator.Vic20.Chips;
+using PetEmulator.Chips;
 using PetEmulator.Vic20.Display;
 
 namespace PetEmulator.Vic20.Tests.Display;
@@ -21,7 +21,7 @@ public sealed class Vic20RasterDisplayTests
     public void Render_BeforeVicIsConfigured_FillsBorderOnly()
     {
         var (display, vic, _) = CreateDisplay();
-        vic.Write(0x900F, 0x02); // border color = 2 (Vic6560.BorderColor = reg & 0x07)
+        vic.Write(0x900F, 0x02); // border color = 2 (MOS6560.BorderColor = reg & 0x07)
         var buffer = new uint[display.PixelWidth * display.PixelHeight];
 
         display.Render(buffer);
@@ -40,7 +40,7 @@ public sealed class Vic20RasterDisplayTests
         // ScreenMatrixBase from reg5's high nibble (0) -> screenAddr $8000; CharMatrixBase from
         // reg5's low nibble (1) -> charAddr $8400 - distinct regions in this synthetic 64K RAM.
         vic.Write(0x9005, 0x01);
-        vic.Write(0x900F, 0x19); // screenColor=1, borderColor=1, bit3 set = normal/not reversed (see Vic6560.ReverseMode)
+        vic.Write(0x900F, 0x19); // screenColor=1, borderColor=1, bit3 set = normal/not reversed (see MOS6560.ReverseMode)
 
         var screenAddr = (ushort)vic.ScreenAddr;
         var charAddr = (ushort)vic.CharAddr;
@@ -58,16 +58,16 @@ public sealed class Vic20RasterDisplayTests
         buffer[7].Should().Be(inkArgb, "rightmost pixel is set");
     }
 
-    private static (Vic20RasterDisplay Display, Vic6560 Vic, FakeMemoryBus Memory) CreateDisplay()
+    private static (Vic20RasterDisplay Display, MOS6560 Vic, FakeMemoryBus Memory) CreateDisplay()
     {
-        var vic = new Vic6560("VIC", 0x9000);
+        var vic = new MOS6560("VIC", 0x9000);
         var memory = new FakeMemoryBus();
         var display = new Vic20RasterDisplay(memory, vic);
         return (display, vic, memory);
     }
 
     /// <summary>Plain 64K RAM, no chip decode - lets a test write screen/char/color-RAM bytes at
-    /// whatever CPU addresses Vic6560's own registers resolve to, without needing a full
+    /// whatever CPU addresses MOS6560's own registers resolve to, without needing a full
     /// Vic20MemoryBus + real ROM images just to test the rasterizer in isolation.</summary>
     private sealed class FakeMemoryBus : IMemoryBus
     {

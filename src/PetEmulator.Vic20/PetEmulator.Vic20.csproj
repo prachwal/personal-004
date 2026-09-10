@@ -4,11 +4,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../PetEmulator.Core/PetEmulator.Core.csproj" />
-    <ProjectReference Include="../PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
-    <!-- Via6522 (PetEmulator.Pet.Chips) has zero PET-specific dependencies - a plain MOS 6522
-         chip class built on PetEmulator.Core alone. VIC-20 has two VIAs on real hardware; reusing
-         this one directly avoids a ~250-line duplicate (see docs/vic20-migration-plan.md step 4). -->
+    <ProjectReference Include="../../lib/PetEmulator.Core/PetEmulator.Core.csproj" />
+    <ProjectReference Include="../../lib/PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
     <ProjectReference Include="../PetEmulator.Pet/PetEmulator.Pet.csproj" />
+    <ProjectReference Include="../../lib/PetEmulator.Chips/PetEmulator.Chips.csproj" />
   </ItemGroup>
 </Project>

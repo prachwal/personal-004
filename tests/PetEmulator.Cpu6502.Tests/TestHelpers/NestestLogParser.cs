@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 
-namespace Cpu6502.Tests.TestHelpers;
+namespace PetEmulator.Cpu6502.Tests.TestHelpers;
 
 /// <summary>
 /// Parser pliku logu nestest.

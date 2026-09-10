@@ -1,6 +1,6 @@
 using PetEmulator.Core;
 
-namespace Cpu6502.Tests;
+namespace PetEmulator.Cpu6502.Tests;
 
 /// <summary>
 /// Prosta implementacja magistrali pamięci dla testów.

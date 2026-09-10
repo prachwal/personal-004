@@ -10,18 +10,18 @@ public sealed class OpcodeTableTests
     [Test]
     public void Nmos_table_has_one_entry_for_every_opcode()
     {
-        var table = global::Cpu6502.OpcodeTables.CreateNmos();
+        var table = global::PetEmulator.Cpu6502.OpcodeTables.CreateNmos();
         table.Definitions.Should().HaveCount(256);
         for (var opcode = 0; opcode <= byte.MaxValue; opcode++)
             table[(byte)opcode].Opcode.Should().Be((byte)opcode);
 
         table[0xA9].Mnemonic.Should().Be("LDA");
         table[0xA9].BaseCycles.Should().Be(2);
-        table[0xA9].AddressingMode.Should().Be(global::Cpu6502.AddressingMode.Immediate);
+        table[0xA9].AddressingMode.Should().Be(global::PetEmulator.Cpu6502.AddressingMode.Immediate);
         table[0xA9].Length.Should().Be(2);
-        table[0xAD].AddressingMode.Should().Be(global::Cpu6502.AddressingMode.Absolute);
+        table[0xAD].AddressingMode.Should().Be(global::PetEmulator.Cpu6502.AddressingMode.Absolute);
         table[0xAD].Length.Should().Be(3);
-        table[0x6C].AddressingMode.Should().Be(global::Cpu6502.AddressingMode.Indirect);
+        table[0x6C].AddressingMode.Should().Be(global::PetEmulator.Cpu6502.AddressingMode.Indirect);
         table[0x00].Mnemonic.Should().Be("BRK");
         table[0x00].BaseCycles.Should().Be(7);
     }
@@ -29,7 +29,7 @@ public sealed class OpcodeTableTests
     [Test]
     public void Nmos_table_maps_every_opcode_to_a_non_fallback_handler()
     {
-        var table = global::Cpu6502.OpcodeTables.Nmos;
+        var table = global::PetEmulator.Cpu6502.OpcodeTables.Nmos;
 
         for (var opcode = 0; opcode <= byte.MaxValue; opcode++)
             table[(byte)opcode].Handler.Method.Name.Should().NotBe("ExecuteUnmappedOpcodeCycle", $"opcode 0x{opcode:X2} must have a concrete handler");
@@ -38,8 +38,8 @@ public sealed class OpcodeTableTests
     [Test]
     public void Derived_table_can_remove_an_opcode_without_mutating_the_base()
     {
-        var baseTable = global::Cpu6502.OpcodeTables.CreateNmos();
-        global::Cpu6502.OpcodeTable derived = baseTable.Derive(table => table.Remove(0xEA));
+        var baseTable = global::PetEmulator.Cpu6502.OpcodeTables.CreateNmos();
+        global::PetEmulator.Cpu6502.OpcodeTable derived = baseTable.Derive(table => table.Remove(0xEA));
 
         derived.Definitions.Should().HaveCount(255);
         baseTable.Definitions.Should().HaveCount(256);
@@ -51,15 +51,15 @@ public sealed class OpcodeTableTests
     [Test]
     public void Nmos_table_is_shared_and_sealed()
     {
-        global::Cpu6502.OpcodeTables.CreateNmos().Should().BeSameAs(global::Cpu6502.OpcodeTables.CreateNmos());
-        global::Cpu6502.OpcodeTables.Nmos.IsSealed.Should().BeTrue();
+        global::PetEmulator.Cpu6502.OpcodeTables.CreateNmos().Should().BeSameAs(global::PetEmulator.Cpu6502.OpcodeTables.CreateNmos());
+        global::PetEmulator.Cpu6502.OpcodeTables.Nmos.IsSealed.Should().BeTrue();
     }
 
     [Test]
     public void Cpu_variant_uses_the_supplied_opcode_table()
     {
-        var table = global::Cpu6502.OpcodeTables.CreateNmos();
-        var cpu = new global::Cpu6502.Variants.Cpu6502Classic(new TestMemory(), table);
+        var table = global::PetEmulator.Cpu6502.OpcodeTables.CreateNmos();
+        var cpu = new global::PetEmulator.Cpu6502.Variants.Cpu6502Classic(new TestMemory(), table);
 
         cpu.Opcodes.Should().BeSameAs(table);
     }
@@ -105,7 +105,7 @@ public sealed class OpcodeTableTests
             2, 5, 1, 2, 4, 4, 6, 2, 2, 4, 2, 2, 4, 4, 7, 2
         ];
 
-        var table = global::Cpu6502.OpcodeTables.CreateNmos();
+        var table = global::PetEmulator.Cpu6502.OpcodeTables.CreateNmos();
         for (int opcode = 0; opcode <= byte.MaxValue; opcode++)
         {
             table[(byte)opcode].BaseCycles.Should()
@@ -132,7 +132,7 @@ public sealed class OpcodeTableTests
         ];
         var expectedSet = new HashSet<byte>(expectedPageCrossOpcodes);
 
-        var table = global::Cpu6502.OpcodeTables.CreateNmos();
+        var table = global::PetEmulator.Cpu6502.OpcodeTables.CreateNmos();
         for (int opcode = 0; opcode <= byte.MaxValue; opcode++)
         {
             bool shouldHavePenalty = expectedSet.Contains((byte)opcode);

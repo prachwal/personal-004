@@ -1,7 +1,10 @@
 <Solution>
+  <Folder Name="/lib/">
+    <Project Path="lib/PetEmulator.Core/PetEmulator.Core.csproj" />
+    <Project Path="lib/PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
+    <Project Path="lib/PetEmulator.Chips/PetEmulator.Chips.csproj" />
+  </Folder>
   <Folder Name="/src/">
-    <Project Path="src/PetEmulator.Core/PetEmulator.Core.csproj" />
-    <Project Path="src/PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
     <Project Path="src/PetEmulator.DebugApi/PetEmulator.DebugApi.csproj" />
     <Project Path="src/PetEmulator.Pet/PetEmulator.Pet.csproj" />
     <Project Path="src/PetEmulator.Vic20/PetEmulator.Vic20.csproj" />
@@ -18,5 +21,6 @@
     <Project Path="tests/PetEmulator.Pet.Tests/PetEmulator.Pet.Tests.csproj" />
     <Project Path="tests/PetEmulator.Vic20.Tests/PetEmulator.Vic20.Tests.csproj" />
     <Project Path="tests/PetEmulator.Cli.Tests/PetEmulator.Cli.Tests.csproj" />
+    <Project Path="tests/PetEmulator.Chips.Tests/PetEmulator.Chips.Tests.csproj" />
   </Folder>
 </Solution>

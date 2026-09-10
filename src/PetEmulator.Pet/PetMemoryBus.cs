@@ -1,5 +1,5 @@
 using PetEmulator.Core;
-using PetEmulator.Pet.Chips;
+using PetEmulator.Chips;
 using PetEmulator.Pet.Roms;
 
 namespace PetEmulator.Pet;
@@ -35,12 +35,12 @@ public sealed class PetMemoryBus : IMemoryBus
     private readonly uint _videoRamStart;
     private readonly uint _videoRamEnd;
     private readonly IReadOnlyList<PetRomImage> _roms;
-    private readonly Pia _pia1;
-    private readonly Pia _pia2;
-    private readonly Via6522 _via;
-    private readonly Crtc6545? _crtc;
+    private readonly MT6520 _pia1;
+    private readonly MT6520 _pia2;
+    private readonly MOS6522 _via;
+    private readonly MT6545? _crtc;
 
-    public PetMemoryBus(PetProfile profile, IReadOnlyList<PetRomImage> roms, Pia pia1, Pia pia2, Via6522 via, Crtc6545? crtc)
+    public PetMemoryBus(PetProfile profile, IReadOnlyList<PetRomImage> roms, MT6520 pia1, MT6520 pia2, MOS6522 via, MT6545? crtc)
     {
         ArgumentNullException.ThrowIfNull(profile);
         _roms = roms ?? throw new ArgumentNullException(nameof(roms));

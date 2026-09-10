@@ -1,8 +1,7 @@
-using Cpu6502.Variants;
+using PetEmulator.Cpu6502.Variants;
 using PetEmulator.Core;
-using PetEmulator.Pet.Chips;
 using PetEmulator.Pet.Tape;
-using PetEmulator.Vic20.Chips;
+using PetEmulator.Chips;
 using PetEmulator.Vic20.Devices;
 using PetEmulator.Vic20.Keyboard;
 using PetEmulator.Vic20.Roms;
@@ -24,10 +23,10 @@ public sealed class Vic20Machine : IMachine
 {
     private readonly Vic20MemoryBus _memoryBus;
     private readonly Cpu6502Classic _cpu;
-    private readonly Vic6560 _vic;
-    private readonly Via6522 _via1;
-    private readonly Via6522 _via2;
-    private readonly Vic20ColorRam _colorRam;
+    private readonly MOS6560 _vic;
+    private readonly MOS6522 _via1;
+    private readonly MOS6522 _via2;
+    private readonly MOS2114 _colorRam;
     private readonly Vic20KeyboardMatrix _keyboard = new();
     private readonly Vic20Datasette _datasette;
 
@@ -48,10 +47,10 @@ public sealed class Vic20Machine : IMachine
         DisplayConfig = displayConfig ?? Vic20DisplayConfig.Ntsc;
         var roms = Vic20RomLoader.Load(romsRoot, Vic20RomManifest.Ntsc);
 
-        _vic = new Vic6560("VIC", Vic20MemoryMap.VicBaseAddress);
-        _via1 = new Via6522("VIA1", Vic20MemoryMap.Via1BaseAddress);
-        _via2 = new Via6522("VIA2", Vic20MemoryMap.Via2BaseAddress);
-        _colorRam = new Vic20ColorRam("Color RAM", Vic20MemoryMap.ColorRamStart, Vic20MemoryMap.ColorRamSize);
+        _vic = new MOS6560("VIC", Vic20MemoryMap.VicBaseAddress);
+        _via1 = new MOS6522("VIA1", Vic20MemoryMap.Via1BaseAddress);
+        _via2 = new MOS6522("VIA2", Vic20MemoryMap.Via2BaseAddress);
+        _colorRam = new MOS2114("Color RAM", Vic20MemoryMap.ColorRamStart, Vic20MemoryMap.ColorRamSize);
 
         _memoryBus = new Vic20MemoryBus(roms, _vic, _via1, _via2, _colorRam);
         _cpu = new Cpu6502Classic(_memoryBus);
@@ -84,11 +83,11 @@ public sealed class Vic20Machine : IMachine
     /// than hardcoded downstream (e.g. in a Desktop ViewModel).</summary>
     public Vic20DisplayConfig DisplayConfig { get; }
 
-    public Vic6560 Vic => _vic;
+    public MOS6560 Vic => _vic;
 
-    public Via6522 Via1 => _via1;
+    public MOS6522 Via1 => _via1;
 
-    public Via6522 Via2 => _via2;
+    public MOS6522 Via2 => _via2;
 
     /// <summary>The cassette datasette - a caller (GUI menu, debugger script) loads a tape
     /// through this directly.</summary>

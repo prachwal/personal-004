@@ -1,10 +1,10 @@
 using System.Linq;
-using Cpu6502;
-using Cpu6502.Tests.TestHelpers;
-using Cpu6502.Variants;
+using PetEmulator.Cpu6502;
+using PetEmulator.Cpu6502.Tests.TestHelpers;
+using PetEmulator.Cpu6502.Variants;
 using NUnit.Framework;
 
-namespace Cpu6502.Tests;
+namespace PetEmulator.Cpu6502.Tests;
 
 [TestFixture]
 public class R65C02SOpcodeTableTests

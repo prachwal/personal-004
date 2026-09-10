@@ -1,9 +1,9 @@
-using Cpu6502;
-using Cpu6502.Variants;
+using PetEmulator.Cpu6502;
+using PetEmulator.Cpu6502.Variants;
 using NUnit.Framework;
 using PetEmulator.Core;
 
-namespace Cpu6502.Tests;
+namespace PetEmulator.Cpu6502.Tests;
 
 [TestFixture]
 public class ClockInjectionTests

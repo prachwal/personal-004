@@ -1,7 +1,7 @@
-using Cpu6502;
+using PetEmulator.Cpu6502;
 using NUnit.Framework;
 
-namespace Cpu6502.Tests;
+namespace PetEmulator.Cpu6502.Tests;
 
 [TestFixture]
 public class LoadStoreTests

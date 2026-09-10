@@ -1,6 +1,6 @@
 using System;
 
-namespace Cpu6502.Tests.TestHelpers;
+namespace PetEmulator.Cpu6502.Tests.TestHelpers;
 
 /// <summary>
 /// Rezultat testu Klaus Dormann z pełną diagnostyką.

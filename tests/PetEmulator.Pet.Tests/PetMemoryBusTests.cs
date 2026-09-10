@@ -1,6 +1,6 @@
 using FluentAssertions;
 using NUnit.Framework;
-using PetEmulator.Pet.Chips;
+using PetEmulator.Chips;
 using PetEmulator.Pet.Roms;
 using PetEmulator.Pet.Tests.Roms;
 
@@ -92,7 +92,7 @@ public sealed class PetMemoryBusTests
     public void ViaBaseAddress_RoutesToVia()
     {
         var bus = CreateBus(PetProfileCatalog.Pet2001_8, out _, out _, out var via, out _);
-        var acrAddress = (ushort)(PetMemoryBus.ViaBase + Via6522.AuxiliaryControl);
+        var acrAddress = (ushort)(PetMemoryBus.ViaBase + MOS6522.AuxiliaryControl);
 
         bus.Write(acrAddress, 0x42);
 
@@ -123,16 +123,16 @@ public sealed class PetMemoryBusTests
 
     private static PetMemoryBus CreateBus(
         PetProfile profile,
-        out Pia pia1,
-        out Pia pia2,
-        out Via6522 via,
-        out Crtc6545? crtc,
+        out MT6520 pia1,
+        out MT6520 pia2,
+        out MOS6522 via,
+        out MT6545? crtc,
         IReadOnlyList<PetRomImage>? roms = null)
     {
-        pia1 = new Pia("PIA1", PetMemoryBus.Pia1Base);
-        pia2 = new Pia("PIA2", PetMemoryBus.Pia2Base);
-        via = new Via6522("VIA", PetMemoryBus.ViaBase);
-        crtc = profile.RequiresCrtc ? new Crtc6545("CRTC", PetMemoryBus.CrtcBase) : null;
+        pia1 = new MT6520("PIA1", PetMemoryBus.Pia1Base);
+        pia2 = new MT6520("PIA2", PetMemoryBus.Pia2Base);
+        via = new MOS6522("VIA", PetMemoryBus.ViaBase);
+        crtc = profile.RequiresCrtc ? new MT6545("CRTC", PetMemoryBus.CrtcBase) : null;
         return new PetMemoryBus(profile, roms ?? [], pia1, pia2, via, crtc);
     }
 }

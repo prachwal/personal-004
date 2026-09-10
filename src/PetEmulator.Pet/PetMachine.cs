@@ -1,7 +1,7 @@
-using Cpu6502.Variants;
+using PetEmulator.Cpu6502.Variants;
 using PetEmulator.Core;
 using PetEmulator.Pet.CbmDos;
-using PetEmulator.Pet.Chips;
+using PetEmulator.Chips;
 using PetEmulator.Pet.Devices;
 using PetEmulator.Pet.Ieee488;
 using PetEmulator.Pet.Keyboard;
@@ -20,10 +20,10 @@ public sealed class PetMachine : IMachine
     private readonly PetProfile _profile;
     private readonly PetMemoryBus _memoryBus;
     private readonly Cpu6502Classic _cpu;
-    private readonly Pia _pia1;
-    private readonly Pia _pia2;
-    private readonly Via6522 _via;
-    private readonly Crtc6545? _crtc;
+    private readonly MT6520 _pia1;
+    private readonly MT6520 _pia2;
+    private readonly MOS6522 _via;
+    private readonly MT6545? _crtc;
     private readonly PetDatasette _datasette;
     private readonly PetIeeeBus _ieeeBus;
     private readonly PetIeeeBusBinding _ieeeBusBinding;
@@ -48,10 +48,10 @@ public sealed class PetMachine : IMachine
         _profile = profile;
         var roms = PetRomLoader.Load(Path.Combine(romsRoot, profile.RomDirectory), profile.RomManifest);
 
-        _pia1 = new Pia("PIA1", PetMemoryBus.Pia1Base);
-        _pia2 = new Pia("PIA2", PetMemoryBus.Pia2Base);
-        _via = new Via6522("VIA", PetMemoryBus.ViaBase);
-        _crtc = profile.RequiresCrtc ? new Crtc6545("CRTC", PetMemoryBus.CrtcBase) : null;
+        _pia1 = new MT6520("PIA1", PetMemoryBus.Pia1Base);
+        _pia2 = new MT6520("PIA2", PetMemoryBus.Pia2Base);
+        _via = new MOS6522("VIA", PetMemoryBus.ViaBase);
+        _crtc = profile.RequiresCrtc ? new MT6545("CRTC", PetMemoryBus.CrtcBase) : null;
 
         _memoryBus = new PetMemoryBus(profile, roms, _pia1, _pia2, _via, _crtc);
         _cpu = new Cpu6502Classic(_memoryBus);
@@ -99,11 +99,11 @@ public sealed class PetMachine : IMachine
 
     /// <summary>The CRTC, when this profile has one (<see cref="PetProfile.RequiresCrtc"/>) - null
     /// otherwise. A caller (e.g. a display renderer locating the text cursor) reads
-    /// <see cref="Crtc6545.CursorAddress"/>/<see cref="Crtc6545.DisplayStartAddress"/> from this.</summary>
-    public Crtc6545? Crtc => _crtc;
+    /// <see cref="MT6545.CursorAddress"/>/<see cref="MT6545.DisplayStartAddress"/> from this.</summary>
+    public MT6545? Crtc => _crtc;
 
     /// <summary>The VIA - exposed for debug tooling (timer/IRQ state).</summary>
-    public Via6522 Via => _via;
+    public MOS6522 Via => _via;
 
     /// <summary>Fires for every real bus access (RAM/ROM/chip read or write) the CPU makes - see
     /// <see cref="BusAccess"/>'s doc comment. Optional; zero added cost on the hot path when

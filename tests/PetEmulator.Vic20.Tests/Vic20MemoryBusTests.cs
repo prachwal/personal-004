@@ -1,7 +1,6 @@
 using FluentAssertions;
 using NUnit.Framework;
-using PetEmulator.Pet.Chips;
-using PetEmulator.Vic20.Chips;
+using PetEmulator.Chips;
 using PetEmulator.Vic20.Roms;
 using PetEmulator.Vic20.Tests.Roms;
 
@@ -59,7 +58,7 @@ public sealed class Vic20MemoryBusTests
     [Test]
     public void VicRegisters_RouteThroughToTheChip()
     {
-        var vic = new Vic6560("VIC", 0x9000);
+        var vic = new MOS6560("VIC", 0x9000);
         var bus = CreateBus(vic: vic);
 
         bus.Write(0x9002, 0x16);
@@ -92,14 +91,14 @@ public sealed class Vic20MemoryBusTests
         events.Should().ContainSingle(e => !e.IsWrite && e.Address == 0x0080 && e.Value == 0x42);
     }
 
-    private static Vic20MemoryBus CreateBus(Vic6560? vic = null)
+    private static Vic20MemoryBus CreateBus(MOS6560? vic = null)
     {
         var romsRoot = RomLocator.Directory("kernal.bin");
         var roms = Vic20RomLoader.Load(romsRoot, Vic20RomManifest.Ntsc);
-        vic ??= new Vic6560("VIC", 0x9000);
-        var via1 = new Via6522("VIA1", 0x9110);
-        var via2 = new Via6522("VIA2", 0x9120);
-        var colorRam = new Vic20ColorRam("Color RAM", 0x9400, 0x0400);
+        vic ??= new MOS6560("VIC", 0x9000);
+        var via1 = new MOS6522("VIA1", 0x9110);
+        var via2 = new MOS6522("VIA2", 0x9120);
+        var colorRam = new MOS2114("Color RAM", 0x9400, 0x0400);
         return new Vic20MemoryBus(roms, vic, via1, via2, colorRam);
     }
 }

@@ -1,6 +1,5 @@
 using PetEmulator.Core;
-using PetEmulator.Pet.Chips;
-using PetEmulator.Vic20.Chips;
+using PetEmulator.Chips;
 using PetEmulator.Vic20.Roms;
 
 namespace PetEmulator.Vic20;
@@ -25,12 +24,12 @@ public sealed class Vic20MemoryBus : IMemoryBus
     private readonly byte[] _charRom;
     private readonly byte[] _basicRom;
     private readonly byte[] _kernalRom;
-    private readonly Vic6560 _vic;
-    private readonly Via6522 _via1;
-    private readonly Via6522 _via2;
-    private readonly Vic20ColorRam _colorRam;
+    private readonly MOS6560 _vic;
+    private readonly MOS6522 _via1;
+    private readonly MOS6522 _via2;
+    private readonly MOS2114 _colorRam;
 
-    public Vic20MemoryBus(IReadOnlyList<Vic20RomImage> roms, Vic6560 vic, Via6522 via1, Via6522 via2, Vic20ColorRam colorRam)
+    public Vic20MemoryBus(IReadOnlyList<Vic20RomImage> roms, MOS6560 vic, MOS6522 via1, MOS6522 via2, MOS2114 colorRam)
     {
         ArgumentNullException.ThrowIfNull(roms);
         _vic = vic ?? throw new ArgumentNullException(nameof(vic));

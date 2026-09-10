@@ -1,7 +1,7 @@
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Core;
-using PetEmulator.Pet.Chips;
+using PetEmulator.Chips;
 using PetEmulator.Pet.Keyboard;
 using PetEmulator.Pet.Tape;
 using PetEmulator.Pet.Tests.Roms;
@@ -422,12 +422,12 @@ public sealed class PetMachineTests
         var pia2Base = PetMemoryBus.Pia2Base;
         var viaBase = PetMemoryBus.ViaBase;
 
-        machine.Memory.Write((ushort)(viaBase + Via6522.Ddrb), AtnOutViaDdrb);
-        machine.Memory.Write((ushort)(viaBase + Via6522.Orb), 0x00); // ATN asserted -> command phase
+        machine.Memory.Write((ushort)(viaBase + MOS6522.Ddrb), AtnOutViaDdrb);
+        machine.Memory.Write((ushort)(viaBase + MOS6522.Orb), 0x00); // ATN asserted -> command phase
         machine.Memory.Write((ushort)(pia2Base + 3), 0x04); // select PIA2 CRB's data register
         machine.Memory.Write((ushort)(pia2Base + 2), (byte)(0x48 ^ 0xFF)); // TALK device 8
         machine.Memory.Write((ushort)(pia2Base + 2), (byte)(0x6F ^ 0xFF)); // SECONDARY 15 (error channel)
-        machine.Memory.Write((ushort)(viaBase + Via6522.Orb), 0x04); // ATN released -> device becomes talker
+        machine.Memory.Write((ushort)(viaBase + MOS6522.Orb), 0x04); // ATN released -> device becomes talker
 
         for (var i = 0; i < 8; i++) machine.StepInstruction(); // let the talker-side prefetch delay elapse
 

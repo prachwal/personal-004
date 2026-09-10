@@ -11,6 +11,6 @@
     <PackageReference Include="NUnit.Analyzers" />
     <PackageReference Include="NUnit3TestAdapter" />
     <PackageReference Include="FluentAssertions" />
-    <ProjectReference Include="../../src/PetEmulator.Core/PetEmulator.Core.csproj" />
+    <ProjectReference Include="../../lib/PetEmulator.Core/PetEmulator.Core.csproj" />
   </ItemGroup>
 </Project>

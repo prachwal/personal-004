@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="PetEmulator.Chips/PetEmulator.Chips.csproj" />
+  </Folder>
+</Solution>

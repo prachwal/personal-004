@@ -130,7 +130,7 @@ public class PetRasterDisplayTests
         // BASIC 4 KERNAL writes R14/R15 exactly once during CRTC init (to $0000 - immediately
         // invalid) and never touches them again; PetCursorTracking's addresses track a genuinely
         // live, valid position throughout. This test used to write directly to a standalone
-        // Crtc6545's register (mimicking what the OLD, wrong code path read) - now it writes the
+        // MT6545's register (mimicking what the OLD, wrong code path read) - now it writes the
         // zero-page pointer instead, the same way the no-CRTC test above does, proving a
         // CRTC-equipped profile's cursor works identically.
         var font = LoadRealFont();

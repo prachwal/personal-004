@@ -1,5 +1,5 @@
 using PetEmulator.Core;
-using PetEmulator.Vic20.Chips;
+using PetEmulator.Chips;
 
 namespace PetEmulator.Vic20.Display;
 
@@ -23,9 +23,9 @@ public sealed class Vic20RasterDisplay
     private const int CharWidth = 8;
 
     private readonly IMemoryBus _memory;
-    private readonly Vic6560 _vic;
+    private readonly MOS6560 _vic;
 
-    public Vic20RasterDisplay(IMemoryBus memory, Vic6560 vic)
+    public Vic20RasterDisplay(IMemoryBus memory, MOS6560 vic)
     {
         _memory = memory ?? throw new ArgumentNullException(nameof(memory));
         _vic = vic ?? throw new ArgumentNullException(nameof(vic));

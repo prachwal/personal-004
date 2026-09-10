@@ -1,4 +1,4 @@
-using PetEmulator.Pet.Chips;
+using PetEmulator.Chips;
 
 namespace PetEmulator.Pet.Tape;
 
@@ -24,12 +24,12 @@ public readonly record struct DatasetteActivity(string Kind, string Detail);
 /// than simply toggling it: the KERNAL only times successive *falling* edges, so a plain
 /// alternating toggle would only produce a real falling edge on every other pulse-array entry
 /// once CA1's edge polarity is fixed - silently halving the effective data rate. Forcing a known
-/// baseline first guarantees the following low assignment is always a genuine transition (Pia's
+/// baseline first guarantees the following low assignment is always a genuine transition (MT6520's
 /// edge detection is a no-op when asked to set a line to its current value), so every entry
 /// produces exactly one falling edge regardless of CA1's prior level.
 ///
-/// NOTE (cross-dependency): <see cref="Pia"/> is ported into PetEmulator.Pet.Chips by a parallel
-/// effort; this file assumes the same member names as personal-001's Emulator.Chips.Pia (CA1,
+/// NOTE (cross-dependency): <see cref="MT6520"/> is ported into PetEmulator.Chips by a parallel
+/// effort; this file assumes the same member names as personal-001's Emulator.Chips.MT6520 (CA1,
 /// CB2, IsCb2Output). If that port lands with a different shape, this file will need a small
 /// follow-up fix.
 ///
@@ -40,13 +40,13 @@ public readonly record struct DatasetteActivity(string Kind, string Detail);
 /// </summary>
 public sealed class PetDatasette
 {
-    private readonly Pia _pia1;
+    private readonly MT6520 _pia1;
     private IReadOnlyList<int> _pulseCycles = [];
     private int _pulseIndex;
     private int _cyclesUntilNextEdge;
     private bool _lastMotorOn;
 
-    public PetDatasette(Pia pia1) => _pia1 = pia1 ?? throw new ArgumentNullException(nameof(pia1));
+    public PetDatasette(MT6520 pia1) => _pia1 = pia1 ?? throw new ArgumentNullException(nameof(pia1));
 
     /// <summary>Fires for motor start/stop and each played pulse boundary. Optional (nullable
     /// multicast delegate) - zero-cost and behavior-neutral when nobody subscribes.</summary>

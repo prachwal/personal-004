@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Cpu6502;
+using PetEmulator.Cpu6502;
 
-namespace Cpu6502.Tests.TestHelpers;
+namespace PetEmulator.Cpu6502.Tests.TestHelpers;
 
 /// <summary>
 /// Uruchamia test zgodności nestest i porównuje stan CPU z oczekiwanym logiem.

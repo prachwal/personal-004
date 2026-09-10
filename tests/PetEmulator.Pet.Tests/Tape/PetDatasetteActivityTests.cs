@@ -1,6 +1,6 @@
 using FluentAssertions;
 using NUnit.Framework;
-using PetEmulator.Pet.Chips;
+using PetEmulator.Chips;
 using PetEmulator.Pet.Tape;
 
 namespace PetEmulator.Pet.Tests.Tape;
@@ -15,7 +15,7 @@ public sealed class PetDatasetteActivityTests
     [Test]
     public void MotorOn_RaisesMotorOnActivity()
     {
-        var pia = new Pia();
+        var pia = new MT6520();
         var datasette = new PetDatasette(pia);
         datasette.LoadTape([100]);
         var activity = new List<DatasetteActivity>();
@@ -31,7 +31,7 @@ public sealed class PetDatasetteActivityTests
     [Test]
     public void MotorOff_RaisesMotorOffActivity()
     {
-        var pia = new Pia();
+        var pia = new MT6520();
         var datasette = new PetDatasette(pia);
         datasette.LoadTape([10, 10]);
         pia.Write(3, MotorOnControlB);
@@ -50,7 +50,7 @@ public sealed class PetDatasetteActivityTests
     [Test]
     public void PulseBoundary_RaisesPulseActivityWithWidthAndIndex()
     {
-        var pia = new Pia();
+        var pia = new MT6520();
         var datasette = new PetDatasette(pia);
         datasette.LoadTape([100, 200]);
         datasette.PressPlay();
@@ -69,7 +69,7 @@ public sealed class PetDatasetteActivityTests
     [Test]
     public void NoSubscriber_DoesNotThrow()
     {
-        var pia = new Pia();
+        var pia = new MT6520();
         var datasette = new PetDatasette(pia);
         datasette.LoadTape([10]);
         datasette.PressPlay();

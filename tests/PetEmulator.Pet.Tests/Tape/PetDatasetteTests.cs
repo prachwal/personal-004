@@ -1,6 +1,6 @@
 using FluentAssertions;
 using NUnit.Framework;
-using PetEmulator.Pet.Chips;
+using PetEmulator.Chips;
 using PetEmulator.Pet.Tape;
 
 namespace PetEmulator.Pet.Tests.Tape;
@@ -14,12 +14,12 @@ public sealed class PetDatasetteTests
     /// <summary>CRA's reset value (0) makes CA1 falling-edge sensitive, matching the KERNAL's
     /// documented behavior of timing successive falling edges - so the control register's flag
     /// bit is the thing that actually matters to a real reader, not the raw line level.</summary>
-    private static bool Ca1FlagSet(Pia pia) => (pia.Read(1) & Ca1FlagBit) != 0;
+    private static bool Ca1FlagSet(MT6520 pia) => (pia.Read(1) & Ca1FlagBit) != 0;
 
     [Test]
     public void Motor_stays_off_and_no_edge_occurs_until_cb2_turns_it_on()
     {
-        var pia = new Pia();
+        var pia = new MT6520();
         var datasette = new PetDatasette(pia);
         datasette.LoadTape([100, 200]);
 
@@ -32,7 +32,7 @@ public sealed class PetDatasetteTests
     [Test]
     public void Forces_a_falling_edge_at_each_pulse_boundary_once_motor_is_on()
     {
-        var pia = new Pia();
+        var pia = new MT6520();
         pia.Write(1, 0x04); // select CRA's data register so reading Port A clears the CA1 flag, as real KERNAL code does
         var datasette = new PetDatasette(pia);
         datasette.LoadTape([100, 200, 50]);
@@ -71,7 +71,7 @@ public sealed class PetDatasetteTests
     [Test]
     public void Turning_the_motor_off_mid_tape_stops_advancing()
     {
-        var pia = new Pia();
+        var pia = new MT6520();
         pia.Write(1, 0x04); // select CRA's data register so reading Port A clears the CA1 flag
         var datasette = new PetDatasette(pia);
         datasette.LoadTape([10, 10, 10]);
@@ -96,7 +96,7 @@ public sealed class PetDatasetteTests
     [Test]
     public void Rewind_resets_playback_position_without_touching_the_motor()
     {
-        var pia = new Pia();
+        var pia = new MT6520();
         var datasette = new PetDatasette(pia);
         datasette.LoadTape([5, 5]);
         datasette.PressPlay();
@@ -112,7 +112,7 @@ public sealed class PetDatasetteTests
     [Test]
     public void Sense_reflects_whether_play_is_pressed_independent_of_tape_or_motor_state()
     {
-        var pia = new Pia();
+        var pia = new MT6520();
         var datasette = new PetDatasette(pia);
 
         datasette.Sense.Should().BeFalse("play hasn't been pressed yet");
@@ -128,7 +128,7 @@ public sealed class PetDatasetteTests
     [Test]
     public void LoadingATape_DoesNotPressPlayForYou()
     {
-        var pia = new Pia();
+        var pia = new MT6520();
         var datasette = new PetDatasette(pia);
         datasette.PressPlay();
 
@@ -141,7 +141,7 @@ public sealed class PetDatasetteTests
     [Test]
     public void Eject_ClearsTheTapeAndReleasesPlay()
     {
-        var pia = new Pia();
+        var pia = new MT6520();
         var datasette = new PetDatasette(pia);
         datasette.LoadTape([10, 20], "game.tap");
         datasette.PressPlay();
@@ -157,7 +157,7 @@ public sealed class PetDatasetteTests
     [CancelAfter(5_000)]
     public void PlayPressed_ButMotorOff_DoesNotAdvanceTheTape()
     {
-        var pia = new Pia();
+        var pia = new MT6520();
         pia.Write(1, 0x04);
         var datasette = new PetDatasette(pia);
         datasette.LoadTape([10, 10]);

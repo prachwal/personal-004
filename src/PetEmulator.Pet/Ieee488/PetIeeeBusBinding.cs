@@ -1,4 +1,4 @@
-using PetEmulator.Pet.Chips;
+using PetEmulator.Chips;
 
 namespace PetEmulator.Pet.Ieee488;
 
@@ -11,19 +11,19 @@ namespace PetEmulator.Pet.Ieee488;
 /// bus's talker-side byte prefetch delay advances and VIA Port B stays in sync even when nothing
 /// else touches the bus this cycle.
 ///
-/// NOTE (cross-dependency): <see cref="Pia"/> and <see cref="Via6522"/> are ported into
-/// PetEmulator.Pet.Chips by a parallel effort; this file assumes the same member names as
-/// personal-001's Emulator.Chips.Pia/Via6522 (PortAInput, PortBWritten, Ca2OutputChanged,
+/// NOTE (cross-dependency): <see cref="MT6520"/> and <see cref="MOS6522"/> are ported into
+/// PetEmulator.Chips by a parallel effort; this file assumes the same member names as
+/// personal-001's Emulator.Chips.MT6520/MOS6522 (PortAInput, PortBWritten, Ca2OutputChanged,
 /// Cb2OutputChanged, PortBInput, DDRB). If that port lands with a different shape, this file will
 /// need a small follow-up fix.
 /// </summary>
 public sealed class PetIeeeBusBinding
 {
     private readonly PetIeeeBus _bus;
-    private readonly Via6522 _via;
+    private readonly MOS6522 _via;
     private bool _lastCb2;
 
-    public PetIeeeBusBinding(Pia pia2, Via6522 via, PetIeeeBus bus)
+    public PetIeeeBusBinding(MT6520 pia2, MOS6522 via, PetIeeeBus bus)
     {
         ArgumentNullException.ThrowIfNull(pia2);
         _via = via ?? throw new ArgumentNullException(nameof(via));

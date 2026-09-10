@@ -1,4 +1,4 @@
-namespace Cpu6502.Tests.TestHelpers;
+namespace PetEmulator.Cpu6502.Tests.TestHelpers;
 
 /// <summary>
 /// Powód niepowodzenia testu Klaus Dormann.

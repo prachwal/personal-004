@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Cpu6502;
-using Cpu6502.Variants;
-using Cpu6502.Tests.TestHelpers;
+using PetEmulator.Cpu6502;
+using PetEmulator.Cpu6502.Variants;
+using PetEmulator.Cpu6502.Tests.TestHelpers;
 using NUnit.Framework;
 
-namespace Cpu6502.Tests;
+namespace PetEmulator.Cpu6502.Tests;
 
 [TestFixture]
 public class NestestTests
