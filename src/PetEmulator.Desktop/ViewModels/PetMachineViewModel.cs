@@ -2,6 +2,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PetEmulator.Desktop.Input;
 using PetEmulator.Core;
 using PetEmulator.Pet;
 using PetEmulator.Pet.Display;
@@ -9,7 +10,7 @@ using PetEmulator.Pet.Fonts;
 using PetEmulator.Pet.Keyboard;
 using PetEmulator.Pet.Tape;
 
-namespace PetEmulator.Desktop;
+namespace PetEmulator.Desktop.ViewModels;
 
 /// <summary>
 /// Owns a running <see cref="PetMachine"/>, its render loop, and keyboard translation - the
@@ -18,7 +19,7 @@ namespace PetEmulator.Desktop;
 /// than mutating this one in place, so <see cref="MainWindowViewModel.CurrentMachine"/> swaps
 /// wholesale and any stale event subscription dies with the old instance.
 /// </summary>
-public sealed partial class PetMachineViewModel : ObservableObject, IMachineViewModel
+public sealed partial class PetMachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel
 {
     // ponytail: fixed per-tick instruction budget, no adaptive pacing to a wall-clock cycle
     // rate. Good enough for a display GUI; revisit if playback speed needs to match real hardware.

@@ -1,6 +1,7 @@
 using Avalonia.Controls;
+using PetEmulator.Desktop.ViewModels;
 
-namespace PetEmulator.Desktop;
+namespace PetEmulator.Desktop.Views;
 
 /// <summary>The VIC-20's composite screen+device-bar+status View - mirrors
 /// <see cref="PetMachineView"/>'s re-wiring shape exactly (see that class's doc comment for why

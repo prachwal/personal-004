@@ -1,8 +1,9 @@
 using Avalonia.Input;
 using PetEmulator.Core;
 using PetEmulator.Pet.Keyboard;
+using PetEmulator.Desktop.Views.Controls;
 
-namespace PetEmulator.Desktop;
+namespace PetEmulator.Desktop.ViewModels;
 
 /// <summary>
 /// The contract one running machine (PET, VIC-20, ...) exposes to the Desktop shell -

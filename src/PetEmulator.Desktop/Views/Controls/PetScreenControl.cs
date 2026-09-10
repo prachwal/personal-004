@@ -5,7 +5,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 
-namespace PetEmulator.Desktop;
+namespace PetEmulator.Desktop.Views.Controls;
 
 /// <summary>
 /// Displays a PET frame buffer with genuine two-pass scaling: nearest-neighbor up to an integer

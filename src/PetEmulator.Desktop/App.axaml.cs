@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using PetEmulator.Desktop.Views;
 
 namespace PetEmulator.Desktop;
 

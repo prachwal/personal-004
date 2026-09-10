@@ -1,0 +1,7 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             x:Class="PetEmulator.Desktop.Views.Controls.DiskDriveControl"
+             x:DataType="viewModels:PetMachineViewModel">
+    <TextBlock Text="💾" FontSize="14" Foreground="{Binding DiskIconBrush}" ToolTip.Tip="Disk drive 8" />
+</UserControl>

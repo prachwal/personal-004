@@ -2,6 +2,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="PetEmulator.Desktop.App"
              RequestedThemeVariant="Dark">
+    <Application.Resources>
+        <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FF1A1A1A" />
+        <SolidColorBrush x:Key="StatusBarBackgroundBrush" Color="#FF101010" />
+        <SolidColorBrush x:Key="StatusTextBrush" Color="#FF8DFF72" />
+        <SolidColorBrush x:Key="DeviceBarBackgroundBrush" Color="#FF161616" />
+        <SolidColorBrush x:Key="DeviceStatusTextBrush" Color="#FFAAAAAA" />
+    </Application.Resources>
     <Application.Styles>
         <FluentTheme />
     </Application.Styles>

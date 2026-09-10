@@ -1,12 +1,25 @@
 # Repository Instructions
 
-- The application skeleton targets .NET 10 with `PetEmulator.slnx`; shared settings are in `Directory.Build.props` and package versions in `Directory.Packages.props`. The PET/CPU implementation is not present yet, so inspect project files before assuming commands beyond `dotnet restore`, `dotnet build`, and `dotnet test`.
+- The repository targets .NET 10 with `PetEmulator.slnx`; shared settings are in `Directory.Build.props` and package versions in `Directory.Packages.props`.
+- The solution contains the 6502 CPU, PET, VIC-20, CLI, Desktop, Screenshot, and test projects. Inspect the relevant project before choosing a command, then prefer `dotnet build PetEmulator.slnx --no-restore` and targeted `dotnet test` runs.
 - CLI entrypoint: `dotnet run --project src/PetEmulator.Cli -- apps` lists predefined applications; `dotnet run --project src/PetEmulator.Cli -- run status` runs one. CLI settings come from `src/PetEmulator.Cli/appsettings.json` and can be overridden with `--config`, `--profile`, `--roms`, `--steps`, and `--log-level`.
+
+## Project conventions
+
+- Desktop UI follows MVVM: `Views/` contains Avalonia XAML and code-behind, `ViewModels/` contains presentation logic, `Services/` contains UI-bound integrations, and `Views/Controls/` contains reusable controls.
+- Keep Avalonia-specific APIs in Views or Services. ViewModels should depend on interfaces such as `IFilePickerService`.
+- Use compiled bindings and explicit `x:DataType` declarations in XAML. Put shared UI colors in `App.axaml` resources and reference them with `DynamicResource`.
+- The Avalonia previewer may load the Desktop assembly from a temporary directory. ROM lookup also checks the working directory; set `PET_EMULATOR_ROMS` when using a custom ROM location.
+
+## Codex local setup
+
+- Optional machine-local defaults may be kept in `.codex/config.toml`; the file is ignored by Git and must not contain credentials or machine-specific trust/MCP configuration.
+- Codex instructions belong in this file or in a more specific nested `AGENTS.md`. Keep repository rules here; keep personal model and approval preferences in `~/.codex/config.toml`.
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **personal-004** (1939 symbols, 3613 relationships, 16 execution flows).
+This project is indexed by GitNexus as **personal-004** (4147 symbols, 12057 relationships, 347 execution flows).
 
 > Index stale? Run `node .gitnexus/run.cjs analyze --index-only` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? Bootstrap with `npx`, `bunx`, or `pnpm dlx` — e.g. `bunx gitnexus@latest analyze` (npm 11 npx crash; #1939).
 

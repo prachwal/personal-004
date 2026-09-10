@@ -2,6 +2,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PetEmulator.Desktop.Input;
 using PetEmulator.Core;
 using PetEmulator.Pet.Keyboard;
 using PetEmulator.Pet.Tape;
@@ -9,7 +10,7 @@ using PetEmulator.Vic20;
 using PetEmulator.Vic20.Display;
 using PetEmulator.Vic20.Keyboard;
 
-namespace PetEmulator.Desktop;
+namespace PetEmulator.Desktop.ViewModels;
 
 /// <summary>
 /// Owns a running <see cref="Vic20Machine"/>, its render loop, and keyboard translation - the
@@ -20,7 +21,7 @@ namespace PetEmulator.Desktop;
 /// nothing else is modeled yet, so today it only ever yields the datasette's own entry filtered
 /// back out - effectively always empty, but wired generically like PET's for whatever's next.
 /// </summary>
-public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineViewModel
+public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel
 {
     // Same budget as PetMachineViewModel - see that class's identical constant for why.
     private const ulong InstructionsPerTick = 20_000;

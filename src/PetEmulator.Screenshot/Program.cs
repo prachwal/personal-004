@@ -4,6 +4,9 @@ using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using PetEmulator.Desktop;
+using PetEmulator.Desktop.Input;
+using PetEmulator.Desktop.ViewModels;
+using PetEmulator.Desktop.Views;
 
 namespace PetEmulator.Screenshot;
 

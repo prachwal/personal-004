@@ -1,6 +1,6 @@
 using Avalonia.Input;
 
-namespace PetEmulator.Desktop;
+namespace PetEmulator.Desktop.Input;
 
 /// <summary>
 /// Translates an Avalonia <see cref="Key"/> into the host-key vocabulary

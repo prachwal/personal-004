@@ -1,6 +1,7 @@
 using Avalonia.Controls;
+using PetEmulator.Desktop.ViewModels;
 
-namespace PetEmulator.Desktop;
+namespace PetEmulator.Desktop.Views;
 
 /// <summary>The PET's composite screen+device-bar+status View, matched by DataTemplate in
 /// MainWindow.axaml purely off <see cref="PetMachineViewModel"/>'s concrete type. Re-wires

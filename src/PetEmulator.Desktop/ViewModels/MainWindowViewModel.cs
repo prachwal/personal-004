@@ -2,16 +2,14 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PetEmulator.Desktop.Infrastructure;
+using PetEmulator.Desktop.Models;
+using PetEmulator.Desktop.Services;
+using PetEmulator.Desktop.Views;
 using PetEmulator.Pet;
 using PetEmulator.Pet.Keyboard;
 
-namespace PetEmulator.Desktop;
-
-/// <summary>One selectable entry in the "_Machine" menu - a label and a factory that builds a
-/// fresh <see cref="IMachineViewModel"/> for it. Uniform across machine kinds (a PET profile, the
-/// one VIC-20 configuration, and any future machine) so the menu binds to one flat list instead
-/// of one XAML block per kind.</summary>
-public sealed record MachineMenuEntry(string Label, Func<IMachineViewModel> Create);
+namespace PetEmulator.Desktop.ViewModels;
 
 /// <summary>
 /// The Desktop shell: owns the currently-running machine (<see cref="CurrentMachine"/>, one
@@ -23,14 +21,16 @@ public sealed record MachineMenuEntry(string Label, Func<IMachineViewModel> Crea
 /// </summary>
 public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 {
+    private readonly IFilePickerService _filePicker;
     private readonly string _romsRoot;
     private readonly DispatcherTimer _timer;
 
     [ObservableProperty]
     private IMachineViewModel _currentMachine;
 
-    public MainWindowViewModel()
+    public MainWindowViewModel(IFilePickerService filePicker)
     {
+        _filePicker = filePicker;
         _romsRoot = RomsRootLocator.Find();
 
         MachineChoices =
@@ -72,6 +72,21 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// docs/vic20-tape.md). The file-picker dialog itself is Avalonia-specific glue that lives in
     /// <see cref="MainWindow"/>'s code-behind (needs a <c>TopLevel</c>), which calls straight
     /// through to this.</summary>
+    [RelayCommand]
+    private async Task LoadTape()
+    {
+        try
+        {
+            var path = await _filePicker.PickTapeToOpenAsync();
+            if (path is not null)
+                LoadTape(path);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Load tape failed: {ex.Message}");
+        }
+    }
+
     public void LoadTape(string path)
     {
         switch (CurrentMachine)
@@ -82,6 +97,21 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     /// <inheritdoc cref="LoadTape"/>
+    [RelayCommand]
+    private async Task LoadDisk()
+    {
+        try
+        {
+            var path = await _filePicker.PickDiskToOpenAsync();
+            if (path is not null)
+                LoadDisk(path);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Load disk failed: {ex.Message}");
+        }
+    }
+
     public void LoadDisk(string path)
     {
         if (CurrentMachine is PetMachineViewModel pet)
@@ -95,6 +125,21 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         if (CurrentMachine is PetMachineViewModel pet)
             pet.NewDisk(path);
+    }
+
+    [RelayCommand]
+    private async Task NewDisk()
+    {
+        try
+        {
+            var path = await _filePicker.PickDiskToSaveAsync();
+            if (path is not null)
+                NewDisk(path);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"New disk failed: {ex.Message}");
+        }
     }
 
     /// <summary>Puts a fresh, empty, writable tape in the current machine's datasette, if it has

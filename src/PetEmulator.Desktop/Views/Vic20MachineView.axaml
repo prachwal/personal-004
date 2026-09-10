@@ -1,25 +1,22 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:PetEmulator.Desktop"
+             xmlns:views="clr-namespace:PetEmulator.Desktop.Views"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
              xmlns:core="clr-namespace:PetEmulator.Core;assembly=PetEmulator.Core"
-             x:Class="PetEmulator.Desktop.Vic20MachineView"
-             x:DataType="local:Vic20MachineViewModel">
+             x:Class="PetEmulator.Desktop.Views.Vic20MachineView"
+             x:DataType="viewModels:Vic20MachineViewModel">
     <DockPanel>
-        <Border DockPanel.Dock="Bottom" Background="#FF101010" Padding="8,4">
-            <TextBlock FontFamily="monospace" Foreground="#FF8DFF72" Text="{Binding StatusText}" />
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBackgroundBrush}" Padding="8,4">
+            <TextBlock FontFamily="monospace" Foreground="{DynamicResource StatusTextBrush}" Text="{Binding StatusText}" />
         </Border>
 
         <!-- Datasette gets its own dedicated icon+buttons (see PetMachineView's identical block
              and Vic20MachineViewModel's doc comment); any other future device (cartridge, ...)
              shows up in the generic ItemsControl below with no XAML change needed here. -->
-        <Border DockPanel.Dock="Bottom" Background="#FF161616" Padding="8,4">
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4">
             <StackPanel Orientation="Horizontal" Spacing="16">
-                <StackPanel Orientation="Horizontal" Spacing="4" ToolTip.Tip="Datasette">
-                    <TextBlock Text="📼" FontSize="14" Foreground="{Binding TapeIconBrush}" />
-                    <Button Content="▶" Padding="4,0" Command="{Binding PlayTapeCommand}" ToolTip.Tip="Press play" />
-                    <Button Content="⏹" Padding="4,0" Command="{Binding StopTapeCommand}" ToolTip.Tip="Stop" />
-                    <Button Content="⏏" Padding="4,0" Command="{Binding EjectTapeCommand}" ToolTip.Tip="Eject" />
-                </StackPanel>
+                <controls:DatasetteControl />
 
                 <ItemsControl ItemsSource="{Binding Devices}">
                     <ItemsControl.ItemsPanel>
@@ -31,7 +28,7 @@
                         <DataTemplate x:DataType="core:IDeviceStatus">
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <TextBlock Text="{Binding Icon}" FontSize="14" />
-                                <TextBlock FontFamily="monospace" Foreground="#FFAAAAAA" Text="{Binding StatusText}" />
+                                <TextBlock FontFamily="monospace" Foreground="{DynamicResource DeviceStatusTextBrush}" Text="{Binding StatusText}" />
                             </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -39,6 +36,6 @@
             </StackPanel>
         </Border>
 
-        <local:PetScreenControl Name="Screen" Focusable="True" />
+        <controls:PetScreenControl Name="Screen" Focusable="True" />
     </DockPanel>
 </UserControl>

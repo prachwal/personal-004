@@ -1,12 +1,14 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:PetEmulator.Desktop"
+             xmlns:views="clr-namespace:PetEmulator.Desktop.Views"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
              xmlns:core="clr-namespace:PetEmulator.Core;assembly=PetEmulator.Core"
-             x:Class="PetEmulator.Desktop.PetMachineView"
-             x:DataType="local:PetMachineViewModel">
+             x:Class="PetEmulator.Desktop.Views.PetMachineView"
+             x:DataType="viewModels:PetMachineViewModel">
     <DockPanel>
-        <Border DockPanel.Dock="Bottom" Background="#FF101010" Padding="8,4">
-            <TextBlock FontFamily="monospace" Foreground="#FF8DFF72" Text="{Binding StatusText}" />
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBackgroundBrush}" Padding="8,4">
+            <TextBlock FontFamily="monospace" Foreground="{DynamicResource StatusTextBrush}" Text="{Binding StatusText}" />
         </Border>
 
         <!-- Where the keyboard-test input box used to live. The datasette and the primary disk
@@ -15,16 +17,10 @@
              red on real bus traffic, not just "mounted"); every other attached peripheral gets a
              plain icon+status chip, dynamic so a profile with more/fewer/different devices needs
              no XAML change here. -->
-        <Border DockPanel.Dock="Bottom" Background="#FF161616" Padding="8,4">
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4">
             <StackPanel Orientation="Horizontal" Spacing="16">
-                <StackPanel Orientation="Horizontal" Spacing="4" ToolTip.Tip="Datasette">
-                    <TextBlock Text="📼" FontSize="14" Foreground="{Binding TapeIconBrush}" />
-                    <Button Content="▶" Padding="4,0" Command="{Binding PlayTapeCommand}" ToolTip.Tip="Press play" />
-                    <Button Content="⏹" Padding="4,0" Command="{Binding StopTapeCommand}" ToolTip.Tip="Stop" />
-                    <Button Content="⏏" Padding="4,0" Command="{Binding EjectTapeCommand}" ToolTip.Tip="Eject" />
-                </StackPanel>
-
-                <TextBlock Text="💾" FontSize="14" Foreground="{Binding DiskIconBrush}" ToolTip.Tip="Disk drive 8" />
+                <controls:DatasetteControl />
+                <controls:DiskDriveControl />
 
                 <ItemsControl ItemsSource="{Binding Devices}">
                     <ItemsControl.ItemsPanel>
@@ -36,7 +32,7 @@
                         <DataTemplate x:DataType="core:IDeviceStatus">
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <TextBlock Text="{Binding Icon}" FontSize="14" />
-                                <TextBlock FontFamily="monospace" Foreground="#FFAAAAAA" Text="{Binding StatusText}" />
+                                <TextBlock FontFamily="monospace" Foreground="{DynamicResource DeviceStatusTextBrush}" Text="{Binding StatusText}" />
                             </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -44,6 +40,6 @@
             </StackPanel>
         </Border>
 
-        <local:PetScreenControl Name="Screen" Focusable="True" />
+        <controls:PetScreenControl Name="Screen" Focusable="True" />
     </DockPanel>
 </UserControl>

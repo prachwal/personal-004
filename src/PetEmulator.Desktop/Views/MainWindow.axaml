@@ -1,12 +1,14 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:PetEmulator.Desktop"
-        x:Class="PetEmulator.Desktop.MainWindow"
+        xmlns:views="clr-namespace:PetEmulator.Desktop.Views"
+        xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+        xmlns:models="clr-namespace:PetEmulator.Desktop.Models"
+        x:Class="PetEmulator.Desktop.Views.MainWindow"
         x:Name="RootWindow"
-        x:DataType="local:MainWindowViewModel"
+        x:DataType="viewModels:MainWindowViewModel"
         Title="{Binding CurrentMachine.WindowTitle}"
         Width="960" Height="640"
-        Background="#FF1A1A1A"
+        Background="{DynamicResource WindowBackgroundBrush}"
         KeyDown="OnKeyDown"
         KeyUp="OnKeyUp">
     <DockPanel>
@@ -15,9 +17,9 @@
                 <MenuItem Header="_Reset" Command="{Binding ResetCommand}" />
                 <Separator />
                 <MenuItem Header="_New Tape" Command="{Binding NewTapeCommand}" />
-                <MenuItem Header="Load _Tape…" Click="OnLoadTapeClick" />
-                <MenuItem Header="New _Disk…" Click="OnNewDiskClick" />
-                <MenuItem Header="Load _Disk…" Click="OnLoadDiskClick" />
+                <MenuItem Header="Load _Tape…" Command="{Binding LoadTapeCommand}" />
+                <MenuItem Header="New _Disk…" Command="{Binding NewDiskCommand}" />
+                <MenuItem Header="Load _Disk…" Command="{Binding LoadDiskCommand}" />
                 <Separator />
                 <MenuItem Header="E_xit" Command="{Binding ExitCommand}" />
             </MenuItem>
@@ -27,9 +29,9 @@
                  concrete type. -->
             <MenuItem Header="_Machine" ItemsSource="{Binding MachineChoices}">
                 <MenuItem.ItemTemplate>
-                    <DataTemplate x:DataType="local:MachineMenuEntry">
+                    <DataTemplate x:DataType="models:MachineMenuEntry">
                         <MenuItem Header="{Binding Label}"
-                                  Command="{Binding #RootWindow.((local:MainWindowViewModel)DataContext).SwitchMachineCommand}"
+                                  Command="{Binding #RootWindow.((viewModels:MainWindowViewModel)DataContext).SwitchMachineCommand}"
                                   CommandParameter="{Binding}" />
                     </DataTemplate>
                 </MenuItem.ItemTemplate>
@@ -38,11 +40,11 @@
 
         <ContentControl Name="MachineHost" Focusable="True" Content="{Binding CurrentMachine}">
             <ContentControl.DataTemplates>
-                <DataTemplate DataType="local:PetMachineViewModel">
-                    <local:PetMachineView />
+                <DataTemplate DataType="viewModels:PetMachineViewModel">
+                    <views:PetMachineView />
                 </DataTemplate>
-                <DataTemplate DataType="local:Vic20MachineViewModel">
-                    <local:Vic20MachineView />
+                <DataTemplate DataType="viewModels:Vic20MachineViewModel">
+                    <views:Vic20MachineView />
                 </DataTemplate>
             </ContentControl.DataTemplates>
         </ContentControl>
