@@ -53,6 +53,7 @@ public sealed class PetDebuggerSession
                 "keymap" => SetKeymap(parts[1]),
                 "tape" => LoadTape(Argument(commandLine, parts[0])),
                 "disk" => LoadDisk(parts),
+                "new-disk" => NewDisk(parts),
                 "play" => PlayTape(),
                 "stop" => StopTape(),
                 "eject" => EjectTape(),
@@ -137,6 +138,16 @@ public sealed class PetDebuggerSession
         var device = parts.Length > 2 ? int.Parse(parts[2], CultureInfo.InvariantCulture) : 8;
         machine.MountDisk(parts[1], device);
         return $"disk mounted: {Path.GetFileName(parts[1])} on device {device}";
+    }
+
+    private string NewDisk(string[] parts)
+    {
+        var machine = EnsureMachine();
+        var path = parts[1];
+        var diskName = parts.Length > 2 ? parts[2] : Path.GetFileNameWithoutExtension(path).ToUpperInvariant();
+        var device = parts.Length > 3 ? int.Parse(parts[3], CultureInfo.InvariantCulture) : 8;
+        machine.MountNewDisk(path, diskName, deviceNumber: device);
+        return $"new disk created and mounted: {Path.GetFileName(path)} ({diskName}) on device {device}";
     }
 
     private string Key(string[] parts)

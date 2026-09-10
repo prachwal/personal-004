@@ -43,6 +43,12 @@ public partial class MainWindow : Window
     private async void OnLoadDiskClick(object? sender, RoutedEventArgs e) =>
         await LoadFileAsync("Load disk", "Disk images", ["*.d64"], _viewModel.LoadDisk);
 
+    // New Disk WRITES a file (MountDisk needs real bytes on disk to read back - see
+    // PetMachine.MountNewDisk), so this needs a save, not an open, picker - unlike New Tape
+    // (a pure in-memory Vic20Datasette.NewBlankTape, no file at all).
+    private async void OnNewDiskClick(object? sender, RoutedEventArgs e) =>
+        await SaveFileAsync("New disk", "Disk images", ["*.d64"], "New Disk.d64", _viewModel.NewDisk);
+
     private async Task LoadFileAsync(string title, string filterName, string[] patterns, Action<string> load)
     {
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -57,6 +63,27 @@ public partial class MainWindow : Window
         try
         {
             load(files[0].Path.LocalPath);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"{title} failed: {ex.Message}");
+        }
+    }
+
+    private async Task SaveFileAsync(string title, string filterName, string[] patterns, string suggestedName, Action<string> save)
+    {
+        IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = title,
+            SuggestedFileName = suggestedName,
+            FileTypeChoices = [new FilePickerFileType(filterName) { Patterns = patterns }]
+        });
+        if (file is null)
+            return;
+
+        try
+        {
+            save(file.Path.LocalPath);
         }
         catch (Exception ex)
         {

@@ -140,6 +140,13 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
     /// <inheritdoc cref="LoadTape"/>
     public void LoadDisk(string path) => _machine.MountDisk(path);
 
+    /// <summary>Creates a fresh, formatted, writable D64 at <paramref name="path"/> and mounts it
+    /// - see <see cref="PetMachine.MountNewDisk"/>. Unlike <see cref="LoadTape"/>/
+    /// <see cref="LoadDisk"/> this WRITES the file (a real image needs bytes on disk before
+    /// <c>MountDisk</c> can read it back), so <see cref="MainWindow"/>'s code-behind uses a save,
+    /// not an open, file picker for this one.</summary>
+    public void NewDisk(string path) => _machine.MountNewDisk(path, Path.GetFileNameWithoutExtension(path).ToUpperInvariant());
+
     [RelayCommand]
     private void PlayTape() => _machine.Datasette.PressPlay();
 

@@ -140,6 +140,19 @@ public sealed class PetMachine : IMachine
         _mountedDrives.Add(new PetIeeeDriveStatus(deviceNumber, Path.GetFileName(path)));
     }
 
+    /// <summary>Creates a genuinely formatted, writable D64 at <paramref name="path"/> (see
+    /// <see cref="D64Image.CreateFormatted"/> - not the bare zero-filled buffer a caller might
+    /// otherwise reach for) and mounts it, same as <see cref="MountDisk"/> - the disk-drive analog
+    /// of <c>Vic20Datasette.NewBlankTape</c>. A real SAVE against the result actually persists
+    /// (see <see cref="D64Image.CreateFormatted"/>'s doc comment for why that wasn't true of an
+    /// unformatted image).</summary>
+    public void MountNewDisk(string path, string diskName, string diskId = "00", int deviceNumber = 8)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        File.WriteAllBytes(path, D64Image.CreateFormatted(diskName, diskId));
+        MountDisk(path, deviceNumber);
+    }
+
     /// <summary>Whether a disk is currently mounted at <paramref name="deviceNumber"/> - for a
     /// GUI's single dedicated disk-drive icon (device 8 is the PET/CBM DOS convention for "the"
     /// drive; see <see cref="MountDisk"/>'s default), as opposed to <see cref="Devices"/>'s full

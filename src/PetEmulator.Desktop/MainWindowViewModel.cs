@@ -88,6 +88,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             pet.LoadDisk(path);
     }
 
+    /// <summary>Creates a fresh, formatted, writable D64 at <paramref name="path"/> and mounts it,
+    /// if the current machine has a disk drive - PET only (VIC-20 has none in this repo). See
+    /// <see cref="PetMachineViewModel.NewDisk"/>.</summary>
+    public void NewDisk(string path)
+    {
+        if (CurrentMachine is PetMachineViewModel pet)
+            pet.NewDisk(path);
+    }
+
     /// <summary>Puts a fresh, empty, writable tape in the current machine's datasette, if it has
     /// one - VIC-20 only for now (real SAVE support - see docs/vic20-tape.md; PET has no SAVE
     /// emulation yet). No file dialog needed (nothing to pick a path for yet), so this is a plain

@@ -16,6 +16,7 @@
                 <Separator />
                 <MenuItem Header="_New Tape" Command="{Binding NewTapeCommand}" />
                 <MenuItem Header="Load _Tape…" Click="OnLoadTapeClick" />
+                <MenuItem Header="New _Disk…" Click="OnNewDiskClick" />
                 <MenuItem Header="Load _Disk…" Click="OnLoadDiskClick" />
                 <Separator />
                 <MenuItem Header="E_xit" Command="{Binding ExitCommand}" />

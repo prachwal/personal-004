@@ -159,6 +159,67 @@ public sealed class D64Image
         return new byte[TotalSectors * 256];
     }
 
+    /// <summary>A genuinely mountable/writable blank disk - unlike <see cref="CreateEmpty"/> (a
+    /// bare zero-filled buffer of the right size, with an all-zero BAM), this actually formats
+    /// one: directory chain pointing at track 18/sector 1, every track's free-sector count and
+    /// bitmap set (all sectors free except track 18's own sectors 0 - the BAM itself - and 1 -
+    /// the first, initially-empty directory sector), and the disk name/ID/DOS-type fields
+    /// <see cref="Parse"/> reads back. Without this, <see cref="TryAllocateSector"/> can never
+    /// succeed (every track's free count reads 0) and <see cref="CbmDosEngine"/>'s SAVE silently
+    /// writes nothing while still reporting success - a real bug this type's own first "blank
+    /// disk" helper reproduced, found while adding a "New Disk" feature (see
+    /// docs/pet-disk-testing-strategy.md).</summary>
+    public static byte[] CreateFormatted(string diskName, string diskId, string dosType = "2A")
+    {
+        var data = new byte[TotalSectors * 256];
+        int bamOff = TrackSectorToOffset(18, 0);
+
+        data[bamOff] = 18; // first directory track
+        data[bamOff + 1] = 1; // first directory sector
+        data[bamOff + 2] = 0x41; // DOS version byte ('A') - real 1541 convention
+
+        for (var t = 1; t <= 35; t++)
+        {
+            int entry = bamOff + 4 + (t - 1) * 4;
+            int sectors = SectorsPerTrack[t - 1];
+            int bitmap = (1 << sectors) - 1; // every bit set = every sector free
+            int reserved = 0;
+            if (t == 18)
+            {
+                bitmap &= ~0x03; // sectors 0 (BAM) and 1 (first dir sector) are already used
+                reserved = 2;
+            }
+
+            data[entry] = (byte)(sectors - reserved);
+            data[entry + 1] = (byte)(bitmap & 0xFF);
+            data[entry + 2] = (byte)((bitmap >> 8) & 0xFF);
+            data[entry + 3] = (byte)((bitmap >> 16) & 0xFF);
+        }
+
+        WritePetAscii(data, bamOff + 144, diskName, 16);
+        data[bamOff + 160] = 0xA0;
+        data[bamOff + 161] = 0xA0;
+        WritePetAscii(data, bamOff + 162, diskId, 2);
+        data[bamOff + 164] = 0xA0;
+        WritePetAscii(data, bamOff + 165, dosType, 2);
+        data[bamOff + 167] = 0xA0;
+        data[bamOff + 168] = 0xA0;
+
+        // The first directory sector: end of chain (next track 0), all 8 entry slots empty -
+        // ReadDirectory/AddDirectoryEntry both treat a zero file-type byte as "unused slot".
+        int dirOff = TrackSectorToOffset(18, 1);
+        data[dirOff] = 0;
+        data[dirOff + 1] = 0xFF;
+
+        return data;
+    }
+
+    private static void WritePetAscii(byte[] data, int offset, string value, int length)
+    {
+        for (var i = 0; i < length; i++)
+            data[offset + i] = i < value.Length ? (byte)value[i] : (byte)0xA0;
+    }
+
     public void WriteSector(int track, int sector, byte[] data)
     {
         if (data.Length != 256)

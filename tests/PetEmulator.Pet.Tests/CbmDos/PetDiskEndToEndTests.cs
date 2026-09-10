@@ -71,8 +71,20 @@ public sealed class PetDiskEndToEndTests
     }
 
     /// <summary>A full SAVE, NEW (clear program memory), LOAD, RUN round trip through a real
-    /// disk - genuinely passes: the reloaded program's tiny size stays well clear of the stall
-    /// <see cref="LoadReadsARealFilesBytesCorrectly"/> documents.</summary>
+    /// disk. Was a false positive: the final assertion checked for byte 0x34 ('4') ANYWHERE on
+    /// screen, but the boot banner's own "31743 BYTES FREE" already contains a '4' before this
+    /// test does anything at all - the exact false-positive shape this repo's own methodology
+    /// elsewhere warns about (a check that can't distinguish "real execution happened" from
+    /// "something unrelated already put this byte on screen"). Fixed by counting '4' occurrences
+    /// before/after, the same technique <see cref="ContainsReadyAfterFirst"/> already uses for
+    /// READY, instead of checking bare presence.
+    ///
+    /// This only proves the round trip WITHIN one continuous session - the mounted
+    /// <c>D64Image</c> lives entirely in RAM inside <c>CbmDosEngine</c> and is never written back
+    /// to the host <c>.d64</c> file; re-opening this test's own disk file afterward would show it
+    /// exactly as it was created, still empty. A real "New Disk" workflow (create, SAVE your
+    /// programs, close the emulator, come back later) needs a flush-to-host-file mechanism this
+    /// codebase doesn't have yet - see docs/pet-disk-testing-strategy.md's note on this.</summary>
     [Test]
     [CancelAfter(60_000)]
     public void SaveThenLoadRoundTripsARealProgramThroughARealDisk()
@@ -81,11 +93,12 @@ public sealed class PetDiskEndToEndTests
         var machine = CreateMachine(profile);
         var map = new Pet2001GraphicsKeyboardMap();
 
-        // A fresh, empty-but-real D64 (same format CbmDosEngine already reads/writes for LOAD -
-        // see D64ImageTests.CreateEmpty_HasCorrectSize) so SAVE has guaranteed free space,
-        // independent of whatever games-1.d64 happens to have used up.
+        // A genuinely formatted, writable D64 (see D64Image.CreateFormatted's doc comment for why
+        // this - not CreateEmpty - is required for SAVE to actually persist anything in RAM) so
+        // SAVE has guaranteed free space, independent of whatever games-1.d64 happens to have
+        // used up.
         var diskPath = Path.Combine(Path.GetTempPath(), $"pet-save-roundtrip-{Guid.NewGuid():N}.d64");
-        File.WriteAllBytes(diskPath, D64Image.CreateEmpty());
+        File.WriteAllBytes(diskPath, D64Image.CreateFormatted("SCRATCH", "00"));
         try
         {
             machine.MountDisk(diskPath);
@@ -95,22 +108,31 @@ public sealed class PetDiskEndToEndTests
             // this long - see LoadReadsARealFilesBytesCorrectly's identical note.
             TextTyper.Type(machine, map, "10 PRINT2+2\n", holdInstructions: 12_000, gapInstructions: 12_000);
             TextTyper.Type(machine, map, "SAVE\"TESTFILE\",8\n", holdInstructions: 12_000, gapInstructions: 12_000);
-            machine.RunUntil(mem => ContainsReadyAfterFirst(mem, profile), 2_000_000)
+            // ContainsReadyAfterFirst's fixed ">= 2" threshold only works for a SINGLE completion
+            // check after boot - this test chains two (SAVE, then LOAD), and re-using it a second
+            // time would already be satisfied by boot+SAVE's own two READYs before LOAD even
+            // starts, silently passing even if LOAD never completes (found by running this test
+            // for real, not by inspection - the exact false-positive shape this file's own doc
+            // comment already flags for the digit check below). CountReady tracks the running
+            // count explicitly instead, one real command at a time.
+            machine.RunUntil(mem => CountReady(mem, profile) >= 2, 2_000_000)
                 .Should().BeTrue("SAVE should finish and print READY. again");
+
+            var beforeReload = CountByte(machine, profile, 0x34); // digit '4' screen code
 
             TextTyper.Type(machine, map, "NEW\n", holdInstructions: 12_000, gapInstructions: 12_000); // clear
             machine.Run(20_000); // program memory - RUN below can only succeed off a genuine reload
 
             TextTyper.Type(machine, map, "LOAD\"TESTFILE\",8\n", holdInstructions: 12_000, gapInstructions: 12_000);
-            machine.RunUntil(mem => ContainsReadyAfterFirst(mem, profile), 2_000_000)
+            machine.RunUntil(mem => CountReady(mem, profile) >= 3, 2_000_000)
                 .Should().BeTrue("LOAD should finish and print READY. again");
 
             TextTyper.Type(machine, map, "RUN\n", holdInstructions: 12_000, gapInstructions: 12_000);
             machine.Run(50_000);
 
-            var screen = SnapshotScreen(machine, profile);
-            screen.Should().Contain((byte)0x34,
-                "the reloaded program's PRINT2+2 should evaluate and print '4' - proof SAVE really wrote it and LOAD really read it back");
+            var afterReload = CountByte(machine, profile, 0x34);
+            afterReload.Should().BeGreaterThan(beforeReload,
+                "RUNning the reloaded program should PRINT2+2 and add a NEW '4' to the screen - not just match one already there from the boot banner");
         }
         finally
         {
@@ -135,7 +157,7 @@ public sealed class PetDiskEndToEndTests
         var map = new Pet2001GraphicsKeyboardMap();
 
         var diskPath = Path.Combine(Path.GetTempPath(), $"pet-save-only-{Guid.NewGuid():N}.d64");
-        File.WriteAllBytes(diskPath, D64Image.CreateEmpty());
+        File.WriteAllBytes(diskPath, D64Image.CreateFormatted("SCRATCH", "00"));
         try
         {
             machine.MountDisk(diskPath);
@@ -160,7 +182,9 @@ public sealed class PetDiskEndToEndTests
     // further down than the boot banner's - checking presence alone would pass instantly, before
     // the command even ran. Counts occurrences instead: BASIC's boot banner prints READY. once;
     // a second one only appears after the command in flight actually completes.
-    private static bool ContainsReadyAfterFirst(IMemoryBus memory, PetProfile profile)
+    private static bool ContainsReadyAfterFirst(IMemoryBus memory, PetProfile profile) => CountReady(memory, profile) >= 2;
+
+    private static int CountReady(IMemoryBus memory, PetProfile profile)
     {
         var count = 0;
         for (var start = profile.VideoRamStart; start + ReadyBytes.Length <= profile.VideoRamStart + profile.VideoRamLength; start++)
@@ -170,7 +194,18 @@ public sealed class PetDiskEndToEndTests
                 if (memory.Read((ushort)(start + j)) != ReadyBytes[j]) { match = false; break; }
             if (match) count++;
         }
-        return count >= 2;
+        return count;
+    }
+
+    // Same counting idiom as ContainsReadyAfterFirst - "found anywhere" alone can't tell apart a
+    // byte RUN really just printed from one that was already sitting on screen since boot.
+    private static int CountByte(PetMachine machine, PetProfile profile, byte value)
+    {
+        var count = 0;
+        for (var i = 0; i < profile.VideoRamLength; i++)
+            if (machine.Memory.Read((ushort)(profile.VideoRamStart + i)) == value)
+                count++;
+        return count;
     }
 
     private static bool ScreenContains(IMemoryBus memory, PetProfile profile, byte[] pattern)

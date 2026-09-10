@@ -89,5 +89,44 @@ public sealed class D64ImageTests
         data.Length.Should().Be(174848);
     }
 
+    // CreateFormatted exists because CreateEmpty's all-zero BAM can never allocate a sector (every
+    // track's free count reads 0) - a real bug found while adding a "New Disk" feature (see
+    // docs/pet-disk-testing-strategy.md and PetDiskEndToEndTests, which used to mount CreateEmpty
+    // and had SAVE silently write nothing while still reporting success).
+    [Test]
+    public void CreateFormatted_RoundTripsNameIdAndDosType()
+    {
+        var img = D64Image.Load(D64Image.CreateFormatted("MYDISK", "8A", "2A"));
+
+        img.DiskName.Should().Be("MYDISK");
+        img.DiskId.Should().Be("8A");
+        img.DosType.Should().Be("2A");
+    }
+
+    [Test]
+    public void CreateFormatted_StartsWithAnEmptyDirectory()
+    {
+        var img = D64Image.Load(D64Image.CreateFormatted("MYDISK", "00"));
+
+        img.ReadDirectory().Should().BeEmpty();
+    }
+
+    [Test]
+    public void CreateFormatted_CanActuallyAllocateAndRecordAFile()
+    {
+        // Unlike CreateEmpty (see this class's other tests), a formatted image's BAM has real
+        // free sectors - TryAllocateSector must genuinely succeed, not just fail silently.
+        var img = D64Image.Load(D64Image.CreateFormatted("MYDISK", "00"));
+
+        img.TryAllocateSector(out var track, out var sector).Should().BeTrue();
+        (track, sector).Should().NotBe((0, 0), "track 18's own BAM/directory sectors are reserved, not handed out");
+
+        var entry = new DirEntry(FileType.Prg, true, false, (byte)track, (byte)sector, "TESTFILE"u8.ToArray(), 1);
+        img.AddDirectoryEntry(entry);
+
+        var dir = img.ReadDirectory();
+        dir.Should().ContainSingle(e => e.Filename.StartsWith("TESTFILE", StringComparison.Ordinal) && e.StartTrack == track && e.StartSector == sector);
+    }
+
     private static string TestDisksDirectory => RomLocator.Directory("test-disks", "games-1.d64");
 }
