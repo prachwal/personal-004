@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using PetEmulator.Debugger;
+using PetEmulator.Pet.Tape;
 using PetEmulator.Vic20;
 using PetEmulator.Vic20.Keyboard;
 
@@ -31,8 +32,13 @@ public sealed class Vic20DebuggerSession
             return parts[0] switch
             {
                 "roms" => SetRoms(Argument(commandLine, parts[0])),
+                "tape" => LoadTape(Argument(commandLine, parts[0])),
+                "play" => PlayTape(),
+                "stop" => StopTape(),
+                "eject" => EjectTape(),
                 "key" => Key(parts),
                 "type" => Type(commandLine[(parts[0].Length + 1)..]),
+                "devices" => Devices(),
                 "status" => Status(),
                 _ => EnsureDebugger().Execute(commandLine),
             };
@@ -66,6 +72,41 @@ public sealed class Vic20DebuggerSession
         var machine = EnsureMachine();
         Vic20TextTyper.Type(machine, text);
         return $"typed {text.Length} character(s)";
+    }
+
+    private string LoadTape(string path)
+    {
+        var machine = EnsureMachine();
+        var tap = PetTapFile.Parse(File.ReadAllBytes(path));
+        machine.Datasette.LoadTape(tap.PulseCycles, Path.GetFileName(path));
+        return $"tape loaded: {Path.GetFileName(path)} ({tap.PulseCycles.Count} pulses)";
+    }
+
+    private string PlayTape()
+    {
+        EnsureMachine().Datasette.PressPlay();
+        return "play pressed";
+    }
+
+    private string StopTape()
+    {
+        EnsureMachine().Datasette.Stop();
+        return "stopped";
+    }
+
+    private string EjectTape()
+    {
+        EnsureMachine().Datasette.Eject();
+        return "tape ejected";
+    }
+
+    private string Devices()
+    {
+        var machine = EnsureMachine();
+        var sb = new StringBuilder();
+        foreach (var device in machine.Devices)
+            sb.AppendLine($"{device.Icon} {device.DisplayName}: {device.StatusText}");
+        return sb.ToString();
     }
 
     private string Status()

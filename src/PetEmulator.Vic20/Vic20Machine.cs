@@ -2,8 +2,10 @@ using Cpu6502.Variants;
 using PetEmulator.Core;
 using PetEmulator.Pet.Chips;
 using PetEmulator.Vic20.Chips;
+using PetEmulator.Vic20.Devices;
 using PetEmulator.Vic20.Keyboard;
 using PetEmulator.Vic20.Roms;
+using PetEmulator.Vic20.Tape;
 
 namespace PetEmulator.Vic20;
 
@@ -22,6 +24,7 @@ public sealed class Vic20Machine : IMachine
     private readonly Via6522 _via2;
     private readonly Vic20ColorRam _colorRam;
     private readonly Vic20KeyboardMatrix _keyboard = new();
+    private readonly Vic20Datasette _datasette;
 
     public Vic20Machine(string romsRoot, Vic20DisplayConfig? displayConfig = null)
     {
@@ -37,6 +40,7 @@ public sealed class Vic20Machine : IMachine
 
         _memoryBus = new Vic20MemoryBus(roms, _vic, _via1, _via2, _colorRam);
         _cpu = new Cpu6502Classic(_memoryBus);
+        _datasette = new Vic20Datasette(_via1);
 
         // VIA2 port B ($9120): row-select (active-low, ORB & DDRB); VIA2 port A ($9121): column
         // readback for the selected row. Confirmed against the real KERNAL disassembly
@@ -71,6 +75,16 @@ public sealed class Vic20Machine : IMachine
 
     public Via6522 Via2 => _via2;
 
+    /// <summary>The cassette datasette - a caller (GUI menu, debugger script) loads a tape
+    /// through this directly.</summary>
+    public Vic20Datasette Datasette => _datasette;
+
+    /// <summary>Every peripheral currently attached and worth a GUI status icon for - see
+    /// <see cref="IDeviceStatus"/>'s doc comment. Mirrors <c>PetMachine.Devices</c>'s shape;
+    /// just the datasette for now (no disk drive on an unexpanded VIC-20's IEEE-488... it has
+    /// none - see docs/vic20-migration-plan.md's scope cuts).</summary>
+    public IReadOnlyList<IDeviceStatus> Devices => [new Vic20DatasetteStatus(_datasette)];
+
     /// <summary>Fires for every real bus access (RAM/ROM/chip read or write) the CPU makes - see
     /// <see cref="BusAccess"/>'s doc comment. Optional; zero added cost on the hot path when
     /// unset.</summary>
@@ -102,6 +116,7 @@ public sealed class Vic20Machine : IMachine
         _via2.Reset();
         _colorRam.Reset();
         _keyboard.Reset();
+        _datasette.Reset();
         _cpu.Reset();
     }
 
@@ -114,6 +129,9 @@ public sealed class Vic20Machine : IMachine
         _vic.Tick(cycles);
         _via1.Tick(cycles);
         _via2.Tick(cycles);
+
+        for (var i = 0UL; i < cycles; i++)
+            _datasette.Tick();
 
         _cpu.SetIRQ(_via1.IRQ || _via2.IRQ);
     }

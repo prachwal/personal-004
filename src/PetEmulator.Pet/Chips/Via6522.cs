@@ -112,7 +112,30 @@ public sealed class Via6522 : IMemoryMappedDevice
 
     public byte IER => _ier;
 
-    public bool CA1 { get => _ca1; set => _ca1 = value; }
+    // Detects the CA1 edge synchronously on assignment, not only when a later Update() call
+    // happens to sample it - see UpdateControlInputs' identical (_previousCa1, _ca1) comparison,
+    // which still runs too but becomes a no-op here since _previousCa1 is kept in sync below.
+    // Needed for a datasette-style caller that raises then immediately lowers-then-raises CA1
+    // again within one Tick() (a real edge-sensitive input reacts the instant the level changes,
+    // not only at whatever cadence the caller happens to invoke Update()) - see
+    // Vic20Machine/Vic20Datasette's doc comments, and Pia.CA1 (PET's equivalent chip), whose
+    // setter already worked this way.
+    public bool CA1
+    {
+        get => _ca1;
+        set
+        {
+            if (IsActiveEdge(_ca1, value, (_pcr & 0x01) != 0))
+            {
+                if ((_acr & 0x01) != 0)
+                    _latchedPortA = PortAInput;
+                SetInterrupt(Ca1Interrupt);
+                ReleasePortAHandshake();
+            }
+            _previousCa1 = value;
+            _ca1 = value;
+        }
+    }
 
     public bool CA2 { get => _ca2; set => _ca2 = value; }
 
