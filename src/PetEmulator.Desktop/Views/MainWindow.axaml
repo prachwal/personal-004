@@ -6,7 +6,7 @@
         x:Class="PetEmulator.Desktop.Views.MainWindow"
         x:Name="RootWindow"
         x:DataType="viewModels:MainWindowViewModel"
-        Title="{Binding CurrentMachine.WindowTitle}"
+         Title="{Binding CurrentModule.WindowTitle}"
         Width="960" Height="640"
         Background="{DynamicResource WindowBackgroundBrush}"
         KeyDown="OnKeyDown"
@@ -23,13 +23,13 @@
                 <Separator />
                 <MenuItem Header="E_xit" Command="{Binding ExitCommand}" />
             </MenuItem>
-            <!-- One flat list across every machine kind (PET profiles + VIC-20) - see
-                 MachineMenuEntry's doc comment. Picking an entry swaps CurrentMachine wholesale;
-                 the ContentControl below picks which View to show purely from the new instance's
-                 concrete type. -->
-            <MenuItem Header="_Machine" ItemsSource="{Binding MachineChoices}">
-                <MenuItem.ItemTemplate>
-                    <DataTemplate x:DataType="models:MachineMenuEntry">
+             <!-- One flat list across every shell module (PET profiles + VIC-20 + Chip Tester) - see
+                  ModuleMenuEntry's doc comment. Picking an entry swaps CurrentModule wholesale;
+                  the ContentControl below picks which View to show purely from the new instance's
+                  concrete type. -->
+             <MenuItem Header="_Machine" ItemsSource="{Binding ModuleChoices}">
+                 <MenuItem.ItemTemplate>
+                     <DataTemplate x:DataType="models:ModuleMenuEntry">
                         <MenuItem Header="{Binding Label}"
                                   Command="{Binding #RootWindow.((viewModels:MainWindowViewModel)DataContext).SwitchMachineCommand}"
                                   CommandParameter="{Binding}" />
@@ -38,7 +38,7 @@
             </MenuItem>
         </Menu>
 
-        <ContentControl Name="MachineHost" Focusable="True" Content="{Binding CurrentMachine}">
+         <ContentControl Name="MachineHost" Focusable="True" Content="{Binding CurrentModule}">
             <ContentControl.DataTemplates>
                 <DataTemplate DataType="viewModels:PetMachineViewModel">
                     <views:PetMachineView />
