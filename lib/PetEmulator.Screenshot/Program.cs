@@ -7,6 +7,7 @@ using PetEmulator.Desktop;
 using PetEmulator.Desktop.Input;
 using PetEmulator.Desktop.ViewModels;
 using PetEmulator.Desktop.Views;
+using PetEmulator.Core.Keyboard;
 
 namespace PetEmulator.Screenshot;
 
@@ -69,8 +70,11 @@ internal static class Program
                 if (key is null)
                     continue;
                 var hk = ToHostKey(key.Value);
-                var cell = hk is null ? null : new PetEmulator.Vic20.Keyboard.Vic20KeyboardMap().Translate(hk);
-                Console.WriteLine($"typing '{ch}' -> {key}, hostKey={hk}, cell={cell}");
+                var atKey = ToAtKeyboardKey(ch);
+                var cell = atKey is { } physicalKey
+                    ? new PetEmulator.Vic20.Keyboard.Vic20KeyboardMap().Translate(physicalKey)
+                    : null;
+                Console.WriteLine($"typing '{ch}' -> {key}, hostKey={hk}, atKey={atKey}, cell={cell}");
 
                 if (direct)
                     viewModel.CurrentMachine.HandleKey(key.Value, PetEmulator.Pet.Keyboard.HostKeyEventKind.Press);
@@ -128,4 +132,20 @@ internal static class Program
         '\n' or '\r' => Key.Return,
         _ => null,
     };
+
+    private static AtKeyboardKey? ToAtKeyboardKey(char ch)
+    {
+        var upper = char.ToUpperInvariant(ch);
+        if (upper is >= 'A' and <= 'Z')
+            return (AtKeyboardKey)((int)AtKeyboardKey.A + upper - 'A');
+        if (upper is >= '1' and <= '9')
+            return (AtKeyboardKey)((int)AtKeyboardKey.D1 + upper - '1');
+        return upper switch
+        {
+            '0' => AtKeyboardKey.D0,
+            ' ' => AtKeyboardKey.Space,
+            '\n' or '\r' => AtKeyboardKey.Enter,
+            _ => null,
+        };
+    }
 }

@@ -5,7 +5,7 @@ what it doesn't, and how they compose. Written after the large-file LOAD stall i
 `docs/pet-disk-testing-strategy.md`), which used an ad-hoc version of most of this by hand; these
 are that work made reusable.
 
-None of this touches `src/PetEmulator.Cpu6502/` - every tool here is built at the
+None of this touches `lib/PetEmulator.Cpu6502/` - every tool here is built at the
 `PetEmulator.Pet`/`PetEmulator.Debugger` level, composing with `IProcessor`/`IDebuggableProcessor`/
 `IMemoryBus` from the outside. That's not an accident: this repo's `CLAUDE.md` routes CPU-core
 edits through dedicated subagents, and none of these tools need the core to change to do their job.
@@ -27,7 +27,7 @@ PetDebuggerSession (trace-log/...)    <- scripts InstructionTracer/RunUntilOrSta
 
 ## `IDebuggableProcessor`
 
-`src/PetEmulator.Core/IDebuggableProcessor.cs`. Optional capability an `IProcessor` can implement:
+`lib/PetEmulator.Core/IDebuggableProcessor.cs`. Optional capability an `IProcessor` can implement:
 
 ```csharp
 public interface IDebuggableProcessor
@@ -130,7 +130,7 @@ rerun, eyeball a trace, repeat) with one call that reports where and whether it 
 
 ## `MachineDebugger` additions: PC/register trace line, `break-pc`
 
-`src/PetEmulator.Debugger/MachineDebugger.cs`. `trace` now prints a second line per step when the
+`lib/PetEmulator.Debugger/MachineDebugger.cs`. `trace` now prints a second line per step when the
 processor is debuggable:
 
 ```text

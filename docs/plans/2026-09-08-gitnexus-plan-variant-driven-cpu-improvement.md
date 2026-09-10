@@ -43,12 +43,12 @@ PDG jest niedostępny. Trzy próby `pdg_query` dla `StepInstructionCore` (`contr
 
 ## 6. Proposed Changes
 
-1. `src/PetEmulator.Cpu6502/Processor/Cpu6502Variant.cs`, `OpcodeTables.cs`: zastąpić dwa boolean-y skalowalnym `CpuQuirk` lub immutable `CpuBehavior`; factory ma zwracać kompletne warianty `Nmos6502`, `Nes2A03`.
-2. `src/PetEmulator.Cpu6502/Processor/Cpu6502.Properties.cs`: usunąć publiczną mutowalność cech wariantu; jeśli kompatybilność API jest wymagana, pozostawić tylko read-only projection z `Variant` i oznaczyć starą ścieżkę do usunięcia po migracji.
-3. `src/PetEmulator.Cpu6502/Processor/OpcodeTable.cs`: wprowadzić builder/factory i zamkniętą tabelę po budowie; `Derive` kopiuje bazę, a instancje CPU nie współdzielą mutowalnego stanu.
-4. `src/PetEmulator.Cpu6502/Processor/OpcodeTables.cs`: współdzielić gotową immutable tablicę NMOS; wariant NES powinien używać `Derive` do usuwania/podmiany niedostępnych lub zmienionych opcode, zamiast tylko ustawiać flags.
-5. `src/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.*.cs`: migrować kolejne grupy handlerów tabeli, jedna rodzina naraz; nie usuwać legacy dispatchu przed zgodnością ROM/cycle tests.
-6. `src/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.Core.cs`: po pełnej migracji uprościć `StepInstructionCore` do jednego lookupu i handler result, ale zachować IRQ/NMI i page-cross timing.
+1. `lib/PetEmulator.Cpu6502/Processor/Cpu6502Variant.cs`, `OpcodeTables.cs`: zastąpić dwa boolean-y skalowalnym `CpuQuirk` lub immutable `CpuBehavior`; factory ma zwracać kompletne warianty `Nmos6502`, `Nes2A03`.
+2. `lib/PetEmulator.Cpu6502/Processor/Cpu6502.Properties.cs`: usunąć publiczną mutowalność cech wariantu; jeśli kompatybilność API jest wymagana, pozostawić tylko read-only projection z `Variant` i oznaczyć starą ścieżkę do usunięcia po migracji.
+3. `lib/PetEmulator.Cpu6502/Processor/OpcodeTable.cs`: wprowadzić builder/factory i zamkniętą tabelę po budowie; `Derive` kopiuje bazę, a instancje CPU nie współdzielą mutowalnego stanu.
+4. `lib/PetEmulator.Cpu6502/Processor/OpcodeTables.cs`: współdzielić gotową immutable tablicę NMOS; wariant NES powinien używać `Derive` do usuwania/podmiany niedostępnych lub zmienionych opcode, zamiast tylko ustawiać flags.
+5. `lib/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.*.cs`: migrować kolejne grupy handlerów tabeli, jedna rodzina naraz; nie usuwać legacy dispatchu przed zgodnością ROM/cycle tests.
+6. `lib/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.Core.cs`: po pełnej migracji uprościć `StepInstructionCore` do jednego lookupu i handler result, ale zachować IRQ/NMI i page-cross timing.
 
 ## 7. Implementation Sequence
 
@@ -84,14 +84,14 @@ PDG jest niedostępny. Trzy próby `pdg_query` dla `StepInstructionCore` (`contr
 
 | File | Symbols | Reason |
 | --- | --- | --- |
-| `src/PetEmulator.Cpu6502/Processor/Cpu6502Variant.cs` | `Cpu6502Variant` | Immutable complete variant behavior |
-| `src/PetEmulator.Cpu6502/Processor/OpcodeTables.cs` | factories, table definitions | Shared NMOS and derived NES tables |
-| `src/PetEmulator.Cpu6502/Processor/OpcodeTable.cs` | `OpcodeTable` | Builder/immutable publication |
-| `src/PetEmulator.Cpu6502/Processor/Cpu6502.Properties.cs` | behavior projections | Remove public variant mutation |
-| `src/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.Core.cs` | constructor/dispatch | Consume variant and final handler model |
-| `src/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.*.cs` | family handlers | Incremental legacy migration |
-| `src/PetEmulator.Cpu6502/Cpu6502Classic.cs` | constructor | Use named NMOS variant |
-| `src/PetEmulator.Cpu6502/Cpu6502Nes.cs` | constructor | Use named NES variant |
+| `lib/PetEmulator.Cpu6502/Processor/Cpu6502Variant.cs` | `Cpu6502Variant` | Immutable complete variant behavior |
+| `lib/PetEmulator.Cpu6502/Processor/OpcodeTables.cs` | factories, table definitions | Shared NMOS and derived NES tables |
+| `lib/PetEmulator.Cpu6502/Processor/OpcodeTable.cs` | `OpcodeTable` | Builder/immutable publication |
+| `lib/PetEmulator.Cpu6502/Processor/Cpu6502.Properties.cs` | behavior projections | Remove public variant mutation |
+| `lib/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.Core.cs` | constructor/dispatch | Consume variant and final handler model |
+| `lib/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.*.cs` | family handlers | Incremental legacy migration |
+| `lib/PetEmulator.Cpu6502/Cpu6502Classic.cs` | constructor | Use named NMOS variant |
+| `lib/PetEmulator.Cpu6502/Cpu6502Nes.cs` | constructor | Use named NES variant |
 | `tests/PetEmulator.Cpu6502.Tests/OpcodeTableTests.cs` | table tests | Metadata and handler contracts |
 | `tests/PetEmulator.Cpu6502.Tests/Cpu6502Tests.cs` | variant tests | Behavior configuration |
 | `tests/PetEmulator.Cpu6502.Tests/BcdTests.cs` | BCD cases | Regression coverage |
@@ -118,24 +118,24 @@ implementation_context:
       value: "0b82774590462b01090e22128fa29585f5c9606fea1a484e9507e2b02da43763"
     cited_path_manifest:
       - {path: "docs/architecture.md", state: staged, head_digest: absent, index_digest: "sha256:fa157244194d339788f30182477018aed9669a36426fe5e84e20593338df532a", worktree_digest: "sha256:fa157244194d339788f30182477018aed9669a36426fe5e84e20593338df532a"}
-      - {path: "src/PetEmulator.Cpu6502/Cpu6502Classic.cs", state: staged, head_digest: absent, index_digest: "sha256:9eba9d9057d88084df5393486dbec1924373226d16e4ad3b02fcdc3862b86c65", worktree_digest: "sha256:9eba9d9057d88084df5393486dbec1924373226d16e4ad3b02fcdc3862b86c65"}
-      - {path: "src/PetEmulator.Cpu6502/Cpu6502Nes.cs", state: staged, head_digest: absent, index_digest: "sha256:d87e1a06f917405992a43afd6923077c2d6d4ec2fdf893bd4ed2b537602c9900", worktree_digest: "sha256:d87e1a06f917405992a43afd6923077c2d6d4ec2fdf893bd4ed2b537602c9900"}
-      - {path: "src/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.Core.cs", state: staged, head_digest: absent, index_digest: "sha256:e2515222857f155c628fdbede199b90426b9d1cdcdec48fbfcfe3d345901511b", worktree_digest: "sha256:e2515222857f155c628fdbede199b90426b9d1cdcdec48fbfcfe3d345901511b"}
-      - {path: "src/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.SimpleOpcodes.cs", state: staged, head_digest: absent, index_digest: "sha256:7b1ee14c67e3aa94c5c9d2937ed0b64034a267923651403c5e2f620882c5ef42", worktree_digest: "sha256:7b1ee14c67e3aa94c5c9d2937ed0b64034a267923651403c5e2f620882c5ef42"}
-      - {path: "src/PetEmulator.Cpu6502/Processor/Cpu6502.Properties.cs", state: staged, head_digest: absent, index_digest: "sha256:4877111e5737a603b0bd472bb356191d4cbf9a16ebbe5342345172fe24d9003c", worktree_digest: "sha256:4877111e5737a603b0bd472bb356191d4cbf9a16ebbe5342345172fe24d9003c"}
-      - {path: "src/PetEmulator.Cpu6502/Processor/Cpu6502Variant.cs", state: staged, head_digest: absent, index_digest: "sha256:9f24f5bc8273c5f0a0151404628cc31c3213daffa6de0c8b8dfc5cbbbc212e97", worktree_digest: "sha256:9f24f5bc8273c5f0a0151404628cc31c3213daffa6de0c8b8dfc5cbbbc212e97"}
-      - {path: "src/PetEmulator.Cpu6502/Processor/OpcodeTable.cs", state: staged, head_digest: absent, index_digest: "sha256:b24c64d1a701a27f17678e9eb6d4af8b7ed8bced161386e634b04eea11c0eb0b", worktree_digest: "sha256:b24c64d1a701a27f17678e9eb6d4af8b7ed8bced161386e634b04eea11c0eb0b"}
-      - {path: "src/PetEmulator.Cpu6502/Processor/OpcodeTables.cs", state: staged, head_digest: absent, index_digest: "sha256:02f63040ca13d33dd8cdb46bffcbbfa55a48a0641785104859af9a76e950121a", worktree_digest: "sha256:02f63040ca13d33dd8cdb46bffcbbfa55a48a0641785104859af9a76e950121a"}
+      - {path: "lib/PetEmulator.Cpu6502/Cpu6502Classic.cs", state: staged, head_digest: absent, index_digest: "sha256:9eba9d9057d88084df5393486dbec1924373226d16e4ad3b02fcdc3862b86c65", worktree_digest: "sha256:9eba9d9057d88084df5393486dbec1924373226d16e4ad3b02fcdc3862b86c65"}
+      - {path: "lib/PetEmulator.Cpu6502/Cpu6502Nes.cs", state: staged, head_digest: absent, index_digest: "sha256:d87e1a06f917405992a43afd6923077c2d6d4ec2fdf893bd4ed2b537602c9900", worktree_digest: "sha256:d87e1a06f917405992a43afd6923077c2d6d4ec2fdf893bd4ed2b537602c9900"}
+      - {path: "lib/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.Core.cs", state: staged, head_digest: absent, index_digest: "sha256:e2515222857f155c628fdbede199b90426b9d1cdcdec48fbfcfe3d345901511b", worktree_digest: "sha256:e2515222857f155c628fdbede199b90426b9d1cdcdec48fbfcfe3d345901511b"}
+      - {path: "lib/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.SimpleOpcodes.cs", state: staged, head_digest: absent, index_digest: "sha256:7b1ee14c67e3aa94c5c9d2937ed0b64034a267923651403c5e2f620882c5ef42", worktree_digest: "sha256:7b1ee14c67e3aa94c5c9d2937ed0b64034a267923651403c5e2f620882c5ef42"}
+      - {path: "lib/PetEmulator.Cpu6502/Processor/Cpu6502.Properties.cs", state: staged, head_digest: absent, index_digest: "sha256:4877111e5737a603b0bd472bb356191d4cbf9a16ebbe5342345172fe24d9003c", worktree_digest: "sha256:4877111e5737a603b0bd472bb356191d4cbf9a16ebbe5342345172fe24d9003c"}
+      - {path: "lib/PetEmulator.Cpu6502/Processor/Cpu6502Variant.cs", state: staged, head_digest: absent, index_digest: "sha256:9f24f5bc8273c5f0a0151404628cc31c3213daffa6de0c8b8dfc5cbbbc212e97", worktree_digest: "sha256:9f24f5bc8273c5f0a0151404628cc31c3213daffa6de0c8b8dfc5cbbbc212e97"}
+      - {path: "lib/PetEmulator.Cpu6502/Processor/OpcodeTable.cs", state: staged, head_digest: absent, index_digest: "sha256:b24c64d1a701a27f17678e9eb6d4af8b7ed8bced161386e634b04eea11c0eb0b", worktree_digest: "sha256:b24c64d1a701a27f17678e9eb6d4af8b7ed8bced161386e634b04eea11c0eb0b"}
+      - {path: "lib/PetEmulator.Cpu6502/Processor/OpcodeTables.cs", state: staged, head_digest: absent, index_digest: "sha256:02f63040ca13d33dd8cdb46bffcbbfa55a48a0641785104859af9a76e950121a", worktree_digest: "sha256:02f63040ca13d33dd8cdb46bffcbbfa55a48a0641785104859af9a76e950121a"}
       - {path: "tests/PetEmulator.Cpu6502.Tests/BranchJumpTests.cs", state: staged, head_digest: absent, index_digest: "sha256:c76d6dc20d9f3b48d6def34993d8909cf5986a1a9b748fc61f00354d3fd22f0a", worktree_digest: "sha256:c76d6dc20d9f3b48d6def34993d8909cf5986a1a9b748fc61f00354d3fd22f0a"}
       - {path: "tests/PetEmulator.Cpu6502.Tests/Cpu6502Tests.cs", state: staged, head_digest: absent, index_digest: "sha256:45474a32bbf225e1163dcc3ea5b4a196791550508b3d91421e83ee4d68426ec6", worktree_digest: "sha256:45474a32bbf225e1163dcc3ea5b4a196791550508b3d91421e83ee4d68426ec6"}
       - {path: "tests/PetEmulator.Cpu6502.Tests/OpcodeTableTests.cs", state: staged, head_digest: absent, index_digest: "sha256:4869d3f23ce4fdde37e1750b7c26e44edae75ed15f037feacac27cd581466231", worktree_digest: "sha256:4869d3f23ce4fdde37e1750b7c26e44edae75ed15f037feacac27cd581466231"}
       - {path: "tests/PetEmulator.Cpu6502.Tests/QuirkTests.cs", state: staged, head_digest: absent, index_digest: "sha256:ed6ef1b492c96a125230bf7152add1cfab18e7aaf0a6e7e4d007528716a9963d", worktree_digest: "sha256:ed6ef1b492c96a125230bf7152add1cfab18e7aaf0a6e7e4d007528716a9963d"}
   primary_symbols:
-    - {symbol: "Cpu6502Variant", file: "src/PetEmulator.Cpu6502/Processor/Cpu6502Variant.cs", lines: "3-20", role: "variant behavior/value object"}
-    - {symbol: "OpcodeTables.CreateNmosVariant", file: "src/PetEmulator.Cpu6502/Processor/OpcodeTables.cs", lines: "7-8", role: "NMOS variant factory"}
-    - {symbol: "OpcodeTables.CreateNesVariant", file: "src/PetEmulator.Cpu6502/Processor/OpcodeTables.cs", lines: "10-11", role: "NES variant factory"}
-    - {symbol: "Cpu6502.StepInstructionCore", file: "src/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.Core.cs", lines: "66-103", role: "execution boundary"}
-    - {symbol: "OpcodeTable", file: "src/PetEmulator.Cpu6502/Processor/OpcodeTable.cs", lines: "4-28", role: "opcode table lifecycle"}
+    - {symbol: "Cpu6502Variant", file: "lib/PetEmulator.Cpu6502/Processor/Cpu6502Variant.cs", lines: "3-20", role: "variant behavior/value object"}
+    - {symbol: "OpcodeTables.CreateNmosVariant", file: "lib/PetEmulator.Cpu6502/Processor/OpcodeTables.cs", lines: "7-8", role: "NMOS variant factory"}
+    - {symbol: "OpcodeTables.CreateNesVariant", file: "lib/PetEmulator.Cpu6502/Processor/OpcodeTables.cs", lines: "10-11", role: "NES variant factory"}
+    - {symbol: "Cpu6502.StepInstructionCore", file: "lib/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.Core.cs", lines: "66-103", role: "execution boundary"}
+    - {symbol: "OpcodeTable", file: "lib/PetEmulator.Cpu6502/Processor/OpcodeTable.cs", lines: "4-28", role: "opcode table lifecycle"}
   related_symbols:
     - {symbol: "Cpu6502.DecimalModeEnabled", relationship: "read by arithmetic", relevance: "replace with variant behavior"}
     - {symbol: "Cpu6502.HasJmpIndirectBug", relationship: "read by indirect addressing", relevance: "replace with variant behavior"}
@@ -155,16 +155,16 @@ implementation_context:
       affected_statements: []
       implementation_consequence: "Preserve source-observed _sync, bus, and interrupt ordering and prove behavior with tests."
   architectural_patterns:
-    - {pattern: "256-entry opcode table", example_location: "src/PetEmulator.Cpu6502/Processor/OpcodeTable.cs", usage_guidance: "Use array lookup; publish immutable tables."}
-    - {pattern: "Derived variant configuration", example_location: "src/PetEmulator.Cpu6502/Processor/OpcodeTables.cs", usage_guidance: "Build NES from NMOS only where opcode/behavior differs."}
-    - {pattern: "Incremental handler migration", example_location: "src/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.SimpleOpcodes.cs", usage_guidance: "Migrate one family and keep legacy fallback until tests pass."}
+    - {pattern: "256-entry opcode table", example_location: "lib/PetEmulator.Cpu6502/Processor/OpcodeTable.cs", usage_guidance: "Use array lookup; publish immutable tables."}
+    - {pattern: "Derived variant configuration", example_location: "lib/PetEmulator.Cpu6502/Processor/OpcodeTables.cs", usage_guidance: "Build NES from NMOS only where opcode/behavior differs."}
+    - {pattern: "Incremental handler migration", example_location: "lib/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.SimpleOpcodes.cs", usage_guidance: "Migrate one family and keep legacy fallback until tests pass."}
   files_to_modify:
-    - {file: "src/PetEmulator.Cpu6502/Processor/Cpu6502Variant.cs", symbols: [Cpu6502Variant], intended_change: "immutable behavior/quirk definition"}
-    - {file: "src/PetEmulator.Cpu6502/Processor/OpcodeTables.cs", symbols: [CreateNmosVariant, CreateNesVariant, CreateNmos], intended_change: "shared base and derived variant tables"}
-    - {file: "src/PetEmulator.Cpu6502/Processor/OpcodeTable.cs", symbols: [OpcodeTable], intended_change: "builder and immutable publication"}
-    - {file: "src/PetEmulator.Cpu6502/Processor/Cpu6502.Properties.cs", symbols: [DecimalModeEnabled, HasJmpIndirectBug], intended_change: "remove public mutation"}
-    - {file: "src/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.Core.cs", symbols: [Cpu6502, StepInstructionCore, ExecuteLegacyCycle], intended_change: "consume variant and eventually remove fallback"}
-    - {file: "src/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.*.cs", symbols: [], intended_change: "incremental family handler migration"}
+    - {file: "lib/PetEmulator.Cpu6502/Processor/Cpu6502Variant.cs", symbols: [Cpu6502Variant], intended_change: "immutable behavior/quirk definition"}
+    - {file: "lib/PetEmulator.Cpu6502/Processor/OpcodeTables.cs", symbols: [CreateNmosVariant, CreateNesVariant, CreateNmos], intended_change: "shared base and derived variant tables"}
+    - {file: "lib/PetEmulator.Cpu6502/Processor/OpcodeTable.cs", symbols: [OpcodeTable], intended_change: "builder and immutable publication"}
+    - {file: "lib/PetEmulator.Cpu6502/Processor/Cpu6502.Properties.cs", symbols: [DecimalModeEnabled, HasJmpIndirectBug], intended_change: "remove public mutation"}
+    - {file: "lib/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.Core.cs", symbols: [Cpu6502, StepInstructionCore, ExecuteLegacyCycle], intended_change: "consume variant and eventually remove fallback"}
+    - {file: "lib/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.*.cs", symbols: [], intended_change: "incremental family handler migration"}
   tests:
     - {file: "tests/PetEmulator.Cpu6502.Tests/OpcodeTableTests.cs", scenarios: ["build NMOS -> 256 definitions", "derive NES -> base unchanged", "migrated opcode -> non-legacy handler"]}
     - {file: "tests/PetEmulator.Cpu6502.Tests/Cpu6502Tests.cs", scenarios: ["construct NMOS -> decimal and JMP quirks enabled", "construct NES -> both quirks disabled"]}

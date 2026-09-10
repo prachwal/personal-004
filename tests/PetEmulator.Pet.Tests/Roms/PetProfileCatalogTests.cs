@@ -10,6 +10,15 @@ namespace PetEmulator.Pet.Tests.Roms;
 /// </summary>
 public sealed class PetProfileCatalogTests
 {
+    [Test]
+    public void Profiles_DeclareTheirRomVerifiedKeyboardLayout()
+    {
+        PetProfileCatalog.Pet2001_8.KeyboardLayout.Should().Be(PetKeyboardLayout.Pet2001Graphics);
+        PetProfileCatalog.Pet2001_32.KeyboardLayout.Should().Be(PetKeyboardLayout.Pet2001Graphics);
+        PetProfileCatalog.Cbm4032.KeyboardLayout.Should().Be(PetKeyboardLayout.Cbm4032);
+        PetProfileCatalog.Cbm8032.KeyboardLayout.Should().Be(PetKeyboardLayout.Cbm8032);
+    }
+
     [TestCaseSource(nameof(Profiles))]
     public void RomManifest_LoadsFromProfileSubfolder(PetProfile profile)
     {

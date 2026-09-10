@@ -1,5 +1,12 @@
 # Inwentaryzacja poprzednich iteracji
 
+## Dokumentacja bieżącego projektu
+
+- [Architektura i budowanie komputera z komponentów](architecture.md) — wspólny model składania
+  maszyny oraz przykłady PET i VIC-20.
+- [Plan migracji VIC-20](vic20-migration-plan.md) i [strategia testów VIC-20](vic20-testing-strategy.md).
+- [Narzędzia debugowania](pet-debug-tools.md) — wspólne dla maszyn implementujących kontrakty Core.
+
 Ten katalog jest indeksem kodu i artefaktow z poprzednich projektow emulatorow. Nie kopiuje kodu, ROM-ow ani fontow. Sciezki wskazuja oryginalne lokalizacje do pozniejszego porownania.
 
 Zakres: 28 projektow z `/home/prachwal/source/emulators` oraz `/home/prachwal/source/tui`, w tym `personal-003`, ktory powstal po bazowym spisie.

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using NUnit.Framework;
+using PetEmulator.Core.Keyboard;
 using PetEmulator.Vic20.Keyboard;
 
 namespace PetEmulator.Vic20.Tests.Keyboard;
@@ -10,6 +11,17 @@ namespace PetEmulator.Vic20.Tests.Keyboard;
 /// open-collector wire-OR hardware behavior), not one row at a time.</summary>
 public sealed class Vic20KeyboardMatrixTests
 {
+    [Test]
+    public void AtKeyboardCatalog_ContainsEveryKeyAndVicMapCanClassifyEachOne()
+    {
+        var map = new Vic20KeyboardMap();
+
+        AtKeyboardMapping.AllKeys.Should().NotBeEmpty();
+        AtKeyboardMapping.AllKeys.Should().OnlyHaveUniqueItems();
+        foreach (var key in AtKeyboardMapping.AllKeys)
+            _ = map.Translate(key);
+    }
+
     [Test]
     public void ReadColumns_WithASingleRowAsserted_ReturnsOnlyThatRowsState()
     {

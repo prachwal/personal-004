@@ -46,7 +46,7 @@ This project is indexed by GitNexus as **personal-004** (1939 symbols, 3613 rela
 
 ## Subagents
 
-Work touching `src/PetEmulator.Cpu6502/` goes through dedicated subagents instead of ad-hoc edits — they carry the file map and known debt so you don't re-derive it each session:
+Work touching `lib/PetEmulator.Cpu6502/` goes through dedicated subagents instead of ad-hoc edits — they carry the file map and known debt so you don't re-derive it each session:
 
 | Task | Agent |
 | --- | --- |

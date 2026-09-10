@@ -8,6 +8,14 @@ public enum PetProfileStatus
     Placeholder
 }
 
+/// <summary>ROM-verified keyboard wiring/scan table used by a PET profile.</summary>
+public enum PetKeyboardLayout
+{
+    Pet2001Graphics,
+    Cbm4032,
+    Cbm8032
+}
+
 /// <summary>
 /// A hardware configuration of the Commodore PET/CBM family: BASIC version, screen geometry,
 /// RAM/video RAM layout, and the exact ROM set it needs.
@@ -32,7 +40,8 @@ public sealed record PetProfile(
     string CharacterRomPath,
     IReadOnlyList<PetRomRequirement> RomManifest,
     PetProfileStatus Status,
-    PetCursorTracking CursorTracking)
+    PetCursorTracking CursorTracking,
+    PetKeyboardLayout KeyboardLayout)
 {
     public bool IsImplemented => Status == PetProfileStatus.Implemented;
 

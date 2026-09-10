@@ -27,18 +27,18 @@ zachowania), albo (b) zduplikować `Vic20MemoryBus.Observer` z własnym `BusAcce
 
 ## Krok 1 — szkielet projektu
 
-Nowy `src/PetEmulator.Vic20/` (mirror layoutu `PetEmulator.Pet/`: `Chips/`, `Keyboard/`, `Video/`,
+Nowy `src/PetEmulator.Vic20/` (mirror layoutu `PetEmulator.Pet/`: `Keyboard/`, `Video/`,
 `Vic20Machine.cs`, `Vic20MemoryBus.cs`, `Vic20Profile.cs`). Referencja do `PetEmulator.Core` +
 `PetEmulator.Cpu6502` (już CPU-agnostyczne, zero zmian potrzebnych tam). Dodać do
 `PetEmulator.slnx` + `tests/PetEmulator.Vic20.Tests/`.
 
-## Krok 2 — chip: `Vic6560`
+## Krok 2 — chip: `MOS6560`
 
-Przepisać z referencją na `cpu-vibe-001`'s `Vic6560Chip.cs` (191 linii, samodzielny: 16-rejestrowa
+Przepisać z referencją na `cpu-vibe-001`'s `MOS6560Chip.cs` (191 linii, samodzielny: 16-rejestrowa
 tablica + computed properties na Raster/Columns/Rows/ScreenAddr/CharAddr/AuxColor/ScreenColor/
 ReverseMode + audio-oscylatory) w kształcie zgodnym z istniejącymi chipami tego repo
-(`Via6522`/`Crtc6545`: `BaseAddress`, `Length`, `Read`/`Write`, `Tick(cycles)` zamiast `Update()`
-per-cycle). NTSC-only na start (`Vic6560Constants.Phi2Ntsc`/`CyclesPerLineNtsc`/
+(`MOS6522`/`MT6545`: `BaseAddress`, `Length`, `Read`/`Write`, `Tick(cycles)` zamiast `Update()`
+per-cycle). NTSC-only na start (`MOS6560Constants.Phi2Ntsc`/`CyclesPerLineNtsc`/
 `TotalScanlinesNtsc` - stałe, importowalne wprost, to fakty sprzętowe). Audio pominięte w v1
 (YAGNI - nic w celu "boot do READY + ekran" go nie potrzebuje).
 
@@ -51,9 +51,9 @@ per-cycle). NTSC-only na start (`Vic6560Constants.Phi2Ntsc`/`CyclesPerLineNtsc`/
 
 ## Krok 4 — VIA reuse (zero nowego kodu)
 
-`Via6522` **już istnieje i jest generyczny** - VIC-20 ma dwa VIA-e ($9110 VIA1: klawiatura+
+`MOS6522` **już istnieje i jest generyczny** - VIC-20 ma dwa VIA-e ($9110 VIA1: klawiatura+
 joystick+cassette, $9120 VIA2: klawiatura+serial) zamiast PET-owego PIA1/PIA2/VIA. Instancjonować
-`new Via6522("VIA1", 0x9110)` / `new Via6522("VIA2", 0x9120)` bezpośrednio - żadnej nowej klasy
+`new MOS6522("VIA1", 0x9110)` / `new MOS6522("VIA2", 0x9120)` bezpośrednio - żadnej nowej klasy
 chipu. Sprawdzone: `PortAWritten`/`PortBInput` API identyczne z tym co `PetMachine` już robi na
 PIA1 dla klawiatury PET.
 
@@ -73,7 +73,9 @@ współdzielony z PET).
 `Vic20KeyboardMatrix` (8x8) - kształt bliski istniejącemu `PetKeyboardMatrix`, ale row-select
 przez ORA&DDRA (nie osobny "wybierz wiersz" zapis jak PIA1 PortA na PET) - patrz
 `Vic20KeyboardViaBinding.SyncToVia`, wzorzec 1:1 z `PetMachine`'s PIA1 `PortAWritten`/
-`PortAInput`/`PortBInput` wiring. `VicHostKeyMap.LetterMap` (dane row/col→znak) importowalne jako
+`PortAInput`/`PortBInput` wiring. `AtKeyboardKey` z `lib/PetEmulator.Core` jest globalnym katalogiem
+fizycznych klawiszy; mapowanie AT → matrix jest nadpisywane przez `Vic20KeyboardMap`, a dane
+row/col→znak pozostają w VIC-20 jako tabela ROM-zweryfikowana. Importowalne jako
 tabela, zaadaptowane pod nowy `IVic20KeyboardMap` (analog `IPetKeyboardMap`) tak żeby
 `TextTyper.Type` działał bez zmian (już CPU/maszyno-agnostyczny - sprawdzić przy implementacji).
 
@@ -119,8 +121,8 @@ pikseli per `Vic20Video.RenderChar`), PET to prosty tekst-grid przez font bitmap
 
 Mirror 4-warstwowej struktury z `docs/pet-disk-testing-strategy.md`:
 
-- Layer 0: `Vic6560ChipTests` (register map/raster/columns/rows) - metodologia inspirowana
-  `cpu-vibe-006`/`personal-002`'s Vic6560 testami (nie kopiowana - inny chip-shape tutaj).
+- Layer 0: `MOS6560Tests` (register map/raster/columns/rows) - metodologia inspirowana
+  `cpu-vibe-006`/`personal-002`'s MOS6560 testami (nie kopiowana - inny chip-shape tutaj).
 - Layer 1: register-level bus integration (poke VIC/VIA rejestry bezpośrednio, bez KERNAL-a).
 - Layer 2: krok 9 rozszerzony (klawiatura przez `TextTyper`, prosty program `PRINT`/`GOTO`).
 - Layer 3: smoke script (`scripts/test-vic20-boot.sh`, mirror `scripts/test-pet-*-loading.sh`).
@@ -140,7 +142,7 @@ tej sesji.
 ## Czego NIE robić w v1
 
 - Cartridge loading, tape/disk (VIC-20 miał inny format taśmy niż PET - osobna decyzja później).
-- Audio (3 oscylatory + noise - `Vic6560Chip.GetAudioSample` istnieje jako referencja, ale nic
+- Audio (3 oscylatory + noise - `MOS6560Chip.GetAudioSample` istnieje jako referencja, ale nic
   w "boot do READY" go nie wymaga).
 - PAL mode, banking presets poza "unexpanded" - dodać gdy faktycznie ktoś chce uruchomić program
   wymagający rozszerzonej pamięci (YAGNI, nie przed).

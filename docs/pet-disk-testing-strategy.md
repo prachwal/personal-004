@@ -62,7 +62,7 @@ reference PET/CBM emulator's IEEE-488 bus implementation):
    new bus-level debugging tool, `PetMachine.BusObserver`/`PetMemoryBus.Observer` (a
    `Action<BusAccess>` fired on every real Read/Write, modeled on personal-002's
    `Z80Cpu.BusCycleObserver`; deliberately built at the `PetMemoryBus` level, not inside
-   `src/PetEmulator.Cpu6502/`, so it needs none of that project's subagent routing) plus a full
+   `lib/PetEmulator.Cpu6502/`, so it needs none of that project's subagent routing) plus a full
    instruction-level PC+bus trace saved to disk around the exact stall. The trace showed the
    ~60Hz keyboard-scan IRQ (~550-600 instructions, 1,000+ cycles) landing mid-read and outlasting
    `PetIeeeBus`'s read-side settle delay (32 cycles): the emulation silently pre-fetched and

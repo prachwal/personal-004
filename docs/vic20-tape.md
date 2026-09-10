@@ -36,23 +36,23 @@ The real wiring:
   keyboard column 3 (a real hardware quirk, not a bug), driven by the real KERNAL under VIA2
   Timer2-interrupt timing rather than a level a caller just polls.
 
-`Vic20Datasette` now takes both `Via6522` instances (`via1` for motor/sense, `via2` for
+`Vic20Datasette` now takes both `MOS6522` instances (`via1` for motor/sense, `via2` for
 read/write) - see its own doc comment for the full detail.
 
-## A real bug found along the way: `Via6522.CA1` edge visibility
+## A real bug found along the way: `MOS6522.CA1` edge visibility
 
 `Vic20Datasette`'s pulse idiom forces CA1 `true → false → true` all within one `Tick()` call (a
 real edge-sensitive input only cares about the transition, not how long the level holds) - the
 same idiom `PetDatasette` already used successfully against `Pia.CA1`, whose setter does
-synchronous edge-detection inline. `Via6522.CA1` was a plain property - edge detection only
+synchronous edge-detection inline. `MOS6522.CA1` was a plain property - edge detection only
 happened later, inside `UpdateControlInputs()`, itself only reachable via an explicit
 `Update()`/`Tick()` call, called once per *instruction* in `Vic20Machine.StepInstruction` (batched
 `_via1.Tick(cycles)`/`_via2.Tick(cycles)` before the per-cycle datasette loop). A pulse produced
 entirely within that trailing per-cycle loop was therefore never sampled by any `Update()` call at
 all - confirmed empirically (0 edges observed on VIA1 across a whole tape's worth of pulses,
-independent of the wiring question above). Fixed by giving `Via6522.CA1`'s setter the same
+independent of the wiring question above). Fixed by giving `MOS6522.CA1`'s setter the same
 synchronous edge-detection `Pia.CA1` already had - matches real 6522 hardware too. 16/16 existing
-`Via6522Tests` pass unchanged (only two tests and this class ever wrote to `Via6522.CA1` directly -
+`MOS6522Tests` pass unchanged (only two tests and this class ever wrote to `MOS6522.CA1` directly -
 confirmed via `grep -rn "\.CA1\s*="` across `src`/`tests`).
 
 ## Read (LOAD): proven, byte-for-byte

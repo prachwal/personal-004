@@ -32,10 +32,10 @@ cell). Confirmed the same for CBM 8032 (`offset=320`, also valid).
 This KERNAL doesn't drive the CRTC's hardware cursor feature at all - cursor tracking (and the
 software blink built on top of it) works identically whether or not a CRTC is present. Fixed:
 removed the CRTC branch from `GetCursorPosition` entirely, always use the zero-page pointer. The
-now-unused `Crtc6545?` constructor parameter was removed from `PetRasterDisplay` (one production
+now-unused `MT6545?` constructor parameter was removed from `PetRasterDisplay` (one production
 caller, `PetMachineViewModel`, plus a few tests - all updated). The existing unit test
 (`Cursor_WithCrtc_LocatedByCrtcCursorRegister`) had made exactly the same wrong assumption -
-it wrote directly to a standalone `Crtc6545`'s register, which the real KERNAL never actually
+it wrote directly to a standalone `MT6545`'s register, which the real KERNAL never actually
 does - rewritten to write the zero-page pointer instead, proving a CRTC-equipped profile's cursor
 works the same way a non-CRTC one does.
 

@@ -95,7 +95,7 @@ Nie kodowac takich roznic przez serie `if (variant == ...)` w kazdym handlerze. 
 
 ## Maszyna
 
-Obecny `IMachine` w `src/PetEmulator.Core/IMachine.cs` jest dobrym kontraktem lifecycle. Docelowa implementacja powinna zachowac jego prostote i dodac dopiero wtedy, gdy beda konsumenci:
+Obecny `IMachine` w `lib/PetEmulator.Core/IMachine.cs` jest dobrym kontraktem lifecycle. Docelowa implementacja powinna zachowac jego prostote i dodac dopiero wtedy, gdy beda konsumenci:
 
 ```text
 IMachine
@@ -107,7 +107,58 @@ IMachine
 
 `StepInstruction()` oznacza krok calej maszyny, nie tylko CPU. Maszyna wykonuje instrukcje CPU, a potem zasila urzadzenia liczba zuzytych cykli. `StepCycle()` mozna dodac pozniej jako osobny kontrakt, gdy debugger lub video bedzie wymagal granularity cyklu.
 
-Nie umieszczac w Core typu `Cpu6502State`, `PetKeyboard` ani `Crtc`. Core powinno definiowac tylko kontrakty busa, procesora, zegara, urzadzenia i maszyny. PET implementuje mapowanie adresowe oraz kolejnosc taktowania swoich chipow.
+Core (`lib/PetEmulator.Core`) definiuje kontrakty busa, procesora, zegara, urządzeń, maszyny oraz globalne pojęcia niezależne od komputera, takie jak katalog klawiszy AT. PET implementuje mapowanie adresowe, klawiaturę i kolejność taktowania swoich chipów; VIC-20 robi to samo według własnego profilu.
+
+## Jak zbudować komputer z klocków
+
+Każdą emulowaną maszynę składaj z tych samych elementów, a różnice sprzętowe trzymaj w
+profilu i implementacjach konkretnego komputera:
+
+```text
+Machine
+├── Processor      CPU + wariant zachowania
+├── MemoryBus      dekoder adresów
+├── Memory         RAM, ROM i open bus
+├── Chips          urządzenia mapowane pod adresami I/O
+├── Input          klawiatura AT → macierz komputera
+├── Display        stan ekranu → framebuffer
+└── Timing         cykle CPU → Tick(cycles) urządzeń
+```
+
+Kolejność budowy:
+
+1. Zdefiniuj profil sprzętu: wariant CPU, rozmiar RAM, adresy ROM/RAM/I/O, układ klawiatury,
+   geometrię ekranu i wymagane ROM-y.
+2. Zaimplementuj CPU jako komponent niezależny od maszyny. CPU zna tylko `IProcessor`, zegar i
+   `IMemoryBus`; nie zna PET, VIC-20 ani ich chipów.
+3. Zbuduj `MemoryBus`, który dla każdego adresu wybiera RAM, ROM, chip albo open bus. Najpierw
+   testuj odczyt/zapis rejestrów bez uruchamiania ROM-u.
+4. Dodaj chipy jako niezależne urządzenia (`IMemoryMappedDevice`) i podłącz je do dekodera.
+   Maszyna przekazuje im liczbę cykli zużytych przez CPU.
+5. Dodaj wejście: użyj globalnego `AtKeyboardKey`, a mapowanie AT → macierz trzymaj w klasie
+   profilu. Klawisz nieobecny w danym modelu musi być jawnie niemapowalny, nie „zgadywany”.
+6. Dodaj wyjście: ekran czyta pamięć/chip w formacie właściwym dla sprzętu i renderuje własny
+   framebuffer. Nie zakładaj, że tekstowy PET i pikselowy VIC-20 mają ten sam renderer.
+7. Zdefiniuj reset i krok maszyny: reset CPU/chipów, `StepInstruction()`, przekazanie cykli do
+   urządzeń, aktualizacja IRQ/NMI i dopiero potem wyższe funkcje.
+8. Weryfikuj warstwami: chipy i bus, reset wektor, boot z prawdziwym ROM-em, klawiatura przez
+   macierz, ekran, a na końcu urządzenia zewnętrzne i UI.
+
+### Przykład: PET
+
+`PetMachine` składa `Cpu6502Classic`, `PetMemoryBus`, RAM/ROM oraz `MT6520`, `MOS6522` i
+opcjonalny `MT6545`. Profil ROM-u wybiera także layout klawiatury: `Pet2001Graphics`, `Cbm4032`
+albo `Cbm8032`. To ważne, bo BASIC 1/2/4 nie opisuje całego okablowania klawiatury — profil jest
+źródłem zweryfikowanego mapowania dla konkretnego zestawu ROM-ów.
+
+### Przykład: VIC-20
+
+`Vic20Machine` używa tego samego CPU i kontraktów Core, ale własnego busa, `MOS6560`, `MOS2114`,
+dwóch `MOS6522`, 8×8 macierzy klawiatury i renderera pikselowego. `Vic20KeyboardMap` nadpisuje
+globalny katalog klawiszy AT; klawisze bez odpowiednika w VIC-20 pozostają `null`.
+
+Ta sama zasada pozwala dodać kolejny komputer bez kopiowania CPU, debuggera, zegara ani katalogu
+klawiatury: nowa maszyna dostarcza tylko własny profil, bus, chipy, mapy wejścia i renderer.
 
 ## Testowalnosc
 

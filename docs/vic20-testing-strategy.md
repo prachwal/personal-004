@@ -5,9 +5,9 @@ step 12). All layers pass as of this writing.
 
 ## Layer 0 — chip unit tests
 
-Pure logic, no CPU, no bus. `tests/PetEmulator.Vic20.Tests/Chips/Vic6560Tests.cs`
+Pure logic, no CPU, no bus. `tests/PetEmulator.Chips.Tests/MOS6560Tests.cs`
 (register decode: columns/rows/screen-addr A13-inversion/raster tick+wrap/reset),
-`Vic20ColorRamTests.cs` (nibble masking, per-offset independence, reset).
+`MOS2114Tests.cs` (nibble masking, per-offset independence, reset).
 
 ## Layer 1 — register-level bus integration
 
@@ -40,7 +40,7 @@ proof the keyboard, not just the CPU, is real and working.
 ## What v1 does NOT cover
 
 Per `docs/vic20-migration-plan.md`'s explicit scope cuts: cartridge loading, tape/disk, audio
-(`Vic6560`'s oscillator registers exist as raw bytes but nothing decodes them), PAL timing
+(`MOS6560`'s oscillator registers exist as raw bytes but nothing decodes them), PAL timing
 (NTSC-only constants), expansion-preset banking (unexpanded memory map only), and Desktop
 rendering (no `Vic20ScreenControl` yet - the engine boots and runs correctly, nothing renders it
 to a window). None of these block "does the VIC-20 actually boot and run real BASIC" - they're the

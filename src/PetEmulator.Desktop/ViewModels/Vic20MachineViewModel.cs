@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using PetEmulator.Desktop.Input;
 using PetEmulator.Core;
 using PetEmulator.Pet.Keyboard;
+using PetEmulator.Core.Keyboard;
 using PetEmulator.Pet.Tape;
 using PetEmulator.Vic20;
 using PetEmulator.Vic20.Display;
@@ -106,18 +107,18 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
 
     public void HandleKey(Key key, HostKeyEventKind kind)
     {
-        var hostKey = KeyMapping.ToHostKey(key);
-        if (hostKey is null)
+        var atKey = KeyMapping.ToAtKeyboardKey(key);
+        if (atKey is not { } physicalKey)
             return;
 
-        var cell = _keyboardMap.Translate(hostKey);
+        var cell = _keyboardMap.Translate(physicalKey);
         if (cell is not { } c)
             return;
 
         if (kind == HostKeyEventKind.Press)
-            _machine.Keyboard.Press(c.Row, c.Col);
+            _machine.Keyboard.Press(c.Row, c.Column);
         else
-            _machine.Keyboard.Release(c.Row, c.Col);
+            _machine.Keyboard.Release(c.Row, c.Column);
     }
 
     public void Tick()

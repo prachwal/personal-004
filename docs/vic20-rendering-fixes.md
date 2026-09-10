@@ -16,7 +16,7 @@ low bits of the video matrix address as the screen fetch, so a screen relocated 
 select a 512-byte page, but wherever within that page it starts also shifts where color RAM
 starts). Confirmed empirically: with the real boot-time `ScreenMatrixBase` = $3E00, tracing real
 writes showed the KERNAL painting color RAM at $9600-$97F9 (offset $200), exactly
-`$3E00 & 0x3FF`. Fixed: `Vic6560.ColorMatrixOffset` (new property) added into the color-RAM
+`$3E00 & 0x3FF`. Fixed: `MOS6560.ColorMatrixOffset` (new property) added into the color-RAM
 address in `Vic20RasterDisplay.Render`.
 
 ## Bug 2: aspect ratio wrong (root cause: hardcoded 1:1, no config contract)
@@ -154,21 +154,21 @@ isn't - dumped the raw glyph for screen code 1 ('A') and it's a clean, recogniza
 Wrongly concluded from there that the white-text-on-blue look was genuine real VIC-20 default
 behavior (see Bug 4 below for the correction - it wasn't the font, and it wasn't the default).
 
-## Bug 4: colors reversed (root cause: `Vic6560.ReverseMode` polarity inverted)
+## Bug 4: colors reversed (root cause: `MOS6560.ReverseMode` polarity inverted)
 
 The "not a bug" conclusion above was wrong on the actual color question, just right that the font
 bits themselves weren't inverted. Re-checked against a fresh WebSearch (Lemon64/AtariAge/GitHub
 6561.txt) after the user pushed back with a real screenshot (white text on blue) against what
 real VIC-20 hardware actually shows (blue text on a white background, cyan/blue border): bit 3 of
 `$900F` defaults to **1 = normal** (ink/paper in their respective places), **0 = reversed** - the
-opposite of what its name suggests. `Vic6560.ReverseMode` read it as `!= 0` (bit set = reverse),
+opposite of what its name suggests. `MOS6560.ReverseMode` read it as `!= 0` (bit set = reverse),
 backwards from real silicon. Confirmed empirically: `BusObserver`-traced the real KERNAL boot
 write to `$900F` - it writes `$1B` (bit 3 set) exactly once. Under the old (wrong) polarity that's
 "reverse", swapping `ink`/`paper` in `Vic20RasterDisplay.RenderChar` for the entire default boot
 screen (white on blue). Under the corrected polarity (bit 3 set = normal, no swap), the same `$1B`
 produces blue text (`colorIndex`=6) on a white background (`screenColor`=1), border cyan
 (`borderColor`=3) - matching real hardware exactly. Fixed: `ReverseMode => (reg & 0x08) == 0`.
-One existing round-trip test (`Vic6560Tests.ReadWrite_RoundTripsThroughBaseAddressOffset`) had
+One existing round-trip test (`MOS6560Tests.ReadWrite_RoundTripsThroughBaseAddressOffset`) had
 baked in the old polarity's assumption (bit set = reverse) and had to flip its expectation; added
 `ReverseMode_BitClear_IsReversed` to cover the case that let the polarity bug through unnoticed in
 the first place. One `Vic20RasterDisplayTests` case had picked a register value (`0x11`, bit 3
@@ -183,11 +183,11 @@ complete, correct real BASIC direct-mode round trip.
 ## Screenshot tool
 
 This dev environment has no screenshot utility (`import`/`scrot`/`xwd`) and no root to install
-one. Built `src/PetEmulator.Screenshot` instead: `Avalonia.Headless` + `Avalonia.Skia`, off-screen
+one. Built `lib/PetEmulator.Screenshot` instead: `Avalonia.Headless` + `Avalonia.Skia`, off-screen
 Skia rendering, no OS display needed (works identically under `xvfb-run` or fully headless CI).
 
 ```
-dotnet run --project src/PetEmulator.Screenshot -- --machine pet|vic20 --ticks N --out path.png
+dotnet run --project lib/PetEmulator.Screenshot -- --machine pet|vic20 --ticks N --out path.png
   [--type "text\n"]
 ```
 

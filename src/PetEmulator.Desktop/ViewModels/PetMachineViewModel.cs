@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PetEmulator.Desktop.Input;
 using PetEmulator.Core;
+using PetEmulator.Core.Keyboard;
 using PetEmulator.Pet;
 using PetEmulator.Pet.Display;
 using PetEmulator.Pet.Fonts;
@@ -93,11 +94,13 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
         _display = new PetRasterDisplay(profile, _machine.Memory, font);
         FrameBuffer = new uint[_display.PixelWidth * _display.PixelHeight];
 
-        _keyboardMap = profile.BasicVersion != "BASIC 4"
-            ? new Pet2001GraphicsKeyboardMap()
-            : profile.Id == PetProfileCatalog.Cbm8032.Id
-                ? new Cbm8032KeyboardMap()
-                : new Cbm4032KeyboardMap();
+        _keyboardMap = profile.KeyboardLayout switch
+        {
+            PetKeyboardLayout.Pet2001Graphics => new Pet2001GraphicsKeyboardMap(),
+            PetKeyboardLayout.Cbm4032 => new Cbm4032KeyboardMap(),
+            PetKeyboardLayout.Cbm8032 => new Cbm8032KeyboardMap(),
+            _ => throw new ArgumentOutOfRangeException(nameof(profile), profile.KeyboardLayout, null)
+        };
 
         _windowTitle = $"PET Emulator — {profile.Name}";
 
@@ -159,7 +162,8 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
 
     public void HandleKey(Key key, HostKeyEventKind kind)
     {
-        var hostKey = KeyMapping.ToHostKey(key);
+        var atKey = KeyMapping.ToAtKeyboardKey(key);
+        var hostKey = atKey is { } physicalKey ? KeyMapping.ToHostKey(physicalKey) : null;
         if (hostKey is null)
             return;
 
