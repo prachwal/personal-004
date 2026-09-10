@@ -39,24 +39,49 @@ it wrote directly to a standalone `Crtc6545`'s register, which the real KERNAL n
 does - rewritten to write the zero-page pointer instead, proving a CRTC-equipped profile's cursor
 works the same way a non-CRTC one does.
 
+## pet-2001-8 (BASIC 1) - found and fixed too
+
+Asked directly to finish this one: "wykonaj disaemble 2001-8 odszukaj właściwe adresy". `$C4`/
+`$C5`/`$C6` read back `$D0`/`$02`/`$E6` (pointer `$02D0`) right after boot - nowhere near
+`VideoRamStart` (`$8000`), stable for the whole session. The `eor #$80` disassembly search that
+worked for VIC-20 didn't turn up an obvious equivalent here, so found the real addresses
+empirically instead: dumped the full zero page before/after typing a recognizable string, found
+three (lo, hi) pairs that resolve to a valid in-range screen offset, then disambiguated with a
+tighter test - typing the *same single character* five times in a row and watching which byte
+increments by **exactly 1** each time (a column counter's signature; a coincidentally-valid
+pointer pair that isn't real tracking won't do this). `$E2` did, every time; `$E0`/`$E1` is its
+matching line pointer (confirmed live - it advances by one row's worth after a wrapped line, and
+stays put otherwise). BASIC 1 uses `$E0`/`$E1`/`$E2` - same 3-byte shape as BASIC 2/4's `$C4`/
+`$C5`/`$C6`, different absolute addresses (a real, distinct ROM revision fact).
+
+### The `PetCursorTracking` per-profile contract
+
+Since the fix for CBM 4032/8032 above already established "cursor tracking is always the
+zero-page-pointer method" and now BASIC 1 needs *different addresses* for that same method, the
+addresses became genuinely per-profile data - not something the previous three
+`private const ushort` fields in `PetRasterDisplay` could express. New:
+
+```csharp
+public sealed record PetCursorTracking(ushort LineLowAddress, ushort LineHighAddress, ushort ColumnAddress)
+{
+    public static PetCursorTracking Basic2Convention { get; } = new(0x00C4, 0x00C5, 0x00C6);
+    public static PetCursorTracking Basic1Convention { get; } = new(0x00E0, 0x00E1, 0x00E2);
+}
+```
+
+`PetProfile` gained a new required `CursorTracking` field (same pattern as its existing
+`RomManifest`/`CharacterRomPath` - explicit per profile, no implicit default) - `PetProfileCatalog`
+gives `pet-2001-8` `Basic1Convention`, the other three `Basic2Convention`. `PetRasterDisplay
+.GetCursorPosition()` reads `_profile.CursorTracking` instead of its own hardcoded constants -
+the three old private consts are gone.
+
 ## After
 
 ```text
-pet-2001-8:  booted OK, 0/80 frames changed   <- still open, see below
+pet-2001-8:  booted OK, 3/80 frames changed   <- fixed
 pet-2001-32: booted OK, 3/80 frames changed
-cbm-4032:    booted OK, 3/80 frames changed   <- fixed
-cbm-8032:    booted OK, 3/80 frames changed   <- fixed
+cbm-4032:    booted OK, 3/80 frames changed
+cbm-8032:    booted OK, 3/80 frames changed
 ```
 
-## Still open: pet-2001-8 (BASIC 1)
-
-`$C4`/`$C5`/`$C6` read back `$D0`/`$02`/`$E6` (pointer `$02D0`) right after boot - nowhere near
-`VideoRamStart` (`$8000`), and stable there for the entire session (not a timing issue). BASIC 1's
-zero-page layout is well known to differ substantially from BASIC 2/4's (a real, documented ROM
-revision fact, not this repo's assumption) - the real cursor-tracking address for this specific
-ROM hasn't been found yet. Started `docs/pet-disassembly/` (real `rom-1-*.bin` chips
-disassembled) to continue the search the same way the VIC-20 keyboard/cursor investigation did,
-but the `eor #$80` / `$C4`-adjacent search patterns that worked there didn't turn up an obvious
-equivalent here. Not fixed in this pass - `pet-2001-32` (BASIC 2, already this repo's default/most
--used profile throughout its own development) works correctly; `pet-2001-8` is the one remaining
-gap.
+All 4 profiles blink correctly now.

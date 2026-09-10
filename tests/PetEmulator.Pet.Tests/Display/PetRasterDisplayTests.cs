@@ -105,10 +105,8 @@ public class PetRasterDisplayTests
         const int cursorCol = 4;
         const int cursorRow = 2;
         var cursorAddress = (ushort)(profile.VideoRamStart + cursorRow * profile.Columns + cursorCol);
-        memory.Write((ushort)(cursorAddress), SpaceScreenCode);
-        memory.Write(0x00C4, (byte)(cursorAddress & 0xFF));
-        memory.Write(0x00C5, (byte)(cursorAddress >> 8));
-        memory.Write(0x00C6, cursorCol);
+        memory.Write(cursorAddress, SpaceScreenCode);
+        WriteCursorPointer(memory, profile, cursorAddress, cursorCol);
         var display = new PetRasterDisplay(profile, memory, font);
         var frame = new uint[display.PixelWidth * display.PixelHeight];
 
@@ -130,11 +128,11 @@ public class PetRasterDisplayTests
         // own hardware cursor register (R14/R15) instead of the zero-page pointer. Wrong - traced
         // against a real boot (see PetRasterDisplay.GetCursorPosition's doc comment): the real
         // BASIC 4 KERNAL writes R14/R15 exactly once during CRTC init (to $0000 - immediately
-        // invalid) and never touches them again; $C4/$C5/$C6 track a genuinely live, valid
-        // position throughout. This test used to write directly to a standalone Crtc6545's
-        // register (mimicking what the OLD, wrong code path read) - now it writes the zero-page
-        // pointer instead, the same way the no-CRTC test above does, proving a CRTC-equipped
-        // profile's cursor works identically.
+        // invalid) and never touches them again; PetCursorTracking's addresses track a genuinely
+        // live, valid position throughout. This test used to write directly to a standalone
+        // Crtc6545's register (mimicking what the OLD, wrong code path read) - now it writes the
+        // zero-page pointer instead, the same way the no-CRTC test above does, proving a
+        // CRTC-equipped profile's cursor works identically.
         var font = LoadRealFont();
         var profile = PetProfileCatalog.Cbm8032;
         var memory = new FakeMemoryBus();
@@ -142,9 +140,7 @@ public class PetRasterDisplayTests
         const int cursorRow = 3;
         var cursorAddress = (ushort)(profile.VideoRamStart + cursorRow * profile.Columns + cursorCol);
         memory.Write(cursorAddress, SpaceScreenCode);
-        memory.Write(0x00C4, (byte)(cursorAddress & 0xFF));
-        memory.Write(0x00C5, (byte)(cursorAddress >> 8));
-        memory.Write(0x00C6, cursorCol);
+        WriteCursorPointer(memory, profile, cursorAddress, cursorCol);
 
         var display = new PetRasterDisplay(profile, memory, font);
         var frame = new uint[display.PixelWidth * display.PixelHeight];
@@ -152,6 +148,40 @@ public class PetRasterDisplayTests
         display.Render(frame);
 
         CellPixels(frame, display.PixelWidth, font, cursorCol, cursorRow).Should().OnlyContain(p => p == 0xFF8DFF72u);
+    }
+
+    [Test]
+    public void Cursor_OnPet2001_8_Basic1Convention_LocatedByItsOwnZeroPageAddresses()
+    {
+        // Was: PET 2001-8 (BASIC 1) blinked 0/80 real render ticks - PetRasterDisplay hardcoded
+        // $C4/$C5/$C6 (BASIC 2/4's addresses), but BASIC 1 tracks the cursor at $E0/$E1/$E2
+        // instead (confirmed by typing a character repeatedly and watching $E2 increment by
+        // exactly 1 each time - see docs/pet-cursor-fix.md). PetProfile.CursorTracking now
+        // carries the right addresses per profile instead of one hardcoded triple.
+        var font = LoadRealFont();
+        var profile = PetProfileCatalog.Pet2001_8;
+        profile.CursorTracking.Should().Be(PetCursorTracking.Basic1Convention, "this is the whole point of the fix");
+        var memory = new FakeMemoryBus();
+        const int cursorCol = 7;
+        const int cursorRow = 1;
+        var cursorAddress = (ushort)(profile.VideoRamStart + cursorRow * profile.Columns + cursorCol);
+        memory.Write(cursorAddress, SpaceScreenCode);
+        WriteCursorPointer(memory, profile, cursorAddress, cursorCol);
+
+        var display = new PetRasterDisplay(profile, memory, font);
+        var frame = new uint[display.PixelWidth * display.PixelHeight];
+
+        display.Render(frame);
+
+        CellPixels(frame, display.PixelWidth, font, cursorCol, cursorRow).Should().OnlyContain(p => p == 0xFF8DFF72u);
+    }
+
+    private static void WriteCursorPointer(IMemoryBus memory, PetProfile profile, ushort cursorAddress, int cursorCol)
+    {
+        var tracking = profile.CursorTracking;
+        memory.Write(tracking.LineLowAddress, (byte)(cursorAddress & 0xFF));
+        memory.Write(tracking.LineHighAddress, (byte)(cursorAddress >> 8));
+        memory.Write(tracking.ColumnAddress, (byte)cursorCol);
     }
 
     private static IEnumerable<uint> CellPixels(uint[] frame, int pixelWidth, IGlyphFont font, int col, int row)

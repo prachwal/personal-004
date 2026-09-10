@@ -18,14 +18,6 @@ public sealed class PetRasterDisplay
     /// happens to call <see cref="Tick"/>.</summary>
     private const int BlinkPeriodTicks = 30;
 
-    // PET KERNAL zero-page cursor tracking: current screen line pointer lo/hi, then cursor
-    // column. Real hardware addresses, not this repo's invention - and used for EVERY profile,
-    // CRTC-equipped or not (see GetCursorPosition's doc comment for why a CRTC-branch used to
-    // exist here and why it was wrong).
-    private const ushort CursorLineLowAddress = 0x00C4;
-    private const ushort CursorLineHighAddress = 0x00C5;
-    private const ushort CursorColumnAddress = 0x00C6;
-
     private readonly PetProfile _profile;
     private readonly IMemoryBus _memory;
     private readonly IGlyphFont _font;
@@ -107,26 +99,26 @@ public sealed class PetRasterDisplay
         }
     }
 
-    /// <summary>Locates the text cursor via the KERNAL's own zero-page screen-line pointer
-    /// (same $C4/$C5/$C6 convention for every profile - CRTC-equipped or not). Returns null
-    /// off-screen (cursor address outside the visible cell range - blanked, or between frames on
-    /// real hardware).
+    /// <summary>Locates the text cursor via the KERNAL's own zero-page screen-line pointer, at
+    /// the addresses <see cref="_profile"/>'s <see cref="PetProfile.CursorTracking"/> gives -
+    /// different ROM revisions use different absolute zero-page addresses for the identical
+    /// 3-byte shape (see <see cref="PetCursorTracking"/>'s doc comment). Returns null off-screen
+    /// (cursor address outside the visible cell range - blanked, or between frames on real
+    /// hardware).
     ///
-    /// Was branched on <see cref="_crtc"/> - CRTC-equipped profiles (BASIC 4, CBM 4032/8032) used
-    /// the CRTC's own hardware cursor register (R14/R15) instead. Wrong: traced with
-    /// <see cref="PetMachine.BusObserver"/> against a real boot - the real BASIC 4 KERNAL writes
-    /// R14/R15 exactly once during CRTC init (to $0000, immediately invalid - offset
-    /// $0000-DisplayStartAddress is always negative) and never touches them again for the rest of
-    /// a session; $C4/$C5/$C6 hold a genuinely valid, live-tracked position throughout (confirmed
-    /// against both cbm-4032 and cbm-8032). This KERNAL simply doesn't drive the CRTC's hardware
-    /// cursor feature - real PET/CBM firmware blinks the cursor entirely in software (screen-RAM
-    /// character inversion, same as every other profile), regardless of whether a CRTC is
-    /// present.</summary>
+    /// Was a single hardcoded $C4/$C5/$C6 with a CRTC-register branch for BASIC 4 profiles -
+    /// wrong on two counts (see docs/pet-cursor-fix.md): CRTC-equipped profiles don't use their
+    /// CRTC's hardware cursor register at all (real BASIC 4 KERNALs write it once, to $0000,
+    /// during init and never touch it again), and the original PET 2001 (BASIC 1) uses
+    /// $E0/$E1/$E2 instead of $C4/$C5/$C6 - a different ROM revision, a different zero-page
+    /// layout, confirmed by typing a character and watching which byte increments by exactly 1
+    /// each time.</summary>
     private (int Row, int Column)? GetCursorPosition()
     {
-        var pointer = (ushort)(_memory.Read(CursorLineLowAddress) | (_memory.Read(CursorLineHighAddress) << 8));
+        var tracking = _profile.CursorTracking;
+        var pointer = (ushort)(_memory.Read(tracking.LineLowAddress) | (_memory.Read(tracking.LineHighAddress) << 8));
         var row = (int)((long)pointer - _profile.VideoRamStart) / _profile.Columns;
-        int column = _memory.Read(CursorColumnAddress);
+        int column = _memory.Read(tracking.ColumnAddress);
         return row >= 0 && row < _profile.Rows && column < _profile.Columns ? (row, column) : null;
     }
 }

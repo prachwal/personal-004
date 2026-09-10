@@ -31,7 +31,8 @@ public sealed record PetProfile(
     bool RequiresCrtc,
     string CharacterRomPath,
     IReadOnlyList<PetRomRequirement> RomManifest,
-    PetProfileStatus Status)
+    PetProfileStatus Status,
+    PetCursorTracking CursorTracking)
 {
     public bool IsImplemented => Status == PetProfileStatus.Implemented;
 
