@@ -40,7 +40,7 @@ public sealed class Vic20RasterDisplayTests
         // ScreenMatrixBase from reg5's high nibble (0) -> screenAddr $8000; CharMatrixBase from
         // reg5's low nibble (1) -> charAddr $8400 - distinct regions in this synthetic 64K RAM.
         vic.Write(0x9005, 0x01);
-        vic.Write(0x900F, 0x11); // screenColor=1, borderColor=1 - not multicolor (colorIndex bit3 unset)
+        vic.Write(0x900F, 0x19); // screenColor=1, borderColor=1, bit3 set = normal/not reversed (see Vic6560.ReverseMode)
 
         var screenAddr = (ushort)vic.ScreenAddr;
         var charAddr = (ushort)vic.CharAddr;

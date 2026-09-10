@@ -71,7 +71,14 @@ public sealed class Vic6560 : IMemoryMappedDevice
     public int ColorMatrixOffset => ScreenMatrixBase & 0x3FF;
     public byte AuxColor => (byte)((_registers[0x0E] >> 4) & 0x0F);
     public byte ScreenColor => (byte)((_registers[0x0F] >> 4) & 0x0F);
-    public bool ReverseMode => (_registers[0x0F] & 0x08) != 0;
+    // Bit 3's default power-on/KERNAL-init value is 1, and 1 means "colors in their normal
+    // places" (ink = color RAM, paper = screen color, no swap) - 0 is what actually reverses the
+    // field. Confirmed empirically: the real KERNAL boot writes $1B to $900F (bit 3 set), and a
+    // real VIC-20's boot screen is blue text on a white background - which is only what this
+    // repo's RenderChar produces if "bit set" means false (no swap). Was inverted (`!= 0` read as
+    // "reverse"), which silently swapped ink/paper for the entire default boot screen (white text
+    // on blue instead of the real blue-on-white) - see docs/vic20-rendering-fixes.md.
+    public bool ReverseMode => (_registers[0x0F] & 0x08) == 0;
     public byte BorderColor => (byte)(_registers[0x0F] & 0x07);
 
     public byte Read(ushort address)

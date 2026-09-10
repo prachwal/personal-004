@@ -63,6 +63,20 @@ public sealed class Vic6560Tests
 
         vic.Read(0x900F).Should().Be(0x3C);
         vic.ScreenColor.Should().Be(0x03);
+        vic.ReverseMode.Should().BeFalse(); // bit 3 set = normal (not reversed) - see ReverseMode's doc comment
+    }
+
+    [Test]
+    public void ReverseMode_BitClear_IsReversed()
+    {
+        // Bit 3's real polarity is inverted from what its name suggests: 1 = normal, 0 = reversed
+        // (confirmed via the real KERNAL boot value $1B - see Vic6560.ReverseMode's doc comment
+        // and docs/vic20-rendering-fixes.md). This is the case the round-trip test above didn't
+        // cover, letting the polarity bug through unnoticed.
+        var vic = new Vic6560(baseAddress: 0x9000);
+
+        vic.Write(0x900F, 0x34); // same as 0x3C but bit 3 cleared
+
         vic.ReverseMode.Should().BeTrue();
     }
 

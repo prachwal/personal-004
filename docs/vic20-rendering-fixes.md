@@ -149,11 +149,31 @@ however long it's given to run; `(1,7)` does. Fixed `Vic20HostKeyMap`'s `ReturnR
 `Vic20MachineTests.Enter_ActuallyExecutesTheTypedLine_NotJustCrsrDown` as an explicit regression
 test for this exact CRSR-DOWN-vs-Enter confusion.
 
-Also checked while investigating (a real question, not a bug): whether the char ROM was being
-read with inverted bits. It isn't - dumped the raw glyph for screen code 1 ('A') and it's a clean,
-recognizable 'A' shape. The white-on-blue look everywhere (see the "colors wrong" question
-resolved in this session's earlier conversation) is genuine, documented real VIC-20 default
-behavior, not an inverted font.
+Also checked while investigating: whether the char ROM was being read with inverted bits. It
+isn't - dumped the raw glyph for screen code 1 ('A') and it's a clean, recognizable 'A' shape.
+Wrongly concluded from there that the white-text-on-blue look was genuine real VIC-20 default
+behavior (see Bug 4 below for the correction - it wasn't the font, and it wasn't the default).
+
+## Bug 4: colors reversed (root cause: `Vic6560.ReverseMode` polarity inverted)
+
+The "not a bug" conclusion above was wrong on the actual color question, just right that the font
+bits themselves weren't inverted. Re-checked against a fresh WebSearch (Lemon64/AtariAge/GitHub
+6561.txt) after the user pushed back with a real screenshot (white text on blue) against what
+real VIC-20 hardware actually shows (blue text on a white background, cyan/blue border): bit 3 of
+`$900F` defaults to **1 = normal** (ink/paper in their respective places), **0 = reversed** - the
+opposite of what its name suggests. `Vic6560.ReverseMode` read it as `!= 0` (bit set = reverse),
+backwards from real silicon. Confirmed empirically: `BusObserver`-traced the real KERNAL boot
+write to `$900F` - it writes `$1B` (bit 3 set) exactly once. Under the old (wrong) polarity that's
+"reverse", swapping `ink`/`paper` in `Vic20RasterDisplay.RenderChar` for the entire default boot
+screen (white on blue). Under the corrected polarity (bit 3 set = normal, no swap), the same `$1B`
+produces blue text (`colorIndex`=6) on a white background (`screenColor`=1), border cyan
+(`borderColor`=3) - matching real hardware exactly. Fixed: `ReverseMode => (reg & 0x08) == 0`.
+One existing round-trip test (`Vic6560Tests.ReadWrite_RoundTripsThroughBaseAddressOffset`) had
+baked in the old polarity's assumption (bit set = reverse) and had to flip its expectation; added
+`ReverseMode_BitClear_IsReversed` to cover the case that let the polarity bug through unnoticed in
+the first place. One `Vic20RasterDisplayTests` case had picked a register value (`0x11`, bit 3
+clear) that happened to mean "normal" only under the old polarity - bumped to `0x19` (bit 3 set)
+to keep meaning "normal" under the corrected one.
 
 Verified end-to-end through the real GUI pipeline again (`PetEmulator.Screenshot --type`): typing
 `"PRINT2+2\n"` now genuinely echoes `PRINT22` (`+` still isn't in the tool's own tiny
