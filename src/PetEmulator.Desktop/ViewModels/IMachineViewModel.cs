@@ -22,12 +22,8 @@ namespace PetEmulator.Desktop.ViewModels;
 /// over a concrete use during design; both PetMachineViewModel and Vic20MachineViewModel return
 /// null today).
 /// </summary>
-public interface IMachineViewModel : IDisposable
+public interface IMachineViewModel : IShellModule
 {
-    string WindowTitle { get; }
-
-    string StatusText { get; }
-
     int PixelWidth { get; }
 
     int PixelHeight { get; }
