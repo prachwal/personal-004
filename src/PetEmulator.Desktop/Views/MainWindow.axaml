@@ -52,6 +52,9 @@
                   <DataTemplate DataType="viewModels:MediaTesterViewModel">
                       <views:MediaTesterView />
                   </DataTemplate>
+                  <DataTemplate DataType="viewModels:FontViewerViewModel">
+                      <views:FontViewerView />
+                  </DataTemplate>
             </ContentControl.DataTemplates>
         </ContentControl>
     </DockPanel>

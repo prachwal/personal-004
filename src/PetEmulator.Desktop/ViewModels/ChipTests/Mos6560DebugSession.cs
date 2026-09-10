@@ -4,6 +4,7 @@ using PetEmulator.Core;
 using PetEmulator.Desktop.Infrastructure;
 using PetEmulator.Desktop.Resources;
 using PetEmulator.Vic20.Display;
+using PetEmulator.Pet.Fonts;
 
 namespace PetEmulator.Desktop.ViewModels.ChipTests;
 
@@ -13,8 +14,8 @@ public sealed class Mos6560DebugSession : ChipDebugSessionBase
     private readonly VicPreviewViewModel _preview;
     private readonly IAudioOutput _audioOutput;
 
-    public Mos6560DebugSession()
-        : this(CreateState()) { }
+    public Mos6560DebugSession(string romsRoot)
+        : this(CreateState(romsRoot)) { }
 
     private Mos6560DebugSession(VicState state)
         : base("MOS 6560 VIC", ChipDescriptions.Get("Mos6560"), state.Definition)
@@ -35,8 +36,9 @@ public sealed class Mos6560DebugSession : ChipDebugSessionBase
         _audioOutput.Dispose();
     }
 
-    private static VicState CreateState()
+    private static VicState CreateState(string romsRoot)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
         var chip = new MOS6560("Chip Tester VIC");
         var memory = new FlatMemoryBus(ushort.MaxValue + 1);
         var preview = new VicPreviewViewModel(new Vic20RasterDisplay(memory, chip), memory);
@@ -50,10 +52,10 @@ public sealed class Mos6560DebugSession : ChipDebugSessionBase
         chip.Write(0x0B, 0xFF);
         chip.Write(0x0C, 0xFF);
         chip.Write(0x0D, 0xFF);
-        FillPattern(memory, chip);
+        FillPattern(memory, chip, Path.Combine(romsRoot, "vic20", "vic20-chargen.bin"));
 
         return new VicState(chip, new ChipDebugDefinition(
-            () => chip.Tick(1), () => { chip.Reset(); FillPattern(memory, chip); },
+            () => chip.Tick(1), () => { chip.Reset(); FillPattern(memory, chip, Path.Combine(romsRoot, "vic20", "vic20-chargen.bin")); },
             name => chip.Read(ParseRegister(name)),
             (name, value) => chip.Write(ParseRegister(name), value),
             Enumerable.Range(0, MOS6560.RegisterCount)
@@ -61,15 +63,17 @@ public sealed class Mos6560DebugSession : ChipDebugSessionBase
                 .ToArray(), []), preview);
     }
 
-    private static void FillPattern(FlatMemoryBus memory, MOS6560 chip)
+    private static void FillPattern(FlatMemoryBus memory, MOS6560 chip, string chargenPath)
     {
         const ushort screen = 0x8000;
         const ushort characters = 0x9000;
         const ushort colors = 0x9400;
         const string message = "CHIP TESTER VIC IMAGE + SOUND";
+        var font = File.ReadAllBytes(chargenPath);
         for (var index = 0; index < 256; index++)
             for (var row = 0; row < 8; row++)
-                memory.Write((ushort)(characters + index * 8 + row), GlyphRow(index, row));
+                memory.Write((ushort)(characters + index * 8 + row),
+                    index * 8 + row < font.Length ? font[index * 8 + row] : (byte)0);
 
         for (var row = 0; row < chip.Rows; row++)
             for (var col = 0; col < chip.Columns; col++)
@@ -81,14 +85,6 @@ public sealed class Mos6560DebugSession : ChipDebugSessionBase
                 memory.Write((ushort)(screen + position), code);
                 memory.Write((ushort)(colors + position), (byte)((row + col) % 16));
             }
-    }
-
-    private static byte GlyphRow(int index, int row)
-    {
-        if (index == 0x20)
-            return 0;
-        var seed = (index * 37 + row * 19) & 0xFF;
-        return (byte)(seed ^ (seed >> 3) ^ 0x18);
     }
 
     private static byte ToVicScreenCode(char value) => value is >= 'A' and <= 'Z'

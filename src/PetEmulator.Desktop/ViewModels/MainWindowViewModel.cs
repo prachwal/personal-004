@@ -40,6 +40,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
               new ModuleMenuEntry("VIC-20", () => new Vic20MachineViewModel(Path.Combine(_romsRoot, "vic20"))),
               new ModuleMenuEntry("Chip Tester", () => new ChipTesterViewModel(_romsRoot)),
               new ModuleMenuEntry("Media Tester", () => new MediaTesterViewModel(_filePicker)),
+              new ModuleMenuEntry("Font / Glyph Viewer", () => new FontViewerViewModel(_romsRoot)),
          ];
 
         _currentModule = ModuleChoices[0].Create();
