@@ -46,9 +46,12 @@
                  <DataTemplate DataType="viewModels:Vic20MachineViewModel">
                      <views:Vic20MachineView />
                  </DataTemplate>
-                 <DataTemplate DataType="viewModels:ChipTesterViewModel">
-                     <views:ChipTesterView />
-                 </DataTemplate>
+                  <DataTemplate DataType="viewModels:ChipTesterViewModel">
+                      <views:ChipTesterView />
+                  </DataTemplate>
+                  <DataTemplate DataType="viewModels:MediaTesterViewModel">
+                      <views:MediaTesterView />
+                  </DataTemplate>
             </ContentControl.DataTemplates>
         </ContentControl>
     </DockPanel>
