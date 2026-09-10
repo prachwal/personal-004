@@ -114,17 +114,30 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     public void HandleKey(Key key, HostKeyEventKind kind)
     {
         var atKey = KeyMapping.ToAtKeyboardKey(key);
-        if (atKey is not { } physicalKey)
+        var hostKey = atKey is { } physicalKey ? KeyMapping.ToHostKey(physicalKey) : null;
+        if (hostKey is not null)
+        {
+            foreach (var action in _keyboardMap.Translate(hostKey, kind))
+                ApplyKeyAction(action);
+            return;
+        }
+
+        if (atKey is not { } unsupportedHostKey)
             return;
 
-        var cell = _keyboardMap.Translate(physicalKey);
-        if (cell is not { } c)
-            return;
+        // KeyMapping intentionally exposes only the common text-key vocabulary. Preserve the
+        // VIC-20's existing direct mapping for controls (Escape, function keys, Ctrl, Home, ...).
+        var cell = _keyboardMap.Translate(unsupportedHostKey);
+        if (cell is { } position)
+            ApplyKeyAction(new MatrixAction(position.Row, position.Column, kind == HostKeyEventKind.Press));
+    }
 
-        if (kind == HostKeyEventKind.Press)
-            _machine.Keyboard.Press(c.Row, c.Column);
+    private void ApplyKeyAction(MatrixAction action)
+    {
+        if (action.Pressed)
+            _machine.Keyboard.Press(action.Row, action.Column);
         else
-            _machine.Keyboard.Release(c.Row, c.Column);
+            _machine.Keyboard.Release(action.Row, action.Column);
     }
 
     public void Tick()

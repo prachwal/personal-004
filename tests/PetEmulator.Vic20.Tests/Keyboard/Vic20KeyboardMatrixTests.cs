@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Core.Keyboard;
+using PetEmulator.Pet.Keyboard;
 using PetEmulator.Vic20.Keyboard;
 
 namespace PetEmulator.Vic20.Tests.Keyboard;
@@ -134,5 +135,57 @@ public sealed class Vic20KeyboardMatrixTests
         var map = new Vic20KeyboardMap();
 
         map.Translate(AtKeyboardKey.LeftShift).Should().NotBe(map.Translate(AtKeyboardKey.RightShift));
+    }
+
+    [Test]
+    public void Vic20KeyboardMap_Quote_UsesShiftAndTwo()
+    {
+        var map = new Vic20KeyboardMap();
+
+        map.Translate("Quote", HostKeyEventKind.Press).Should().Equal(
+            new MatrixAction(4, 6, true), new MatrixAction(7, 0, true));
+    }
+
+    [Test]
+    public void Vic20KeyboardMap_Quote_ReleasesTwoBeforeSyntheticShift()
+    {
+        var map = new Vic20KeyboardMap();
+        map.Translate("Quote", HostKeyEventKind.Press);
+
+        map.Translate("Quote", HostKeyEventKind.Release).Should().Equal(
+            new MatrixAction(7, 0, false), new MatrixAction(4, 6, false));
+    }
+
+    [Test]
+    public void Vic20KeyboardMap_Quote_DoesNotReleasePhysicallyHeldShift()
+    {
+        var map = new Vic20KeyboardMap();
+        map.Translate("ShiftRight", HostKeyEventKind.Press);
+        map.Translate("Quote", HostKeyEventKind.Press);
+
+        map.Translate("Quote", HostKeyEventKind.Release).Should().Equal(
+            new MatrixAction(7, 0, false));
+    }
+
+    [Test]
+    public void Vic20KeyboardMap_Quote_ReleasesSyntheticShiftWhenHostUsesLeftShift()
+    {
+        var map = new Vic20KeyboardMap();
+        map.Translate("ShiftLeft", HostKeyEventKind.Press);
+        map.Translate("Quote", HostKeyEventKind.Press);
+
+        map.Translate("Quote", HostKeyEventKind.Release).Should().Equal(
+            new MatrixAction(7, 0, false), new MatrixAction(4, 6, false));
+    }
+
+    [Test]
+    public void Vic20KeyboardMap_Two_DoesNotGenerateShift()
+    {
+        var map = new Vic20KeyboardMap();
+
+        map.Translate("Digit2", HostKeyEventKind.Press).Should().Equal(
+            new MatrixAction(7, 0, true));
+        map.Translate("Digit2", HostKeyEventKind.Release).Should().Equal(
+            new MatrixAction(7, 0, false));
     }
 }

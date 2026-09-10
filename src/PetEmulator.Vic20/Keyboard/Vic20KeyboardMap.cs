@@ -1,4 +1,5 @@
 using PetEmulator.Core.Keyboard;
+using PetEmulator.Pet.Keyboard;
 
 namespace PetEmulator.Vic20.Keyboard;
 
@@ -27,8 +28,73 @@ namespace PetEmulator.Vic20.Keyboard;
 /// asserting Shift alongside the same cell - this class returns one position per key, no
 /// multi-action support yet, so those and the shifted cursor directions stay a documented gap,
 /// not a guess).</summary>
-public sealed class Vic20KeyboardMap : AtKeyboardMapping
+public sealed class Vic20KeyboardMap : AtKeyboardMapping, IPetKeyboardMap
 {
+    private bool _rightShiftHeld;
+    private bool _quoteInjectedRightShift;
+
+    public string Id => "vic20";
+
+    /// <summary>Translates one live host-key event. The host Quote key is synthesized as the
+    /// VIC-20's Shift+2 combination; a physically held Shift is never released by Quote.</summary>
+    public IReadOnlyList<MatrixAction> Translate(string hostKey, HostKeyEventKind kind)
+    {
+        if (hostKey == "ShiftLeft")
+        {
+            return [new MatrixAction(3, 1, kind == HostKeyEventKind.Press)];
+        }
+
+        if (hostKey == "ShiftRight")
+        {
+            _rightShiftHeld = kind == HostKeyEventKind.Press;
+            return [new MatrixAction(4, 6, _rightShiftHeld)];
+        }
+
+        if (hostKey == "Quote")
+        {
+            if (kind == HostKeyEventKind.Press)
+            {
+                _quoteInjectedRightShift = !_rightShiftHeld;
+                return _quoteInjectedRightShift
+                    ? [new MatrixAction(4, 6, true), new MatrixAction(7, 0, true)]
+                    : [new MatrixAction(7, 0, true)];
+            }
+
+            var actions = new List<MatrixAction> { new(7, 0, false) };
+            if (_quoteInjectedRightShift && !_rightShiftHeld)
+                actions.Add(new MatrixAction(4, 6, false));
+            _quoteInjectedRightShift = false;
+            return actions;
+        }
+
+        var atKey = hostKey switch
+        {
+            "KeyA" => AtKeyboardKey.A, "KeyB" => AtKeyboardKey.B, "KeyC" => AtKeyboardKey.C,
+            "KeyD" => AtKeyboardKey.D, "KeyE" => AtKeyboardKey.E, "KeyF" => AtKeyboardKey.F,
+            "KeyG" => AtKeyboardKey.G, "KeyH" => AtKeyboardKey.H, "KeyI" => AtKeyboardKey.I,
+            "KeyJ" => AtKeyboardKey.J, "KeyK" => AtKeyboardKey.K, "KeyL" => AtKeyboardKey.L,
+            "KeyM" => AtKeyboardKey.M, "KeyN" => AtKeyboardKey.N, "KeyO" => AtKeyboardKey.O,
+            "KeyP" => AtKeyboardKey.P, "KeyQ" => AtKeyboardKey.Q, "KeyR" => AtKeyboardKey.R,
+            "KeyS" => AtKeyboardKey.S, "KeyT" => AtKeyboardKey.T, "KeyU" => AtKeyboardKey.U,
+            "KeyV" => AtKeyboardKey.V, "KeyW" => AtKeyboardKey.W, "KeyX" => AtKeyboardKey.X,
+            "KeyY" => AtKeyboardKey.Y, "KeyZ" => AtKeyboardKey.Z,
+            "Digit1" => AtKeyboardKey.D1, "Digit2" => AtKeyboardKey.D2, "Digit3" => AtKeyboardKey.D3,
+            "Digit4" => AtKeyboardKey.D4, "Digit5" => AtKeyboardKey.D5, "Digit6" => AtKeyboardKey.D6,
+            "Digit7" => AtKeyboardKey.D7, "Digit8" => AtKeyboardKey.D8, "Digit9" => AtKeyboardKey.D9,
+            "Digit0" => AtKeyboardKey.D0, "Space" => AtKeyboardKey.Space, "Enter" => AtKeyboardKey.Enter,
+            "Backspace" => AtKeyboardKey.Backspace, "Minus" => AtKeyboardKey.OemMinus,
+            "OemPlus" => AtKeyboardKey.OemPlus, "Comma" => AtKeyboardKey.OemComma,
+            "Period" => AtKeyboardKey.OemPeriod, "Slash" => AtKeyboardKey.OemQuestion,
+            "Semicolon" => AtKeyboardKey.OemSemicolon,
+            _ => (AtKeyboardKey?)null
+        };
+
+        var cell = atKey is { } key ? Map(key) : null;
+        return cell is { } position
+            ? [new MatrixAction(position.Row, position.Column, kind == HostKeyEventKind.Press)]
+            : [];
+    }
+
     protected override KeyboardMatrixPosition? Map(AtKeyboardKey key) => key switch
     {
         AtKeyboardKey.Enter => new(1, 7),
