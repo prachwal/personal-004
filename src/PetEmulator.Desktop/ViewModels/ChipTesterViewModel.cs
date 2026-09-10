@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using PetEmulator.Desktop.ViewModels.ChipTests;
 
 namespace PetEmulator.Desktop.ViewModels;
 
@@ -11,13 +12,13 @@ public sealed partial class ChipTesterViewModel : ObservableObject, IShellModule
     public ObservableCollection<ChipTreeNode> Chips { get; } =
     [
         new("MOS 2114", []),
-        new("MOS 6522 VIA", []),
+        new("MOS 6522 VIA", [new ChipScenarioEntry("Register and pin state", () => new Mos6522DebugSession())]),
         new("MOS 6560 VIC", []),
         new("MT 6520 PIA", []),
         new("MT 6545 CRTC", []),
     ];
 
-    public IShellModule? SelectedScenario { get; private set; }
+    public IChipDebugSessionViewModel? SelectedScenario { get; private set; }
 
     public string WindowTitle => "Chip Tester";
 
@@ -39,4 +40,4 @@ public sealed partial class ChipTesterViewModel : ObservableObject, IShellModule
 
 public sealed record ChipTreeNode(string Name, IReadOnlyList<ChipScenarioEntry> Scenarios);
 
-public sealed record ChipScenarioEntry(string Name, Func<IShellModule> Create);
+public sealed record ChipScenarioEntry(string Name, Func<IChipDebugSessionViewModel> Create);
