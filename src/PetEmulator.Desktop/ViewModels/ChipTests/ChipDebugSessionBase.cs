@@ -23,9 +23,10 @@ public abstract partial class ChipDebugSessionBase : ObservableObject, IChipDebu
     [ObservableProperty]
     private bool _isRunning;
 
-    protected ChipDebugSessionBase(string windowTitle, ChipDebugDefinition definition)
+    protected ChipDebugSessionBase(string windowTitle, string description, ChipDebugDefinition definition)
     {
         WindowTitle = windowTitle;
+        Description = description;
         _tick = definition.Tick;
         _reset = definition.Reset;
         _readRegister = definition.ReadRegister;
@@ -45,6 +46,7 @@ public abstract partial class ChipDebugSessionBase : ObservableObject, IChipDebu
     public ObservableCollection<PinRow> Pins { get; }
     public IWaveformSource Timeline { get; }
     public string WindowTitle { get; }
+    public string Description { get; }
     public virtual object? Visual => null;
     protected virtual int TimerCyclesPerTick => 100;
     public string StatusText => IsRunning ? $"Running, step {_step}" : $"Paused, step {_step}";

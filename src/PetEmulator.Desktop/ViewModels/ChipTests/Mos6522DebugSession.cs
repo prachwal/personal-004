@@ -3,12 +3,14 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PetEmulator.Chips;
+using PetEmulator.Desktop.Resources;
 
 namespace PetEmulator.Desktop.ViewModels.ChipTests;
 
 public sealed partial class Mos6522DebugSession : ObservableObject, IChipDebugSessionViewModel
 {
     public object? Visual => null;
+    public string Description => ChipDescriptions.Get("Mos6522");
     private readonly MOS6522 _chip = new("Chip Tester VIA");
     private readonly DispatcherTimer _timer;
     private readonly List<WaveformSample> _samples = [];

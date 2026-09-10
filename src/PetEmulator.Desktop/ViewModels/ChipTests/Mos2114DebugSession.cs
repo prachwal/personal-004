@@ -1,4 +1,5 @@
 using PetEmulator.Chips;
+using PetEmulator.Desktop.Resources;
 
 namespace PetEmulator.Desktop.ViewModels.ChipTests;
 
@@ -10,7 +11,7 @@ public sealed class Mos2114DebugSession : ChipDebugSessionBase
         : this(CreateState()) { }
 
     private Mos2114DebugSession(Mos2114State state)
-        : base("MOS 2114 Color RAM", state.Definition)
+        : base("MOS 2114 Color RAM", ChipDescriptions.Get("Mos2114"), state.Definition)
     {
         _preview = state.Preview;
         _preview.Refresh();

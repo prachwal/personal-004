@@ -1,11 +1,12 @@
 using PetEmulator.Chips;
+using PetEmulator.Desktop.Resources;
 
 namespace PetEmulator.Desktop.ViewModels.ChipTests;
 
 public sealed class Mt6520DebugSession : ChipDebugSessionBase
 {
     public Mt6520DebugSession()
-        : base("MT 6520 PIA", CreateDefinition()) { }
+        : base("MT 6520 PIA", ChipDescriptions.Get("Mt6520"), CreateDefinition()) { }
 
     private static ChipDebugDefinition CreateDefinition()
     {

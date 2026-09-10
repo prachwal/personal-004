@@ -2,6 +2,7 @@ using PetEmulator.Chips;
 using PetEmulator.Audio;
 using PetEmulator.Core;
 using PetEmulator.Desktop.Infrastructure;
+using PetEmulator.Desktop.Resources;
 using PetEmulator.Vic20.Display;
 
 namespace PetEmulator.Desktop.ViewModels.ChipTests;
@@ -16,7 +17,7 @@ public sealed class Mos6560DebugSession : ChipDebugSessionBase
         : this(CreateState()) { }
 
     private Mos6560DebugSession(VicState state)
-        : base("MOS 6560 VIC", state.Definition)
+        : base("MOS 6560 VIC", ChipDescriptions.Get("Mos6560"), state.Definition)
     {
         _chip = state.Chip;
         _preview = state.Preview;

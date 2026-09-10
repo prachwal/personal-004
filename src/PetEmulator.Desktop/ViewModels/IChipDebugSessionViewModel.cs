@@ -6,6 +6,12 @@ namespace PetEmulator.Desktop.ViewModels;
 public interface IChipDebugSessionViewModel : IShellModule
 {
     object? Visual { get; }
+
+    /// <summary>Plain-text description of the real chip this session models - shown in Chip
+    /// Tester's "Opis" tab, sourced from
+    /// <see cref="PetEmulator.Desktop.Resources.ChipDescriptions"/>.</summary>
+    string Description { get; }
+
     ObservableCollection<RegisterRow> Registers { get; }
     ObservableCollection<PinRow> Pins { get; }
     IWaveformSource Timeline { get; }

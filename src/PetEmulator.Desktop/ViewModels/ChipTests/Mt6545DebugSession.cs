@@ -1,5 +1,6 @@
 using PetEmulator.Chips;
 using PetEmulator.Desktop.Infrastructure;
+using PetEmulator.Desktop.Resources;
 using PetEmulator.Pet;
 using PetEmulator.Pet.Display;
 using PetEmulator.Pet.Fonts;
@@ -14,7 +15,7 @@ public sealed class Mt6545DebugSession : ChipDebugSessionBase
         : this(CreateState(romsRoot)) { }
 
     private Mt6545DebugSession(CrtcState state)
-        : base("MT 6545 CRTC", state.Definition)
+        : base("MT 6545 CRTC", ChipDescriptions.Get("Mt6545"), state.Definition)
     {
         _preview = state.Preview;
         _preview.Refresh();
