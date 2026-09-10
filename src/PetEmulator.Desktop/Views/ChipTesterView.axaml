@@ -38,12 +38,40 @@
                                      <DataTemplate DataType="chipTests:VicPreviewViewModel">
                                          <controls:ChipVisualControl />
                                      </DataTemplate>
+                                     <DataTemplate DataType="chipTests:ColorRamPreviewViewModel">
+                                         <ItemsControl ItemsSource="{Binding Swatches}">
+                                             <ItemsControl.ItemsPanel>
+                                                 <ItemsPanelTemplate>
+                                                     <WrapPanel Orientation="Horizontal" />
+                                                 </ItemsPanelTemplate>
+                                             </ItemsControl.ItemsPanel>
+                                             <ItemsControl.ItemTemplate>
+                                                 <DataTemplate x:DataType="chipTests:ColorSwatch">
+                                                     <Border Background="{Binding Color}" Width="42" Height="32" Margin="2">
+                                                         <TextBlock Text="{Binding Value}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                     </Border>
+                                                 </DataTemplate>
+                                             </ItemsControl.ItemTemplate>
+                                         </ItemsControl>
+                                     </DataTemplate>
                                  </ContentControl.DataTemplates>
                              </ContentControl>
                              <controls:WaveformControl Grid.Row="3" Source="{Binding Timeline}" />
                              <Grid Grid.Row="4" ColumnDefinitions="*,*" ColumnSpacing="24">
                                 <ItemsControl ItemsSource="{Binding Registers}" />
-                                <ItemsControl Grid.Column="1" ItemsSource="{Binding Pins}" />
+                                 <ItemsControl Grid.Column="1" ItemsSource="{Binding Pins}">
+                                     <ItemsControl.ItemTemplate>
+                                         <DataTemplate x:DataType="viewModels:PinRow">
+                                             <StackPanel Orientation="Horizontal" Spacing="8">
+                                                 <TextBlock Text="{Binding Name}" Width="120" />
+                                                 <ToggleSwitch IsChecked="{Binding Level}"
+                                                               IsEnabled="{Binding IsWritable}"
+                                                               Tag="{Binding Name}"
+                                                               Click="OnPinToggled" />
+                                             </StackPanel>
+                                         </DataTemplate>
+                                     </ItemsControl.ItemTemplate>
+                                 </ItemsControl>
                             </Grid>
                         </Grid>
                     </DataTemplate>
