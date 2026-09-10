@@ -41,6 +41,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
               new ModuleMenuEntry("Chip Tester", () => new ChipTesterViewModel(_romsRoot)),
               new ModuleMenuEntry("Media Tester", () => new MediaTesterViewModel(_filePicker)),
               new ModuleMenuEntry("Font / Glyph Viewer", () => new FontViewerViewModel(_romsRoot)),
+              new ModuleMenuEntry("CPU Opcode Stepper", () => new OpcodeStepperViewModel()),
          ];
 
         _currentModule = ModuleChoices[0].Create();

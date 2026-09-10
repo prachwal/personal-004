@@ -55,6 +55,9 @@
                   <DataTemplate DataType="viewModels:FontViewerViewModel">
                       <views:FontViewerView />
                   </DataTemplate>
+                  <DataTemplate DataType="viewModels:OpcodeStepperViewModel">
+                      <views:OpcodeStepperView />
+                  </DataTemplate>
             </ContentControl.DataTemplates>
         </ContentControl>
     </DockPanel>
