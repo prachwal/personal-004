@@ -24,6 +24,8 @@ public sealed class Vic20DiskEndToEndTests
 
             Vic20TextTyper.Type(machine, "LOAD\"$\",8\n", holdInstructions: 12_000, gapInstructions: 12_000);
             machine.Run(2_000_000);
+            machine.PollDiskActivity().Should().BeTrue("IEC byte traffic should latch disk activity");
+            machine.PollDiskActivity().Should().BeFalse("disk activity should be consumed by one poll");
             Vic20TextTyper.Type(machine, "LIST\n", holdInstructions: 12_000, gapInstructions: 12_000);
             machine.Run(500_000);
 

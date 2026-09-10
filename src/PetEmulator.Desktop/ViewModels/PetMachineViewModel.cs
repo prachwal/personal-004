@@ -20,7 +20,7 @@ namespace PetEmulator.Desktop.ViewModels;
 /// than mutating this one in place, so <see cref="MainWindowViewModel.CurrentModule"/> swaps
 /// wholesale and any stale event subscription dies with the old instance.
 /// </summary>
-public sealed partial class PetMachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel
+public sealed partial class PetMachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel, IDiskDriveViewModel
 {
     // ponytail: fixed per-tick instruction budget, no adaptive pacing to a wall-clock cycle
     // rate. Good enough for a display GUI; revisit if playback speed needs to match real hardware.

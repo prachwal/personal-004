@@ -100,6 +100,7 @@ public sealed class Vic20MachineTests
 
             machine.MountDisk(diskPath);
 
+            machine.HasDisk().Should().BeTrue();
             machine.Devices.Should().ContainSingle(d => d.Id == "ieee488:8")
                 .Which.StatusText.Should().Be(Path.GetFileName(diskPath));
         }

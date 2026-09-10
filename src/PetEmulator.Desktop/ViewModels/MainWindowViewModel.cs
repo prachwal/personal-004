@@ -130,17 +130,23 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     public void LoadDisk(string path)
     {
-        if (CurrentModule is PetMachineViewModel pet)
-            pet.LoadDisk(path);
+        switch (CurrentModule)
+        {
+            case PetMachineViewModel pet: pet.LoadDisk(path); break;
+            case Vic20MachineViewModel vic20: vic20.LoadDisk(path); break;
+        }
     }
 
     /// <summary>Creates a fresh, formatted, writable D64 at <paramref name="path"/> and mounts it,
-    /// if the current machine has a disk drive - PET only (VIC-20 has none in this repo). See
-    /// <see cref="PetMachineViewModel.NewDisk"/>.</summary>
+    /// if the current machine has a disk drive. See <see cref="PetMachineViewModel.NewDisk"/>.
+    /// </summary>
     public void NewDisk(string path)
     {
-        if (CurrentModule is PetMachineViewModel pet)
-            pet.NewDisk(path);
+        switch (CurrentModule)
+        {
+            case PetMachineViewModel pet: pet.NewDisk(path); break;
+            case Vic20MachineViewModel vic20: vic20.NewDisk(path); break;
+        }
     }
 
     [RelayCommand]

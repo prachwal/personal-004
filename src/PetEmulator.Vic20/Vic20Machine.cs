@@ -35,6 +35,7 @@ public sealed class Vic20Machine : IMachine
     private readonly Vic20SerialBus _serialBus;
     private readonly Vic20SerialBusBinding _serialBusBinding;
     private readonly List<PetIeeeDriveStatus> _mountedDrives = [];
+    private bool _diskActivityPending;
 
     // The real KERNAL's IRQ vector ($0314/$0315, "CINV") while idle - both LOAD and SAVE
     // temporarily redirect it to their own tape ISR for the duration of the operation, then
@@ -65,6 +66,11 @@ public sealed class Vic20Machine : IMachine
         _cpu = new Cpu6502Classic(_memoryBus);
         _datasette = new Vic20Datasette(_via1, _via2);
         _serialBus = new Vic20SerialBus();
+        _serialBus.Activity += activity =>
+        {
+            if (activity.Kind == "byte")
+                _diskActivityPending = true;
+        };
         _serialBusBinding = new Vic20SerialBusBinding(_via1, _via2, _serialBus);
 
         // VIA2 port B ($9120): row-select (active-low, ORB & DDRB); VIA2 port A ($9121): column
@@ -130,6 +136,19 @@ public sealed class Vic20Machine : IMachine
         MountDisk(path, deviceNumber);
     }
 
+    /// <summary>Whether a disk is currently mounted at <paramref name="deviceNumber"/>.</summary>
+    public bool HasDisk(int deviceNumber = 8) => _mountedDrives.Any(d => d.Id == $"ieee488:{deviceNumber}");
+
+    /// <summary>Returns whether a real IEC byte crossed the bus since the last call, then clears
+    /// the latch. Line changes are intentionally excluded so a Desktop LED reflects data traffic,
+    /// not the bus's continuously changing handshake lines.</summary>
+    public bool PollDiskActivity()
+    {
+        var pending = _diskActivityPending;
+        _diskActivityPending = false;
+        return pending;
+    }
+
     /// <summary>Fires for every real bus access (RAM/ROM/chip read or write) the CPU makes - see
     /// <see cref="BusAccess"/>'s doc comment. Optional; zero added cost on the hot path when
     /// unset.</summary>
@@ -163,6 +182,7 @@ public sealed class Vic20Machine : IMachine
         _keyboard.Reset();
         _datasette.Reset();
         _serialBusBinding.Reset();
+        _diskActivityPending = false;
         _lastIrqVector = 0; // RAM is cleared too - matches $0314/5 reading 0 until the KERNAL re-inits it
         _cpu.Reset();
     }

@@ -2,6 +2,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
              x:Class="PetEmulator.Desktop.Views.Controls.DiskDriveControl"
-             x:DataType="viewModels:PetMachineViewModel">
+             x:DataType="viewModels:IDiskDriveViewModel">
     <TextBlock Text="💾" FontSize="14" Foreground="{Binding DiskIconBrush}" ToolTip.Tip="Disk drive 8" />
 </UserControl>
