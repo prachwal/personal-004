@@ -8,6 +8,7 @@ namespace PetEmulator.Desktop.ViewModels.ChipTests;
 
 public sealed partial class Mos6522DebugSession : ObservableObject, IChipDebugSessionViewModel
 {
+    public object? Visual => null;
     private readonly MOS6522 _chip = new("Chip Tester VIA");
     private readonly DispatcherTimer _timer;
     private readonly List<WaveformSample> _samples = [];

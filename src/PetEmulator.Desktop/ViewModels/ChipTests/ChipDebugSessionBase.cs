@@ -45,6 +45,7 @@ public abstract partial class ChipDebugSessionBase : ObservableObject, IChipDebu
     public ObservableCollection<PinRow> Pins { get; }
     public IWaveformSource Timeline { get; }
     public string WindowTitle { get; }
+    public virtual object? Visual => null;
     public string StatusText => IsRunning ? $"Running, step {_step}" : $"Paused, step {_step}";
 
     [RelayCommand]

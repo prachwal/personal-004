@@ -5,6 +5,7 @@ namespace PetEmulator.Desktop.ViewModels;
 
 public interface IChipDebugSessionViewModel : IShellModule
 {
+    object? Visual { get; }
     ObservableCollection<RegisterRow> Registers { get; }
     ObservableCollection<PinRow> Pins { get; }
     IWaveformSource Timeline { get; }
