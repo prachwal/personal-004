@@ -38,7 +38,13 @@ public sealed class Pet2001GraphicsKeyboardMap : IPetKeyboardMap
     public IReadOnlyList<MatrixAction> Translate(string hostKey, HostKeyEventKind kind)
     {
         if (PetKeyboardMapPrimitives.PlusKeys.Contains(hostKey))
-            return PetKeyboardMapPrimitives.PlusForceReleaseShift(7, 7, kind);
+            return PetKeyboardMapPrimitives.ForceReleaseShift(7, 7, kind);
+        // Same fix as '+' above: on a modern keyboard '"' needs Shift+' held, but this cell
+        // already means '"' unshifted on the real PET - live Shift+Quote was pressing (8,0)/(8,5)
+        // alongside it and the real ROM decoded that combo to something else (a graphics glyph,
+        // not '"'). Force-release both Shift cells the same way '+' does.
+        if (hostKey == "Quote")
+            return PetKeyboardMapPrimitives.ForceReleaseShift(1, 0, kind);
 
         return Table.TryGetValue(hostKey, out var cell)
             ? [new MatrixAction(cell.Row, cell.Column, kind == HostKeyEventKind.Press)]
