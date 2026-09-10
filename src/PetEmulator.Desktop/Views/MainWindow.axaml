@@ -58,6 +58,9 @@
                   <DataTemplate DataType="viewModels:OpcodeStepperViewModel">
                       <views:OpcodeStepperView />
                   </DataTemplate>
+                  <DataTemplate DataType="viewModels:KeyboardMatrixViewModel">
+                      <views:KeyboardMatrixView />
+                  </DataTemplate>
             </ContentControl.DataTemplates>
         </ContentControl>
     </DockPanel>
