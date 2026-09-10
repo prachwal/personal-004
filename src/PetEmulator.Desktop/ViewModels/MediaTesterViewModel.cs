@@ -11,6 +11,8 @@ public sealed partial class MediaTesterViewModel : ObservableObject, IShellModul
     private readonly IFilePickerService _filePicker;
     private D64Image? _disk;
 
+    public MediaByteStreamViewModel Stream { get; } = new();
+
     [ObservableProperty]
     private string _statusText = "Open a D64 disk image";
 
@@ -32,12 +34,18 @@ public sealed partial class MediaTesterViewModel : ObservableObject, IShellModul
         _disk = D64Image.Load(path);
         Directory.Clear();
         foreach (var entry in _disk.ReadDirectory())
-            Directory.Add(new MediaDirectoryEntry(entry.Filename, entry.Type.ToString(), entry.SizeInSectors));
+            Directory.Add(new MediaDirectoryEntry(entry.Filename, entry.Type.ToString(), entry.SizeInSectors, entry));
         StatusText = $"{Path.GetFileName(path)}  {_disk.DiskName.Trim()} / {_disk.DiskId.Trim()}  " +
             $"{Directory.Count} file(s)";
+    }
+
+    public void PreviewFile(MediaDirectoryEntry entry)
+    {
+        if (_disk is not null)
+            Stream.AddBytes(_disk.ReadFile(entry.Entry), entry.Name);
     }
 
     public void Dispose() { }
 }
 
-public sealed record MediaDirectoryEntry(string Name, string Type, int SizeInSectors);
+public sealed record MediaDirectoryEntry(string Name, string Type, int SizeInSectors, DirEntry Entry);

@@ -1,13 +1,14 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
              x:Class="PetEmulator.Desktop.Views.MediaTesterView"
              x:DataType="viewModels:MediaTesterViewModel">
-    <Grid Margin="24" RowDefinitions="Auto,Auto,*" RowSpacing="12">
+    <Grid Margin="24" RowDefinitions="Auto,Auto,*,2*" RowSpacing="12">
         <TextBlock Text="{Binding StatusText}" FontSize="20" />
         <Button Grid.Row="1" Content="Open D64..." Command="{Binding OpenDiskCommand}" HorizontalAlignment="Left" />
-        <ItemsControl Grid.Row="2" ItemsSource="{Binding Directory}">
-            <ItemsControl.ItemTemplate>
+        <ListBox Grid.Row="2" ItemsSource="{Binding Directory}" SelectionChanged="OnEntrySelected">
+            <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="viewModels:MediaDirectoryEntry">
                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="24" Margin="0,3">
                         <TextBlock Text="{Binding Name}" />
@@ -15,7 +16,14 @@
                         <TextBlock Grid.Column="2" Text="{Binding SizeInSectors, StringFormat='{}{0} blocks'}" />
                     </Grid>
                 </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <Grid Grid.Row="3" RowDefinitions="Auto,*" RowSpacing="8">
+            <TextBlock Text="Byte stream / bus activity" FontWeight="Bold" />
+            <Grid Grid.Row="1" ColumnDefinitions="2*,3*" ColumnSpacing="12">
+                <controls:WaveformControl Source="{Binding Stream.Timeline}" />
+                <ItemsControl Grid.Column="1" ItemsSource="{Binding Stream.Events}" />
+            </Grid>
+        </Grid>
     </Grid>
 </UserControl>
