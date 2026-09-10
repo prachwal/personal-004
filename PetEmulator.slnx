@@ -3,13 +3,13 @@
     <Project Path="lib/PetEmulator.Core/PetEmulator.Core.csproj" />
     <Project Path="lib/PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
     <Project Path="lib/PetEmulator.Chips/PetEmulator.Chips.csproj" />
+    <Project Path="lib/PetEmulator.Debugger/PetEmulator.Debugger.csproj" />
+    <Project Path="lib/PetEmulator.DebugApi/PetEmulator.DebugApi.csproj" />
+    <Project Path="lib/PetEmulator.Screenshot/PetEmulator.Screenshot.csproj" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/PetEmulator.DebugApi/PetEmulator.DebugApi.csproj" />
     <Project Path="src/PetEmulator.Pet/PetEmulator.Pet.csproj" />
     <Project Path="src/PetEmulator.Vic20/PetEmulator.Vic20.csproj" />
-    <Project Path="src/PetEmulator.Screenshot/PetEmulator.Screenshot.csproj" />
-    <Project Path="src/PetEmulator.Debugger/PetEmulator.Debugger.csproj" />
     <Project Path="src/PetEmulator.Desktop/PetEmulator.Desktop.csproj" />
     <Project Path="src/PetEmulator.Cli/PetEmulator.Cli.csproj" />
   </Folder>

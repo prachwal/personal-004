@@ -16,7 +16,7 @@ namespace PetEmulator.Screenshot;
 /// saves one frame to a PNG. Built because this dev environment has no screenshot tool
 /// (import/scrot/xwd) and installing one needs root it doesn't have.
 ///
-/// Usage: dotnet run --project src/PetEmulator.Screenshot -- [--machine pet|vic20]
+/// Usage: dotnet run --project lib/PetEmulator.Screenshot -- [--machine pet|vic20]
 ///   [--ticks N] [--out path.png]
 /// </summary>
 internal static class Program
