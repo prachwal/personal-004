@@ -1,8 +1,10 @@
 using Avalonia.Input;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PetEmulator.Core;
 using PetEmulator.Pet.Keyboard;
+using PetEmulator.Pet.Tape;
 using PetEmulator.Vic20;
 using PetEmulator.Vic20.Display;
 using PetEmulator.Vic20.Keyboard;
@@ -12,8 +14,11 @@ namespace PetEmulator.Desktop;
 /// <summary>
 /// Owns a running <see cref="Vic20Machine"/>, its render loop, and keyboard translation - the
 /// VIC-20 implementation of <see cref="IMachineViewModel"/>, mirroring
-/// <see cref="PetMachineViewModel"/>'s shape exactly. No devices modeled yet (v1 scope cut - see
-/// docs/vic20-migration-plan.md), so <see cref="Devices"/> is always empty.
+/// <see cref="PetMachineViewModel"/>'s shape exactly, tape widget included (see
+/// <see cref="Vic20Machine.Datasette"/>, added by docs/vic20-tape.md). <see cref="Devices"/>
+/// excludes the datasette itself (own dedicated widget) the same way PetMachineViewModel's does;
+/// nothing else is modeled yet, so today it only ever yields the datasette's own entry filtered
+/// back out - effectively always empty, but wired generically like PET's for whatever's next.
 /// </summary>
 public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineViewModel
 {
@@ -29,6 +34,18 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
 
     [ObservableProperty]
     private string _statusText = "PC=0x0000 A=0x00 X=0x00 Y=0x00 SP=0x00 P=0x00 Cycles=0 Instructions=0";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TapeIconBrush))]
+    private bool _tapeLoaded;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TapeIconBrush))]
+    private bool _tapePlaying;
+
+    /// <summary>Same feedback loop as PetMachineViewModel.TapeIconBrush - see that property's doc
+    /// comment.</summary>
+    public IBrush TapeIconBrush => !TapeLoaded ? Brushes.Gray : TapePlaying ? Brushes.LimeGreen : Brushes.LightGray;
 
     public Vic20MachineViewModel(string romsRoot)
     {
@@ -55,12 +72,31 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
 
     public object? Extra => null;
 
-    /// <summary>Always empty - no devices modeled for VIC-20 yet (v1 scope cut).</summary>
-    public IReadOnlyList<IDeviceStatus> Devices => [];
+    /// <summary>Refreshed every <see cref="Tick"/> from <see cref="Vic20Machine.Devices"/>, minus
+    /// the datasette - see this class's own doc comment.</summary>
+    [ObservableProperty]
+    private IReadOnlyList<IDeviceStatus> _devices = [];
 
     public uint[] FrameBuffer { get; }
 
     public void Reset() => _machine.Reset();
+
+    /// <summary>Loads a VICE-style .tap file into the running machine's datasette - see
+    /// <see cref="PetMachineViewModel.LoadTape"/>'s identical doc comment.</summary>
+    public void LoadTape(string path)
+    {
+        var tap = PetTapFile.Parse(File.ReadAllBytes(path));
+        _machine.Datasette.LoadTape(tap.PulseCycles, Path.GetFileName(path));
+    }
+
+    [RelayCommand]
+    private void PlayTape() => _machine.Datasette.PressPlay();
+
+    [RelayCommand]
+    private void StopTape() => _machine.Datasette.Stop();
+
+    [RelayCommand]
+    private void EjectTape() => _machine.Datasette.Eject();
 
     public void HandleKey(Key key, HostKeyEventKind kind)
     {
@@ -89,6 +125,10 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
             $"PC=0x{regs["PC"]:X4} A=0x{regs["A"]:X2} X=0x{regs["X"]:X2} Y=0x{regs["Y"]:X2} " +
             $"SP=0x{regs["SP"]:X2} P=0x{regs["P"]:X2} " +
             $"Cycles={_machine.Processor.CycleCount} Instructions={_machine.Processor.InstructionCount}";
+
+        Devices = _machine.Devices.Where(d => d.Id is not "datasette").ToList();
+        TapeLoaded = _machine.Datasette.HasTape;
+        TapePlaying = _machine.Datasette.PlayPressed && _machine.Datasette.MotorOn;
 
         FrameReady?.Invoke(this, EventArgs.Empty);
     }

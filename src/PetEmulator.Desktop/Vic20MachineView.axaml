@@ -9,26 +9,34 @@
             <TextBlock FontFamily="monospace" Foreground="#FF8DFF72" Text="{Binding StatusText}" />
         </Border>
 
-        <!-- No devices modeled for VIC-20 yet (Devices is always empty - see
-             Vic20MachineViewModel's doc comment) - kept generic (not omitted) so a future device
-             (cartridge, tape) shows up here automatically, the same contract PetMachineView
-             relies on. -->
+        <!-- Datasette gets its own dedicated icon+buttons (see PetMachineView's identical block
+             and Vic20MachineViewModel's doc comment); any other future device (cartridge, ...)
+             shows up in the generic ItemsControl below with no XAML change needed here. -->
         <Border DockPanel.Dock="Bottom" Background="#FF161616" Padding="8,4">
-            <ItemsControl ItemsSource="{Binding Devices}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" Spacing="16" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="core:IDeviceStatus">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="{Binding Icon}" FontSize="14" />
-                            <TextBlock FontFamily="monospace" Foreground="#FFAAAAAA" Text="{Binding StatusText}" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <StackPanel Orientation="Horizontal" Spacing="4" ToolTip.Tip="Datasette">
+                    <TextBlock Text="📼" FontSize="14" Foreground="{Binding TapeIconBrush}" />
+                    <Button Content="▶" Padding="4,0" Command="{Binding PlayTapeCommand}" ToolTip.Tip="Press play" />
+                    <Button Content="⏹" Padding="4,0" Command="{Binding StopTapeCommand}" ToolTip.Tip="Stop" />
+                    <Button Content="⏏" Padding="4,0" Command="{Binding EjectTapeCommand}" ToolTip.Tip="Eject" />
+                </StackPanel>
+
+                <ItemsControl ItemsSource="{Binding Devices}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="16" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="core:IDeviceStatus">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="{Binding Icon}" FontSize="14" />
+                                <TextBlock FontFamily="monospace" Foreground="#FFAAAAAA" Text="{Binding StatusText}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
         </Border>
 
         <local:PetScreenControl Name="Screen" Focusable="True" />

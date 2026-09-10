@@ -67,14 +67,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         old.Dispose();
     }
 
-    /// <summary>Loads a VICE-style .tap file into the current machine's datasette, if it has one
-    /// (only <see cref="PetMachineViewModel"/> does - VIC-20 has no tape support in v1). The
-    /// file-picker dialog itself is Avalonia-specific glue that lives in <see cref="MainWindow"/>'s
-    /// code-behind (needs a <c>TopLevel</c>), which calls straight through to this.</summary>
+    /// <summary>Loads a VICE-style .tap file into the current machine's datasette, if it has one -
+    /// both <see cref="PetMachineViewModel"/> and <see cref="Vic20MachineViewModel"/> do (see
+    /// docs/vic20-tape.md). The file-picker dialog itself is Avalonia-specific glue that lives in
+    /// <see cref="MainWindow"/>'s code-behind (needs a <c>TopLevel</c>), which calls straight
+    /// through to this.</summary>
     public void LoadTape(string path)
     {
-        if (CurrentMachine is PetMachineViewModel pet)
-            pet.LoadTape(path);
+        switch (CurrentMachine)
+        {
+            case PetMachineViewModel pet: pet.LoadTape(path); break;
+            case Vic20MachineViewModel vic20: vic20.LoadTape(path); break;
+        }
     }
 
     /// <inheritdoc cref="LoadTape"/>
