@@ -44,4 +44,42 @@ public sealed class Pet2001GraphicsKeyboardMap : IPetKeyboardMap
             ? [new MatrixAction(cell.Row, cell.Column, kind == HostKeyEventKind.Press)]
             : [];
     }
+
+    /// <summary>(Row, Column) -> the character or key name printed there, for display purposes
+    /// (e.g. the Keyboard Matrix demo) - derived from this class's own <see cref="Table"/> (single
+    /// source of truth, not a separately-maintained copy) plus the '+'-family's forced cell.</summary>
+    public static IReadOnlyDictionary<(int Row, int Column), string> CellLabels { get; } = BuildLabels();
+
+    private static IReadOnlyDictionary<(int Row, int Column), string> BuildLabels()
+    {
+        var labels = new Dictionary<(int, int), string>();
+        foreach (var (hostKey, cell) in Table)
+            labels[cell] = ToLabel(hostKey);
+        labels[(7, 7)] = "+";
+        return labels;
+    }
+
+    private static string ToLabel(string hostKey)
+    {
+        if (hostKey.StartsWith("Key", StringComparison.Ordinal))
+            return hostKey[3..];
+        if (hostKey.StartsWith("Digit", StringComparison.Ordinal))
+            return hostKey[5..];
+
+        return hostKey switch
+        {
+            "Space" => "SPACE",
+            "Enter" => "RETURN",
+            "Backspace" => "←",
+            "ShiftLeft" or "ShiftRight" => "SHIFT",
+            "Quote" => "\"",
+            "Comma" => ",",
+            "Period" => ".",
+            "Slash" => "/",
+            "Semicolon" => ";",
+            "Colon" => ":",
+            "Minus" => "-",
+            _ => hostKey,
+        };
+    }
 }

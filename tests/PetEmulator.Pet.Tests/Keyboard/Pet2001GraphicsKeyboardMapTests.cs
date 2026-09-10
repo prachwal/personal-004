@@ -84,4 +84,20 @@ public sealed class Pet2001GraphicsKeyboardMapTests
             else matrix.Release(action.Row, action.Column);
         }
     }
+
+    // CellLabels is derived from Table (single source of truth) for the Keyboard Matrix demo -
+    // spot-checks that the inversion lands on the same cells Translate itself produces.
+    [TestCase(4, 0, "A")]
+    [TestCase(2, 6, "7")]
+    [TestCase(9, 2, "SPACE")]
+    [TestCase(6, 5, "RETURN")]
+    [TestCase(1, 7, "←")]
+    [TestCase(8, 0, "SHIFT")]
+    [TestCase(8, 5, "SHIFT")]
+    [TestCase(7, 3, ",")]
+    [TestCase(7, 7, "+")]
+    public void CellLabels_MatchesWhatTranslateProducesForTheSameCell(int row, int column, string expectedLabel)
+    {
+        Assert.That(Pet2001GraphicsKeyboardMap.CellLabels[(row, column)], Is.EqualTo(expectedLabel));
+    }
 }

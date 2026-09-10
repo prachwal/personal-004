@@ -60,10 +60,12 @@ public sealed partial class KeyboardMatrixViewModel : ObservableObject, IShellMo
         _pet.Reset();
         _vic.Reset();
         Cells.Clear();
-        var rows = SelectedMachine == "PET" ? PetKeyboardMatrix.RowCount : Vic20KeyboardMatrix.RowCount;
+        var isPet = SelectedMachine == "PET";
+        var rows = isPet ? PetKeyboardMatrix.RowCount : Vic20KeyboardMatrix.RowCount;
+        var labels = isPet ? Pet2001GraphicsKeyboardMap.CellLabels : Vic20KeyboardMap.CellLabels;
         for (var row = 0; row < rows; row++)
             for (var column = 0; column < 8; column++)
-                Cells.Add(new KeyboardCell(row, column));
+                Cells.Add(new KeyboardCell(row, column, labels.GetValueOrDefault((row, column), "")));
     }
 
     public void Dispose() { }
@@ -71,10 +73,15 @@ public sealed partial class KeyboardMatrixViewModel : ObservableObject, IShellMo
 
 public sealed partial class KeyboardCell : ObservableObject
 {
-    public KeyboardCell(int row, int column) { Row = row; Column = column; }
+    public KeyboardCell(int row, int column, string label) { Row = row; Column = column; Label = label; }
     public int Row { get; }
     public int Column { get; }
-    public string Label => $"{Row},{Column}";
+
+    /// <summary>The character or key name printed at this matrix cell (e.g. "A", "RETURN",
+    /// "SHIFT") - empty for a real matrix cell no key uses, per
+    /// <see cref="Pet2001GraphicsKeyboardMap.CellLabels"/>/<see cref="Vic20KeyboardMap.CellLabels"/>,
+    /// not the raw (row, column) numbers.</summary>
+    public string Label { get; }
 
     [ObservableProperty]
     private bool _isPressed;
