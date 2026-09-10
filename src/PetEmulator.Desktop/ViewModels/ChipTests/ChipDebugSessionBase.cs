@@ -16,6 +16,8 @@ public abstract partial class ChipDebugSessionBase : ObservableObject, IChipDebu
     private readonly DispatcherTimer _timer;
     private readonly List<WaveformSample> _samples = [];
     private readonly WaveformTimeline _timeline;
+    private IReadOnlyList<ChipStimulus> _stimulus = [];
+    private int _nextStimulus;
     private long _step;
 
     [ObservableProperty]
@@ -69,6 +71,7 @@ public abstract partial class ChipDebugSessionBase : ObservableObject, IChipDebu
     {
         _reset();
         _step = 0;
+        _nextStimulus = 0;
         _samples.Clear();
         Refresh();
     }
@@ -90,12 +93,20 @@ public abstract partial class ChipDebugSessionBase : ObservableObject, IChipDebu
 
     public void Dispose() => _timer.Stop();
 
+    public void LoadStimulus(IReadOnlyList<ChipStimulus> stimulus)
+    {
+        _stimulus = stimulus.OrderBy(item => item.Cycle).ToArray();
+        _nextStimulus = 0;
+    }
+
     private void RunCycles(int cycles)
     {
         for (var i = 0; i < cycles; i++)
         {
             _tick();
             _step++;
+            while (_nextStimulus < _stimulus.Count && _stimulus[_nextStimulus].Cycle <= _step)
+                _stimulus[_nextStimulus++].Apply(this);
             foreach (var pin in _pinDefinitions)
                 AddSample(pin.Name, pin.Read());
         }

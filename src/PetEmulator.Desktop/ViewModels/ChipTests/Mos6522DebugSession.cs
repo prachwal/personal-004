@@ -94,6 +94,8 @@ public sealed partial class Mos6522DebugSession : ObservableObject, IChipDebugSe
 
     public void Dispose() => _timer.Stop();
 
+    public void LoadStimulus(IReadOnlyList<ChipStimulus> stimulus) { }
+
     private void RunCycles(int cycles)
     {
         for (var i = 0; i < cycles; i++)

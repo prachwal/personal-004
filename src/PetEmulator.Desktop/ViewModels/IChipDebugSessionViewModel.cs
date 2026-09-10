@@ -15,11 +15,14 @@ public interface IChipDebugSessionViewModel : IShellModule
     IRelayCommand ResetCommand { get; }
     void PokeRegister(string name, byte value);
     void SetPin(string name, bool level);
+
+    void LoadStimulus(IReadOnlyList<ChipStimulus> stimulus);
 }
 
 public sealed record RegisterRow(string Name, string Value);
 public sealed record PinRow(string Name, bool Level, bool IsWritable);
 public sealed record WaveformSample(long Step, string Signal, bool Level);
+public sealed record ChipStimulus(long Cycle, Action<IChipDebugSessionViewModel> Apply);
 
 public interface IWaveformSource
 {

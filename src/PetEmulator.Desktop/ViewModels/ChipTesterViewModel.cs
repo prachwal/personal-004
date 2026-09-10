@@ -30,6 +30,7 @@ public sealed partial class ChipTesterViewModel : ObservableObject, IShellModule
         {
             SelectedScenario?.Dispose();
             SelectedScenario = scenario.Create();
+            SelectedScenario.LoadStimulus(scenario.Stimulus ?? []);
             OnPropertyChanged(nameof(SelectedScenario));
             OnPropertyChanged(nameof(StatusText));
         }
@@ -40,4 +41,7 @@ public sealed partial class ChipTesterViewModel : ObservableObject, IShellModule
 
 public sealed record ChipTreeNode(string Name, IReadOnlyList<ChipScenarioEntry> Scenarios);
 
-public sealed record ChipScenarioEntry(string Name, Func<IChipDebugSessionViewModel> Create);
+public sealed record ChipScenarioEntry(
+    string Name,
+    Func<IChipDebugSessionViewModel> Create,
+    IReadOnlyList<ChipStimulus>? Stimulus = null);
