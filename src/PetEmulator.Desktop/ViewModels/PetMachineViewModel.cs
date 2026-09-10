@@ -17,7 +17,7 @@ namespace PetEmulator.Desktop.ViewModels;
 /// Owns a running <see cref="PetMachine"/>, its render loop, and keyboard translation - the
 /// PET implementation of <see cref="IMachineViewModel"/>. One instance per profile: switching
 /// profile (<see cref="MainWindowViewModel"/>'s Machine menu) constructs a new instance rather
-/// than mutating this one in place, so <see cref="MainWindowViewModel.CurrentMachine"/> swaps
+/// than mutating this one in place, so <see cref="MainWindowViewModel.CurrentModule"/> swaps
 /// wholesale and any stale event subscription dies with the old instance.
 /// </summary>
 public sealed partial class PetMachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel
