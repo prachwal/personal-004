@@ -131,7 +131,10 @@ public abstract partial class ChipDebugSessionBase : ObservableObject, IChipDebu
         foreach (var pin in _pinDefinitions)
             Pins.Add(new PinRow(pin.Name, pin.Read(), pin.Write is not null));
         OnPropertyChanged(nameof(StatusText));
+        AfterRefresh();
     }
+
+    protected virtual void AfterRefresh() { }
 
     private sealed class WaveformTimeline(IReadOnlyList<WaveformSample> samples) : IWaveformSource
     {

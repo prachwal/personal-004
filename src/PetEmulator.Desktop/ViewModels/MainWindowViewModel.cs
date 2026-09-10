@@ -38,7 +38,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
              .. PetProfileCatalog.All.Select(profile =>
                  new ModuleMenuEntry(profile.Name, () => new PetMachineViewModel(profile, Path.Combine(_romsRoot, "pet")))),
              new ModuleMenuEntry("VIC-20", () => new Vic20MachineViewModel(Path.Combine(_romsRoot, "vic20"))),
-             new ModuleMenuEntry("Chip Tester", () => new ChipTesterViewModel()),
+              new ModuleMenuEntry("Chip Tester", () => new ChipTesterViewModel(_romsRoot)),
          ];
 
         _currentModule = ModuleChoices[0].Create();
