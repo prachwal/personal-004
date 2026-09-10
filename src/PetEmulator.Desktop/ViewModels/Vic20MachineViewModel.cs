@@ -3,6 +3,7 @@ using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PetEmulator.Desktop.Input;
+using PetEmulator.Audio;
 using PetEmulator.Core;
 using PetEmulator.Pet.Keyboard;
 using PetEmulator.Core.Keyboard;
@@ -29,6 +30,7 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
 
     private readonly Vic20Machine _machine;
     private readonly Vic20RasterDisplay _display;
+    private readonly IAudioOutput _audioOutput;
     private readonly Vic20KeyboardMap _keyboardMap = new();
 
     [ObservableProperty]
@@ -55,6 +57,8 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
 
         _machine = new Vic20Machine(romsRoot);
         _display = new Vic20RasterDisplay(_machine.Memory, _machine.Vic);
+        _audioOutput = AudioOutputFactory.CreateDefault();
+        _audioOutput.Start(_machine.Vic);
         FrameBuffer = new uint[_display.PixelWidth * _display.PixelHeight];
 
         // See PetMachineViewModel's constructor for why this fires here (CS0067 + documents
@@ -142,5 +146,5 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
         FrameReady?.Invoke(this, EventArgs.Empty);
     }
 
-    public void Dispose() { }
+    public void Dispose() => _audioOutput.Dispose();
 }
