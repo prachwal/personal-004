@@ -2,6 +2,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Core;
 using PetEmulator.Debugger;
+using PetEmulator.Pet.CbmDos;
 using PetEmulator.Vic20.Tests.Roms;
 
 namespace PetEmulator.Vic20.Tests;
@@ -89,6 +90,55 @@ public sealed class Vic20MachineTests
     }
 
     [Test]
+    public void MountDisk_AddsADriveDeviceStatus()
+    {
+        var machine = CreateMachine();
+        var diskPath = TemporaryDiskPath();
+        try
+        {
+            File.WriteAllBytes(diskPath, D64Image.CreateFormatted("VIC20", "00"));
+
+            machine.MountDisk(diskPath);
+
+            machine.Devices.Should().ContainSingle(d => d.Id == "ieee488:8")
+                .Which.StatusText.Should().Be(Path.GetFileName(diskPath));
+        }
+        finally
+        {
+            File.Delete(diskPath);
+        }
+    }
+
+    [Test]
+    public void MountNewDisk_CreatesAndMountsADrive()
+    {
+        var machine = CreateMachine();
+        var diskPath = TemporaryDiskPath();
+        try
+        {
+            machine.MountNewDisk(diskPath, "VIC20", "00", 9);
+
+            File.Exists(diskPath).Should().BeTrue();
+            machine.Devices.Should().ContainSingle(d => d.Id == "ieee488:9")
+                .Which.StatusText.Should().Be(Path.GetFileName(diskPath));
+        }
+        finally
+        {
+            File.Delete(diskPath);
+        }
+    }
+
+    [Test]
+    public void Reset_AfterConstruction_StillWorks()
+    {
+        var machine = CreateMachine();
+
+        var act = machine.Reset;
+
+        act.Should().NotThrow();
+    }
+
+    [Test]
     [CancelAfter(10_000)]
     public void Run_AdvancesWithoutThrowing()
     {
@@ -138,4 +188,6 @@ public sealed class Vic20MachineTests
     }
 
     private static Vic20Machine CreateMachine() => new(RomLocator.Directory("kernal.bin"));
+
+    private static string TemporaryDiskPath() => Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.d64");
 }

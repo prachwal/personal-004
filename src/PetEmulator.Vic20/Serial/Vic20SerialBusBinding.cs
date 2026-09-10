@@ -52,15 +52,16 @@ public sealed class Vic20SerialBusBinding
 
     private void SyncHostOutputs()
     {
-        // An input-configured VIA pin releases an open-collector IEC line.
+        // The VIC-20's IEC transceivers invert the VIA outputs: a low VIA pin releases the
+        // active-low open-collector bus line, while a high pin pulls it low.
         SetIfChanged(ref _lastAtn,
-            (_via1.DDRA & AtnOutput) == 0 || (_via1.ORA & AtnOutput) != 0,
+            (_via1.DDRA & AtnOutput) == 0 || (_via1.ORA & AtnOutput) == 0,
             _bus.SetHostAtn);
         SetIfChanged(ref _lastClockOutput,
-            !IsCa2Output() || _via2.CA2Output,
+            !IsCa2Output() || !_via2.CA2Output,
             _bus.SetHostClock);
         SetIfChanged(ref _lastDataOutput,
-            !IsCb2Output() || _via2.CB2Output,
+            !IsCb2Output() || !_via2.CB2Output,
             _bus.SetHostData);
     }
 

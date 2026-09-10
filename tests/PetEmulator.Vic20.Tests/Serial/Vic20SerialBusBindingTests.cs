@@ -18,40 +18,47 @@ public sealed class Vic20SerialBusBindingTests
 
         via1.Write(MOS6522.Ddra, 0x80);
         via1.Write(MOS6522.OraWithoutHandshake, 0x00);
-        via2.Write(MOS6522.PeripheralControl, 0xCC); // CA2/CB2 forced low
-        binding.Tick();
-
-        bus.ATN.Should().BeFalse();
-        bus.CLK.Should().BeFalse();
-        bus.DATA.Should().BeFalse();
-
-        via1.Write(MOS6522.OraWithoutHandshake, 0x80);
-        via2.Write(MOS6522.PeripheralControl, 0xEE); // CA2/CB2 forced high
+        via2.Write(MOS6522.PeripheralControl, 0xCC); // VIA outputs low: IEC transceivers release lines
         binding.Tick();
 
         bus.ATN.Should().BeTrue();
         bus.CLK.Should().BeTrue();
         bus.DATA.Should().BeTrue();
+
+        via1.Write(MOS6522.OraWithoutHandshake, 0x80);
+        via2.Write(MOS6522.PeripheralControl, 0xEE); // VIA outputs high: IEC transceivers assert lines
+        binding.Tick();
+
+        bus.ATN.Should().BeFalse();
+        bus.CLK.Should().BeFalse();
+        bus.DATA.Should().BeFalse();
     }
 
     [Test]
     public void Bus_talker_levels_update_via1_clock_and_data_inputs()
     {
         var bus = new Vic20SerialBus();
-        var device = new FakeDevice(8, 0x00);
+        var device = new FakeDevice(8, 0x00, 0xFF);
         bus.AttachDevice(device);
         SelectTalker(bus);
 
         var via1 = new MOS6522();
         var via2 = new MOS6522();
-        via2.Write(MOS6522.PeripheralControl, 0xEE); // release host CLK/DATA
+        via2.Write(MOS6522.PeripheralControl, 0xCC); // low VIA outputs release host CLK/DATA
         var binding = new Vic20SerialBusBinding(via1, via2, bus);
+
+        // The newly-addressed talker acknowledges (pulses CLK low, unprompted) before it starts
+        // the per-byte ready handshake - see Vic20SerialBus.TalkerAcknowledgePulseCycles.
+        for (var i = 0; i < 100; i++)
+            binding.Tick();
 
         binding.Tick(); // the talker asserts CLK and drives the zero data bit low
 
         (via1.PortAInput & 0x03).Should().Be(0x00);
 
-        binding.Tick(); // the talker releases CLK; DATA remains the current bit
+        for (var i = 0; i < 100; i++)
+            binding.Tick(); // the talker holds each bit phase long enough for the KERNAL poll loop -
+                             // see Vic20SerialBus.BitPhaseCycles
 
         (via1.PortAInput & 0x01).Should().Be(0x01);
         (via1.PortAInput & 0x02).Should().Be(0x00);
@@ -66,6 +73,10 @@ public sealed class Vic20SerialBusBindingTests
 
     private static void SendByte(Vic20SerialBus bus, byte data)
     {
+        bus.SetHostClock(false);
+        bus.SetHostData(true);
+        bus.SetHostClock(true);
+
         for (int bit = 0; bit < 8; bit++)
         {
             bus.SetHostData((data & (1 << bit)) != 0);

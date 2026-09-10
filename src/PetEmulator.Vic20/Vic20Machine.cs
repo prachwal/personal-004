@@ -1,10 +1,13 @@
 using PetEmulator.Cpu6502.Variants;
 using PetEmulator.Core;
+using PetEmulator.Pet.CbmDos;
+using PetEmulator.Pet.Devices;
 using PetEmulator.Pet.Tape;
 using PetEmulator.Chips;
 using PetEmulator.Vic20.Devices;
 using PetEmulator.Vic20.Keyboard;
 using PetEmulator.Vic20.Roms;
+using PetEmulator.Vic20.Serial;
 using PetEmulator.Vic20.Tape;
 
 namespace PetEmulator.Vic20;
@@ -29,6 +32,9 @@ public sealed class Vic20Machine : IMachine
     private readonly MOS2114 _colorRam;
     private readonly Vic20KeyboardMatrix _keyboard = new();
     private readonly Vic20Datasette _datasette;
+    private readonly Vic20SerialBus _serialBus;
+    private readonly Vic20SerialBusBinding _serialBusBinding;
+    private readonly List<PetIeeeDriveStatus> _mountedDrives = [];
 
     // The real KERNAL's IRQ vector ($0314/$0315, "CINV") while idle - both LOAD and SAVE
     // temporarily redirect it to their own tape ISR for the duration of the operation, then
@@ -55,6 +61,8 @@ public sealed class Vic20Machine : IMachine
         _memoryBus = new Vic20MemoryBus(roms, _vic, _via1, _via2, _colorRam);
         _cpu = new Cpu6502Classic(_memoryBus);
         _datasette = new Vic20Datasette(_via1, _via2);
+        _serialBus = new Vic20SerialBus();
+        _serialBusBinding = new Vic20SerialBusBinding(_via1, _via2, _serialBus);
 
         // VIA2 port B ($9120): row-select (active-low, ORB & DDRB); VIA2 port A ($9121): column
         // readback for the selected row. Confirmed against the real KERNAL disassembly
@@ -94,10 +102,30 @@ public sealed class Vic20Machine : IMachine
     public Vic20Datasette Datasette => _datasette;
 
     /// <summary>Every peripheral currently attached and worth a GUI status icon for - see
-    /// <see cref="IDeviceStatus"/>'s doc comment. Mirrors <c>PetMachine.Devices</c>'s shape;
-    /// just the datasette for now (no disk drive on an unexpanded VIC-20's IEEE-488... it has
-    /// none - see docs/vic20-migration-plan.md's scope cuts).</summary>
-    public IReadOnlyList<IDeviceStatus> Devices => [new Vic20DatasetteStatus(_datasette)];
+    /// <see cref="IDeviceStatus"/>'s doc comment. Rebuilt on each access so it reflects the
+    /// latest <see cref="MountDisk"/>/<see cref="Datasette"/> state.</summary>
+    public IReadOnlyList<IDeviceStatus> Devices => [new Vic20DatasetteStatus(_datasette), .. _mountedDrives];
+
+    /// <summary>Mounts a D64 disk image on the IEC serial bus at <paramref name="deviceNumber"/>.
+    /// Replaces any drive already attached at that address.</summary>
+    public void MountDisk(string path, int deviceNumber = 8)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        var image = D64Image.Load(path);
+        var drive = new PetIeeeDiskDrive(deviceNumber);
+        drive.Engine.AttachImage(image);
+        _serialBus.AttachDevice(drive);
+        _mountedDrives.RemoveAll(d => d.Id == $"ieee488:{deviceNumber}");
+        _mountedDrives.Add(new PetIeeeDriveStatus(deviceNumber, Path.GetFileName(path)));
+    }
+
+    /// <summary>Creates a formatted, writable D64 at <paramref name="path"/> and mounts it.</summary>
+    public void MountNewDisk(string path, string diskName, string diskId = "00", int deviceNumber = 8)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        File.WriteAllBytes(path, D64Image.CreateFormatted(diskName, diskId));
+        MountDisk(path, deviceNumber);
+    }
 
     /// <summary>Fires for every real bus access (RAM/ROM/chip read or write) the CPU makes - see
     /// <see cref="BusAccess"/>'s doc comment. Optional; zero added cost on the hot path when
@@ -131,6 +159,7 @@ public sealed class Vic20Machine : IMachine
         _colorRam.Reset();
         _keyboard.Reset();
         _datasette.Reset();
+        _serialBusBinding.Reset();
         _lastIrqVector = 0; // RAM is cleared too - matches $0314/5 reading 0 until the KERNAL re-inits it
         _cpu.Reset();
     }
@@ -146,7 +175,10 @@ public sealed class Vic20Machine : IMachine
         _via2.Tick(cycles);
 
         for (var i = 0UL; i < cycles; i++)
+        {
             _datasette.Tick();
+            _serialBusBinding.Tick();
+        }
 
         CaptureSaveIfDispatched();
 
