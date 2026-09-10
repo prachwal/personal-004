@@ -13,6 +13,34 @@ public sealed class Vic20DiskEndToEndTests
 {
     [Test]
     [CancelAfter(60_000)]
+    public void LoadReadsARealProgramFromTheRepositoryDiskImage()
+    {
+        var romsRoot = RomLocator.Directory("kernal.bin");
+        var diskPath = Path.Combine(romsRoot, "test-disks", "vic20-load.d64");
+        var image = D64Image.Load(diskPath);
+        var entry = image.ReadDirectory().First(e => e.Type == FileType.Prg && e.SizeInSectors > 0);
+        var fileName = new string(entry.FilenameBytes
+            .Select(value => value == 0xA0 ? ' ' : (char)value)
+            .ToArray()).TrimEnd();
+        var expected = image.ReadFile(entry);
+        var loadAddress = (ushort)(expected[0] | expected[1] << 8);
+        var payload = expected[2..];
+        var machine = BootMachine(diskPath);
+
+        Vic20TextTyper.Type(machine, $"LOAD\"{fileName}\",8\n",
+            holdInstructions: 12_000, gapInstructions: 12_000);
+
+        loadAddress.Should().Be(0x1001, "the VIC-20 fixture must use the VIC-20 BASIC start address");
+        machine.RunUntil(_ => PayloadMatches(machine, loadAddress, payload), 2_000_000)
+            .Should().BeTrue("LOAD should write the full program payload to the VIC-20 BASIC start address");
+
+        for (var i = 0; i < payload.Length; i++)
+            machine.Memory.Read((ushort)(loadAddress + i)).Should().Be(payload[i],
+                $"byte {i} of {fileName} should match the repository D64 image");
+    }
+
+    [Test]
+    [CancelAfter(60_000)]
     public void LoadDirectoryThenList_ShowsTheMountedDisksName()
     {
         const string DiskName = "IECEND";
@@ -97,6 +125,14 @@ public sealed class Vic20DiskEndToEndTests
             if (match) count++;
         }
         return count;
+    }
+
+    private static bool PayloadMatches(Vic20Machine machine, ushort startAddress, byte[] payload)
+    {
+        for (var i = 0; i < payload.Length; i++)
+            if (machine.Memory.Read((ushort)(startAddress + i)) != payload[i])
+                return false;
+        return true;
     }
 
     private static int CountScreenCode(Vic20Machine machine, byte code)
