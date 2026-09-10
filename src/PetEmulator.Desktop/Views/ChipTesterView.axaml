@@ -35,6 +35,9 @@
                                      <DataTemplate DataType="chipTests:CrtcPreviewViewModel">
                                          <controls:ChipVisualControl />
                                      </DataTemplate>
+                                     <DataTemplate DataType="chipTests:VicPreviewViewModel">
+                                         <controls:ChipVisualControl />
+                                     </DataTemplate>
                                  </ContentControl.DataTemplates>
                              </ContentControl>
                              <controls:WaveformControl Grid.Row="3" Source="{Binding Timeline}" />

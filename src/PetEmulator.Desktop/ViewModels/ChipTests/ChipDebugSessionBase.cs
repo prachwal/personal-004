@@ -37,7 +37,7 @@ public abstract partial class ChipDebugSessionBase : ObservableObject, IChipDebu
         _timeline = new WaveformTimeline(_samples);
         Timeline = _timeline;
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
-        _timer.Tick += (_, _) => RunCycles(100);
+        _timer.Tick += (_, _) => RunCycles(TimerCyclesPerTick);
         Refresh();
     }
 
@@ -46,6 +46,7 @@ public abstract partial class ChipDebugSessionBase : ObservableObject, IChipDebu
     public IWaveformSource Timeline { get; }
     public string WindowTitle { get; }
     public virtual object? Visual => null;
+    protected virtual int TimerCyclesPerTick => 100;
     public string StatusText => IsRunning ? $"Running, step {_step}" : $"Paused, step {_step}";
 
     [RelayCommand]
@@ -92,7 +93,7 @@ public abstract partial class ChipDebugSessionBase : ObservableObject, IChipDebu
         Refresh();
     }
 
-    public void Dispose() => _timer.Stop();
+    public virtual void Dispose() => _timer.Stop();
 
     public void LoadStimulus(IReadOnlyList<ChipStimulus> stimulus)
     {
