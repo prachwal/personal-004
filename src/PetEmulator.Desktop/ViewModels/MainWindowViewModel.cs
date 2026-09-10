@@ -8,6 +8,7 @@ using PetEmulator.Desktop.Services;
 using PetEmulator.Desktop.Views;
 using PetEmulator.Pet;
 using PetEmulator.Pet.Keyboard;
+using PetEmulator.Vic20;
 
 namespace PetEmulator.Desktop.ViewModels;
 
@@ -37,7 +38,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         [
              .. PetProfileCatalog.All.Select(profile =>
                  new ModuleMenuEntry(profile.Name, () => new PetMachineViewModel(profile, Path.Combine(_romsRoot, "pet")))),
-              new ModuleMenuEntry("VIC-20", () => new Vic20MachineViewModel(Path.Combine(_romsRoot, "vic20"))),
+               .. Vic20ExpansionPresetCatalog.All.Select(preset =>
+                   new ModuleMenuEntry(preset.Label, () => new Vic20MachineViewModel(
+                       Path.Combine(_romsRoot, "vic20"), preset.Preset))),
               new ModuleMenuEntry("Chip Tester", () => new ChipTesterViewModel(_romsRoot)),
               new ModuleMenuEntry("Media Tester", () => new MediaTesterViewModel(_filePicker)),
               new ModuleMenuEntry("Font / Glyph Viewer", () => new FontViewerViewModel(_romsRoot)),

@@ -51,11 +51,13 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     /// comment.</summary>
     public IBrush TapeIconBrush => !TapeLoaded ? Brushes.Gray : TapePlaying ? Brushes.LimeGreen : Brushes.LightGray;
 
-    public Vic20MachineViewModel(string romsRoot)
+    public Vic20MachineViewModel(
+        string romsRoot,
+        Vic20ExpansionPreset expansionPreset = Vic20ExpansionPreset.Unexpanded)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
 
-        _machine = new Vic20Machine(romsRoot);
+        _machine = new Vic20Machine(romsRoot, expansionPreset: expansionPreset);
         _display = new Vic20RasterDisplay(_machine.Memory, _machine.Vic);
         _audioOutput = AudioOutputFactory.CreateDefault();
         _audioOutput.Start(_machine.Vic);

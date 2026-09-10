@@ -46,7 +46,10 @@ public sealed class Vic20Machine : IMachine
     private const ushort SaveDispatchVector = 0xFCA8; // WRTZ
     private ushort _lastIrqVector = DefaultIrqVector;
 
-    public Vic20Machine(string romsRoot, Vic20DisplayConfig? displayConfig = null)
+    public Vic20Machine(
+        string romsRoot,
+        Vic20DisplayConfig? displayConfig = null,
+        Vic20ExpansionPreset expansionPreset = Vic20ExpansionPreset.Unexpanded)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
 
@@ -58,7 +61,7 @@ public sealed class Vic20Machine : IMachine
         _via2 = new MOS6522("VIA2", Vic20MemoryMap.Via2BaseAddress);
         _colorRam = new MOS2114("Color RAM", Vic20MemoryMap.ColorRamStart, Vic20MemoryMap.ColorRamSize);
 
-        _memoryBus = new Vic20MemoryBus(roms, _vic, _via1, _via2, _colorRam);
+        _memoryBus = new Vic20MemoryBus(roms, _vic, _via1, _via2, _colorRam, expansionPreset);
         _cpu = new Cpu6502Classic(_memoryBus);
         _datasette = new Vic20Datasette(_via1, _via2);
         _serialBus = new Vic20SerialBus();

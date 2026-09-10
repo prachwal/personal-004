@@ -55,6 +55,33 @@ public sealed class Vic20MemoryBusTests
         bus.Read(0xA000).Should().Be(0xFF, "the cartridge window is unmapped in v1 - see plan step 5");
     }
 
+    [TestCase(Vic20ExpansionPreset.ThreeK, 0x0400, 0x2000)]
+    [TestCase(Vic20ExpansionPreset.EightK, 0x2000, 0x0400)]
+    [TestCase(Vic20ExpansionPreset.SixteenK, 0x4000, 0x6000)]
+    [TestCase(Vic20ExpansionPreset.TwentyFourK, 0x6000, 0xA000)]
+    public void ExpansionPreset_EnablesExpectedRamAndLeavesNextBlockUnmapped(
+        Vic20ExpansionPreset preset, int enabledAddress, int unmappedAddress)
+    {
+        var bus = CreateBus(expansionPreset: preset);
+
+        bus.Write((ushort)enabledAddress, 0x42);
+        bus.Read((ushort)enabledAddress).Should().Be(0x42);
+        bus.Read((ushort)unmappedAddress).Should().Be(0xFF);
+    }
+
+    [Test]
+    public void AllExpansionPreset_EnablesEveryRamBlock()
+    {
+        var bus = CreateBus(expansionPreset: Vic20ExpansionPreset.All);
+        ushort[] addresses = [0x0400, 0x2000, 0x4000, 0x6000, 0xA000];
+
+        foreach (var address in addresses)
+        {
+            bus.Write(address, 0x42);
+            bus.Read(address).Should().Be(0x42);
+        }
+    }
+
     [Test]
     public void VicRegisters_RouteThroughToTheChip()
     {
@@ -91,7 +118,9 @@ public sealed class Vic20MemoryBusTests
         events.Should().ContainSingle(e => !e.IsWrite && e.Address == 0x0080 && e.Value == 0x42);
     }
 
-    private static Vic20MemoryBus CreateBus(MOS6560? vic = null)
+    private static Vic20MemoryBus CreateBus(
+        MOS6560? vic = null,
+        Vic20ExpansionPreset expansionPreset = Vic20ExpansionPreset.Unexpanded)
     {
         var romsRoot = RomLocator.Directory("kernal.bin");
         var roms = Vic20RomLoader.Load(romsRoot, Vic20RomManifest.Ntsc);
@@ -99,6 +128,6 @@ public sealed class Vic20MemoryBusTests
         var via1 = new MOS6522("VIA1", 0x9110);
         var via2 = new MOS6522("VIA2", 0x9120);
         var colorRam = new MOS2114("Color RAM", 0x9400, 0x0400);
-        return new Vic20MemoryBus(roms, vic, via1, via2, colorRam);
+        return new Vic20MemoryBus(roms, vic, via1, via2, colorRam, expansionPreset);
     }
 }
