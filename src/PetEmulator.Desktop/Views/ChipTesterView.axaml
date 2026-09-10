@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             x:Class="PetEmulator.Desktop.Views.ChipTesterView"
+             x:DataType="viewModels:ChipTesterViewModel">
+    <Grid ColumnDefinitions="260,*">
+        <Border Grid.Column="0" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="12">
+            <TreeView ItemsSource="{Binding Chips}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+                <TreeView.DataTemplates>
+                    <TreeDataTemplate DataType="viewModels:ChipTreeNode" ItemsSource="{Binding Scenarios}">
+                        <TextBlock Text="{Binding Name}" />
+                    </TreeDataTemplate>
+                    <DataTemplate x:DataType="viewModels:ChipScenarioEntry">
+                        <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                </TreeView.DataTemplates>
+            </TreeView>
+        </Border>
+        <Border Grid.Column="1" Padding="24">
+            <TextBlock Text="Select a chip scenario" FontSize="20" />
+        </Border>
+    </Grid>
+</UserControl>
