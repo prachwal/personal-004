@@ -73,6 +73,30 @@ public sealed class D64ImageTests
     }
 
     [Test]
+    public void ReadSectorMap_ReturnsEveryD64SectorAndMarksReservedSectors()
+    {
+        var img = D64Image.Load(Path.Combine(TestDisksDirectory, "games-1.d64"));
+
+        var map = img.ReadSectorMap();
+
+        map.Should().HaveCount(683);
+        map.Should().ContainSingle(sector => sector.Track == 18 && sector.Sector == 0 && sector.IsAllocated);
+        map.Should().ContainSingle(sector => sector.Track == 18 && sector.Sector == 1 && sector.IsAllocated);
+    }
+
+    [Test]
+    public void ReadFileSectors_FollowsTheDirectoryEntryChain()
+    {
+        var img = D64Image.Load(Path.Combine(TestDisksDirectory, "games-1.d64"));
+        var entry = img.ReadDirectory().First(e => e.Type == FileType.Prg);
+
+        var sectors = img.ReadFileSectors(entry);
+
+        sectors.Should().HaveCount(entry.SizeInSectors);
+        sectors[0].Should().Be(new D64SectorAddress(entry.StartTrack, entry.StartSector));
+    }
+
+    [Test]
     public void TrackSectorToOffset_StandardPositions()
     {
         D64Image.TrackSectorToOffset(18, 0).Should().Be(0x16500);

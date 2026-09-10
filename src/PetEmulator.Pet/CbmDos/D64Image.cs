@@ -99,6 +99,44 @@ public sealed class D64Image
         return result;
     }
 
+    /// <summary>Returns the BAM allocation state for every sector on a standard 35-track D64.</summary>
+    public IReadOnlyList<D64SectorInfo> ReadSectorMap()
+    {
+        var result = new List<D64SectorInfo>(TotalSectors);
+        var bam = TrackSectorToOffset(18, 0);
+
+        for (var track = 1; track <= SectorsPerTrack.Length; track++)
+        {
+            var bamEntry = bam + 4 + (track - 1) * 4;
+            var bitmap = _data[bamEntry + 1] |
+                         (_data[bamEntry + 2] << 8) |
+                         (_data[bamEntry + 3] << 16);
+            for (var sector = 0; sector < SectorsPerTrack[track - 1]; sector++)
+                result.Add(new D64SectorInfo(track, sector, (bitmap & (1 << sector)) == 0));
+        }
+
+        return result;
+    }
+
+    /// <summary>Returns the sector chain used by a directory entry, in disk order.</summary>
+    public IReadOnlyList<D64SectorAddress> ReadFileSectors(DirEntry entry)
+    {
+        var result = new List<D64SectorAddress>();
+        var track = entry.StartTrack;
+        var sector = entry.StartSector;
+        var visited = new HashSet<(int Track, int Sector)>();
+
+        while (track > 0 && visited.Add((track, sector)))
+        {
+            result.Add(new D64SectorAddress(track, sector));
+            var offset = TrackSectorToOffset(track, sector);
+            track = _data[offset];
+            sector = _data[offset + 1];
+        }
+
+        return result;
+    }
+
     public byte[] ReadFile(DirEntry entry)
     {
         byte[] result;
