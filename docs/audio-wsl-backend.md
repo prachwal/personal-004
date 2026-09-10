@@ -99,9 +99,41 @@ needs it (a PET CB2 buzzer is genuinely edge-timed and would want something
 1. Implement `PetEmulator.Audio.IAudioSource` on the chip (`Format` +
    `Render(Span<AudioFrame>)`), same shape `Ay38910Chip`/`Sid6581Chip` used in
    the surveyed projects.
-2. `new PulseAudioSink().Start(chip)` from the machine's/ViewModel's audio
-   lifecycle; `Stop()`/`Dispose()` on teardown. Check `LastError`/`IsPlaying`
-   for UI feedback - `Start` never throws even with no PulseAudio server
-   present (CI, non-WSL dev boxes), it just disables audio and logs why.
+2. `AudioOutputFactory.CreateDefault().Start(chip)` from the machine's/
+   ViewModel's audio lifecycle; `Stop()`/`Dispose()` on teardown. Check
+   `LastError`/`IsPlaying` for UI feedback - `Start` never throws even with no
+   PulseAudio server present (CI, non-WSL dev boxes), it just disables audio
+   and logs why.
 3. If it crackles on real WSLg playback, see the buffering lesson above
    before assuming the chip emulation is wrong.
+
+## The output-side seam (portability)
+
+A consumer never references `PulseAudioSink` directly - it codes against
+`IAudioOutput` (`Start`/`Stop`/`IsPlaying`/`LastError`) and gets a concrete
+backend from `AudioOutputFactory.CreateDefault()`. `PulseAudioSink` is the
+only backend today (Linux/WSL, per `OperatingSystem.IsLinux()`); a Windows
+host currently gets a `PlatformNotSupportedException` naming exactly where to
+add its replacement, rather than a sink that silently plays nothing. Adding a
+native Windows backend (WASAPI, most likely) later is: write one new
+`IAudioOutput` implementation, add one branch in `CreateDefault`, done - no
+call site anywhere else changes.
+
+## Verification performed on this host
+
+`PulseAudioSinkPlaybackTests` (marked `[Explicit]` - not part of the default
+`dotnet test` run, since CI/headless boxes have no audio server) plays a real
+440 Hz sine wave through `AudioOutputFactory.CreateDefault()` for 3 seconds.
+Run manually on 2026-09-10 on this repo's actual WSL2/WSLg host:
+
+```bash
+dotnet test tests/PetEmulator.Audio.Tests --filter "FullyQualifiedName~PulseAudioSinkPlaybackTests"
+```
+
+Result: `LastError` null, `IsPlaying` true throughout - and independently
+cross-checked the way this document's own "buffering lesson" above says to
+(never trust the sink's self-report alone): captured `RDPSink.monitor` with
+`parec` during the same run. The capture showed real, non-silent samples for
+~3.3s with peak amplitude 6554/32767 (≈0.2), an exact match for the test's
+0.2-amplitude sine source - proof the signal actually reached PulseAudio
+correctly scaled, not just that the managed code returned success.

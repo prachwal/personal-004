@@ -23,7 +23,7 @@ namespace PetEmulator.Audio;
 /// <c>RDPSink.monitor</c> - after PulseAudio, before the Windows endpoint - independently of what
 /// was actually heard). Reused unchanged from that fix.
 /// </summary>
-public sealed class PulseAudioSink : IDisposable
+public sealed class PulseAudioSink : IAudioOutput
 {
     private Thread? _thread;
     private volatile bool _stop;
