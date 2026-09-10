@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
              x:Class="PetEmulator.Desktop.Views.ChipTesterView"
              x:DataType="viewModels:ChipTesterViewModel">
     <Grid ColumnDefinitions="260,*">
@@ -17,7 +18,26 @@
             </TreeView>
         </Border>
         <Border Grid.Column="1" Padding="24">
-            <TextBlock Text="Select a chip scenario" FontSize="20" />
+            <ContentControl Content="{Binding SelectedScenario}">
+                <ContentControl.DataTemplates>
+                    <DataTemplate DataType="viewModels:IChipDebugSessionViewModel">
+                        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
+                            <TextBlock Text="{Binding StatusText}" FontSize="20" />
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+                                <Button Content="Run" Command="{Binding RunCommand}" />
+                                <Button Content="Pause" Command="{Binding PauseCommand}" />
+                                <Button Content="Step" Command="{Binding StepCommand}" />
+                                <Button Content="Reset" Command="{Binding ResetCommand}" />
+                            </StackPanel>
+                            <controls:WaveformControl Grid.Row="2" Source="{Binding Timeline}" />
+                            <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="24">
+                                <ItemsControl ItemsSource="{Binding Registers}" />
+                                <ItemsControl Grid.Column="1" ItemsSource="{Binding Pins}" />
+                            </Grid>
+                        </Grid>
+                    </DataTemplate>
+                </ContentControl.DataTemplates>
+            </ContentControl>
         </Border>
     </Grid>
 </UserControl>

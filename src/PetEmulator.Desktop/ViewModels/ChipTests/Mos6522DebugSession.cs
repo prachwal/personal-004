@@ -11,6 +11,7 @@ public sealed partial class Mos6522DebugSession : ObservableObject, IChipDebugSe
     private readonly MOS6522 _chip = new("Chip Tester VIA");
     private readonly DispatcherTimer _timer;
     private readonly List<WaveformSample> _samples = [];
+    private readonly WaveformTimeline _timeline;
     private long _step;
 
     [ObservableProperty]
@@ -20,7 +21,8 @@ public sealed partial class Mos6522DebugSession : ObservableObject, IChipDebugSe
     {
         Registers = [];
         Pins = [];
-        Timeline = new WaveformTimeline(_samples);
+        _timeline = new WaveformTimeline(_samples);
+        Timeline = _timeline;
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
         _timer.Tick += (_, _) => RunCycles(100);
         Refresh();
@@ -111,6 +113,7 @@ public sealed partial class Mos6522DebugSession : ObservableObject, IChipDebugSe
         _samples.Add(new WaveformSample(_step, signal, level));
         if (_samples.Count > 4_096)
             _samples.RemoveRange(0, _samples.Count - 4_096);
+        _timeline.NotifyChanged();
     }
 
     private void Refresh()
@@ -133,5 +136,9 @@ public sealed partial class Mos6522DebugSession : ObservableObject, IChipDebugSe
     private sealed class WaveformTimeline(IReadOnlyList<WaveformSample> samples) : IWaveformSource
     {
         public IReadOnlyList<WaveformSample> Samples => samples;
+
+        public event EventHandler? Changed;
+
+        public void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);
     }
 }

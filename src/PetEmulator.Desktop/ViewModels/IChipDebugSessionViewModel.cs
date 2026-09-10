@@ -24,4 +24,6 @@ public sealed record WaveformSample(long Step, string Signal, bool Level);
 public interface IWaveformSource
 {
     IReadOnlyList<WaveformSample> Samples { get; }
+
+    event EventHandler? Changed;
 }
