@@ -72,46 +72,73 @@ sacrificial lead-in bytes. Verified stable across 3 repeated boot+LOAD attempts 
 committed (see `Vic20MachineTapeTests.LoadDecodesARealTapeFileByteForByte`, which asserts every
 byte of the real payload (`HELLO VIC`) exactly, not just that the KERNAL reached some prompt).
 
-## Write (SAVE): captures real data, round-trip not yet proven
+## Write (SAVE): closed - a virtual save, not a literal analog capture
 
-`Vic20Datasette.BeginRecording`/`RecordedPulseCycles` watch VIA2 PB3 and record every **falling**
-edge's cycle gap (matching the read side's own falling-edge convention - a rising edge is just the
-brief strobe settling back high, not a real symbol boundary). Driving a real `SAVE` (no filename -
-"file name is not required to SAVE to device 1" per the real KERNAL, which conveniently sidesteps
-`Vic20HostKeyMap` not covering the quote key yet) against a tiny real BASIC program genuinely
-produces tens of thousands of real pulses with a clean, uniform steady-state pattern once the
-KERNAL's own leader tone gets going.
+First attempt: `Vic20Datasette.BeginRecording`/`RecordedPulseCycles` watched VIA2 PB3 directly and
+recorded every falling edge's cycle gap. The wiring behind it was real and confirmed (SAVE
+genuinely toggles PB3 through a real, found-in-disassembly routine, `TPTOGLE`: it tests the LSB of
+the tape write byte and sets VIA2 Timer2 to `$60` (96 cycles) for a 0 bit or `$B0` (176) for a 1,
+toggling PB3 on every T2 underflow - a plain two-level FM/biphase encoding, not the Kansas-City
+three-symbol scheme PET/LOAD use). It never reliably round-tripped: the recorded stream's value
+histogram had real clusters well outside the ~192/~352-cycle periods that math predicts (interrupt
+-dispatch jitter on literally every single bit-toggle interrupt was enough to blur it), and no
+noise-filtering heuristic tried got a captured recording to decode cleanly back through `LoadTape`.
 
-Two things aren't resolved yet:
+**The fix: don't capture the analog signal at all - snapshot the logical content instead.** The
+real KERNAL's `TAPE` dispatcher redirects the IRQ vector (`$0314`/`$0315`, `CINV`) to its own
+tape ISR for the duration of an operation, and restores it when done - LOAD's redirect target is
+`READT` ($F98E on this ROM), SAVE's is `WRTZ` ($FCA8, confirmed both via the real disassembly's
+`IRQVCTRS` table AND empirically, reading `$0314` across a real boot/LOAD/SAVE). The **instant**
+`Vic20Machine.StepInstruction` sees `$0314` become `WRTZ`'s address, the real KERNAL has already
+built a genuine 192-byte header block in RAM (type, load address, filename - at the buffer zero
+-page `TAPE1` ($B2/$B3) points at, built by SAVE's own header-write routine) and hasn't touched the
+program bytes it's about to save yet, so both are safe to read directly, no waiting required.
+`Vic20Machine.CaptureSaveIfDispatched` does exactly that: reads the header, reads the payload
+(`header.StartAddress..EndAddress`), re-encodes both through `Vic20TapeEncoder` (the exact same
+`PetTapeCassetteFormat` pulse train LOAD already decodes reliably), and replaces
+`Datasette`'s content via `Vic20Datasette.ReplaceContentAfterSave` (not `LoadTape` - see that
+method's doc comment for why: `LoadTape` releases PLAY, matching a human swapping in a physically
+different tape, which isn't what a real SAVE writing onto the SAME tape already in the deck does).
 
-- **Shared-pin noise.** PB3 is also keyboard column 3, so any recording armed before the real
-  `SAVE` command's own `SEI` takes effect captures genuine keyboard-scan noise as large,
-  irregular leading entries. Trimming through the last implausibly-large gap cleans this up, but
-  that's a caller-side workaround, not something `Vic20Datasette` does automatically yet.
-- **Round-trip.** Playing a trimmed captured recording back into a fresh machine's `LoadTape` does
-  not yet decode correctly - `PetTapePulseDecoder` itself throws partway through on the captured
-  stream ("expected a byte start marker, found (Medium, Medium)"), meaning the real write
-  encoding's actual pulse-width distribution isn't a byte-for-byte match for the read side's
-  Long/Medium/Short thresholds the way this session assumed. Not chased further this session -
-  the read side (LOAD) was the priority and is fully proven; SAVE's wiring and capture mechanism
-  are real and unit-tested (`Vic20DatasetteTests.Recording_CapturesOnlyFallingPb3EdgesAsFullPeriodCycleGaps`),
-  but a genuine SAVE→LOAD round trip is a follow-up, not a claimed result.
+Proven, not just plausible - `Vic20MachineTapeTests.SaveThenLoadRoundTripsTheRealProgramBytes`
+types a real program, SAVEs it, **overwrites the target RAM with `$FF`** (so a match can only mean
+LOAD genuinely rewrote it - an earlier draft of this test skipped that step and passed even when
+LOAD silently never ran, the exact false-positive shape this session's own methodology elsewhere
+warns about), power-cycles the machine (`Reset()` - the datasette's content survives, matching a
+real tape still in the deck), and LOADs it back: the bytes match exactly.
+
+Trade-off, stated plainly: this doesn't reproduce the real ROM's own analog write timing
+bit-for-bit - a captured recording made by literally watching PB3 (as the first attempt did) would
+still be a more "faithful" artifact if that's ever needed. What it does guarantee is what actually
+matters for a working emulator: a real, unmodified SAVE followed by a real, unmodified LOAD
+reliably gets you your program back.
+
+## New Tape
+
+"New Tape" (File menu, `Vic20MachineViewModel.NewTape` / CLI `new-tape [name]`) puts a fresh,
+empty, writable tape in the deck via `Vic20Datasette.NewBlankTape` - zero pulses, but a real name,
+so `Vic20DatasetteStatus`/`Vic20MachineViewModel.TapeLoaded` (both keyed off `TapeName`, not
+`HasTape` - see `TapeName`'s doc comment) show it as present ("New Tape - press play"), not "No
+tape". Press play, type a program, `SAVE`, then `LOAD` it straight back - the flow
+`Vic20MachineTapeTests.SaveThenLoadRoundTripsTheRealProgramBytes` proves end to end.
 
 ## GUI
 
 `Vic20MachineViewModel` mirrors `PetMachineViewModel`'s tape widget exactly: `TapeLoaded`/
-`TapePlaying`/`TapeIconBrush`, `PlayTape`/`StopTape`/`EjectTape` commands, `LoadTape(path)`.
-`Vic20MachineView.axaml` has the same dedicated 📼▶⏹ icon+buttons block `PetMachineView.axaml`
-does (plus the generic `Devices` bar, which filters the datasette back out same as PET's).
-`MainWindowViewModel.LoadTape` dispatches to whichever machine type is current. Verified via
-`PetEmulator.Screenshot`: the icon row renders identically to PET's (minus PET's disk icon).
+`TapePlaying`/`TapeIconBrush`, `PlayTape`/`StopTape`/`EjectTape` commands, `LoadTape(path)`, plus
+`NewTape()` (PET doesn't get a menu entry for this - it has no SAVE emulation to make a blank tape
+useful for). `Vic20MachineView.axaml` has the same dedicated 📼▶⏹ icon+buttons block
+`PetMachineView.axaml` does (plus the generic `Devices` bar, which filters the datasette back out
+same as PET's). `MainWindowViewModel.LoadTape`/`NewTapeCommand` dispatch to whichever machine type
+is current. Verified via `PetEmulator.Screenshot`: the icon row renders identically to PET's
+(minus PET's disk icon).
 
 ## API surface
 
-- `Vic20Machine.Datasette` (`Vic20Datasette`) - `LoadTape`/`PressPlay`/`Stop`/`Eject`/`Rewind`,
-  `BeginRecording`/`StopRecording`/`RecordedPulseCycles`, `MotorOn`/`Sense`/`HasTape`/
-  `TapeName`/`IsAtEnd`/`IsRecording`.
+- `Vic20Machine.Datasette` (`Vic20Datasette`) - `LoadTape`/`NewBlankTape`/`PressPlay`/`Stop`/
+  `Eject`/`Rewind`, `MotorOn`/`Sense`/`HasTape`/`TapeName`/`IsAtEnd`.
 - `Vic20Machine.Devices` - includes a `Vic20DatasetteStatus` entry (mirrors `PetDatasetteStatus`).
-- CLI (`Vic20DebuggerSession`): `tape <path>`, `play`, `stop`, `eject`, `devices` - same commands,
-  same output shape as `PetDebuggerSession`'s. `scripts/vic20-tape-loading.dbg` +
+- CLI (`Vic20DebuggerSession`): `tape <path>`, `new-tape [name]`, `play`, `stop`, `eject`,
+  `devices` - same commands/output shape as `PetDebuggerSession`'s (`new-tape` has no PET
+  equivalent - PET has no SAVE). `scripts/vic20-tape-loading.dbg` +
   `scripts/test-vic20-tape-loading.sh` mirror PET's tape smoke test exactly.

@@ -3,33 +3,32 @@ using PetEmulator.Pet.Chips;
 namespace PetEmulator.Vic20.Tape;
 
 /// <summary>
-/// Drives the VIC-20's cassette port from a decoded pulse-cycle stream (playback/LOAD) and
-/// captures the real KERNAL's own output pulses during SAVE (recording/WRITE). Mirrors
-/// <c>PetEmulator.Pet.Tape.PetDatasette</c>'s playback contract (same Tick/LoadTape/PressPlay
-/// shape, same reuse of <c>PetEmulator.Pet.Tape.PetTapeCassetteFormat</c>'s pulse encoding - its
-/// short/medium/long cycle-width ranges (352/512/672) fall squarely inside the 296-424/440-576/
-/// 600-744 microsecond ranges Commodore's own KERNAL source documents for these four pulse kinds,
-/// confirming the SAME physical encoding really is shared across the cassette-based machines,
-/// just measured in each one's own native CPU cycles).
+/// Drives the VIC-20's cassette port from a decoded pulse-cycle stream (playback/LOAD). SAVE is
+/// handled at a higher level (<see cref="Vic20Machine"/> snapshots the real KERNAL's own header
+/// buffer and program bytes once it detects a real SAVE dispatch, then hands the encoded result
+/// straight to <see cref="LoadTape"/> - see <c>Vic20Machine</c>'s doc comment and
+/// docs/vic20-tape.md's "Write (SAVE)" section for why: this class's first pass tried a literal
+/// analog capture of VIA2 PB3's real write pulses, which genuinely worked at the wiring level but
+/// never reliably round-tripped back through LOAD - real emulated interrupt-dispatch jitter on
+/// each individual bit-toggle interrupt was enough to blur the two-level (~192/~352-cycle) FM
+/// encoding <c>TPTOGLE</c> actually produces. Snapshotting the logical content (header + payload
+/// bytes) and re-encoding it through the same <c>PetTapeCassetteFormat</c> pulse train LOAD
+/// already decodes reliably sidesteps that entirely, at the cost of not literally reproducing the
+/// real ROM's analog write timing bit-for-bit - a reasonable trade for "SAVE then LOAD it back
+/// reliably works", which is what actually matters here.
 ///
-/// Real wiring - corrected from an earlier, wrong guess (see docs/vic20-tape.md's "wiring
-/// corrected" section) against a REAL, labeled VIC-20 KERNAL/BASIC ROM disassembly (Lee Davison,
-/// 2005-2012, with Simon Rowe's enhancements - a full symbol table, not blind register-address
-/// guessing):
+/// Mirrors <c>PetEmulator.Pet.Tape.PetDatasette</c>'s playback contract (same Tick/LoadTape/
+/// PressPlay shape, same reuse of <c>PetEmulator.Pet.Tape.PetTapeCassetteFormat</c>'s pulse
+/// encoding - confirmed compatible with real VIC-20 hardware, not just PET: its short/medium/long
+/// cycle-width ranges (352/512/672) fall squarely inside the 296-424/440-576/600-744 microsecond
+/// ranges Commodore's own KERNAL source documents for these four pulse kinds).
 ///
-/// - VIA2 CA1 ($912C PCR bit 0) = cassette READ line - NOT VIA1 (VIA1's CA1 is the [RESTORE] key,
-///   confirmed by the same source; every read-pulse edge this class raised there before the fix
-///   was landing on an unrelated key line, never reaching the real tape-read ISR at all - the
-///   root cause behind this session's earlier "plays fully through, KERNAL never decodes it"
-///   result).
-/// - VIA1 PA6 ($9111/$911F bit 6, active low) = cassette switch sense - NOT PA7 (confirmed by the
-///   real IRQ handler: <c>LDA VIA1PA2; AND #$40; BEQ ...</c> branches on bit 6 being clear).
-/// - VIA1 CA2 (PCR bits 1-3, manual-output mode, bit 1 = level) = cassette motor control, active
-///   low - this one was already right.
-/// - VIA2 PB3 ($9120 bit 3, output) = cassette WRITE line - real SAVE toggles it under VIA2 Timer2
-///   -interrupt timing, not a level a caller polls; this class doesn't replicate that write
-///   algorithm, it just watches the pin (see <see cref="Tick"/>) and records every edge's
-///   cycle-gap, exactly like a real deck's read head would off a live WRITE signal.
+/// Real wiring (see docs/vic20-tape.md for how this was found - a labeled KERNAL disassembly, not
+/// a guess): VIA2 CA1 ($912C PCR bit 0) = cassette READ line (NOT VIA1 - VIA1's CA1 is the
+/// [RESTORE] key). VIA1 PA6 ($9111/$911F bit 6, active low) = cassette switch sense (NOT PA7).
+/// VIA1 CA2 (PCR bits 1-3, manual-output mode, bit 1 = level) = cassette motor control, active
+/// low. VIA2 PB3 ($9120 bit 3, output) = cassette WRITE line - real hardware fact, not used
+/// directly by this class (see above).
 /// </summary>
 public sealed class Vic20Datasette
 {
@@ -38,11 +37,6 @@ public sealed class Vic20Datasette
     private IReadOnlyList<int> _pulseCycles = [];
     private int _pulseIndex;
     private int _cyclesUntilNextEdge;
-
-    private readonly List<int> _recordedPulses = [];
-    private bool _recording;
-    private bool _lastPb3;
-    private long _cyclesSinceLastPb3Edge;
 
     public Vic20Datasette(Via6522 via1, Via6522 via2)
     {
@@ -69,24 +63,12 @@ public sealed class Vic20Datasette
     /// <summary>True once every pulse in the loaded tape has been played past.</summary>
     public bool IsAtEnd => _pulseIndex >= _pulseCycles.Count;
 
-    /// <summary>Display name of the currently loaded tape, or null when none was given.</summary>
+    /// <summary>Display name of the currently loaded tape, or null when none was given. A tape
+    /// "in the deck" for GUI/status purposes - including a freshly created blank one (see
+    /// <see cref="NewBlankTape"/>) - always has a non-null name, even with zero pulses; see
+    /// <see cref="Vic20DatasetteStatus"/>, which uses this (not <see cref="HasTape"/>) to decide
+    /// whether to show "No tape".</summary>
     public string? TapeName { get; private set; }
-
-    /// <summary>True while <see cref="BeginRecording"/> has been called and <see cref="StopRecording"/>
-    /// hasn't (yet) - see those methods.</summary>
-    public bool IsRecording => _recording;
-
-    /// <summary>Every falling edge captured off VIA2 PB3 since the last <see cref="BeginRecording"/>,
-    /// as cycle gaps - the same shape <see cref="LoadTape"/> takes, so a caller can play a
-    /// captured recording straight back with no conversion. KNOWN GAP (see docs/vic20-tape.md):
-    /// PB3 is also the keyboard column-3 line (a real, shared-pin hardware quirk, not a bug here),
-    /// so recording started before the real SAVE command's own <c>SEI</c> takes effect captures
-    /// genuine but spurious keyboard-scan noise as large leading entries - a caller currently has
-    /// to trim those (e.g. drop everything through the last implausibly-large gap) before this is
-    /// safe to play back; round-tripping a captured recording through a fresh LOAD hasn't been
-    /// proven end-to-end yet, unlike the header/payload LOAD path (see
-    /// <c>roms/vic20/test-tapes/hello-vic.tap</c>).</summary>
-    public IReadOnlyList<int> RecordedPulseCycles => _recordedPulses;
 
     public void LoadTape(IReadOnlyList<int> pulseCycles, string? name = null)
     {
@@ -94,6 +76,26 @@ public sealed class Vic20Datasette
         _pulseCycles = pulseCycles;
         TapeName = name;
         PlayPressed = false; // loading a fresh tape doesn't press play for you - matches a real deck
+        Rewind();
+    }
+
+    /// <summary>Puts a fresh, empty, writable tape "in the deck" - zero pulses, a real name (see
+    /// <see cref="TapeName"/>'s doc comment), ready to receive a real SAVE (see
+    /// <c>Vic20Machine</c>'s doc comment) and then be <see cref="LoadTape"/>-ed straight back.</summary>
+    public void NewBlankTape(string name) => LoadTape([], name);
+
+    /// <summary>Replaces the tape's content with what a real SAVE just wrote, without releasing
+    /// PLAY - unlike <see cref="LoadTape"/>, which models a human ejecting and inserting a
+    /// physically different tape (real hardware would need PLAY pressed again for that). A real
+    /// SAVE writes onto the SAME tape that's already in the deck with PLAY still held down the
+    /// whole time; <see cref="Vic20Machine"/> calls this once SAVE completes, not
+    /// <see cref="LoadTape"/>, so a caller can immediately LOAD the same content straight back
+    /// without needing to press PLAY again.</summary>
+    internal void ReplaceContentAfterSave(IReadOnlyList<int> pulseCycles, string name)
+    {
+        ArgumentNullException.ThrowIfNull(pulseCycles);
+        _pulseCycles = pulseCycles;
+        TapeName = name;
         Rewind();
     }
 
@@ -118,55 +120,14 @@ public sealed class Vic20Datasette
 
     public void Reset() => Rewind();
 
-    /// <summary>Starts capturing VIA2 PB3 edges into <see cref="RecordedPulseCycles"/> - the
-    /// caller still has to <see cref="PressPlay"/> (real SAVE waits on the same sense line LOAD
-    /// does) and type the real SAVE command for anything to actually appear. Clears any
-    /// previously recorded pulses.</summary>
-    public void BeginRecording()
-    {
-        _recordedPulses.Clear();
-        _recording = true;
-        _lastPb3 = Pb3Level;
-        _cyclesSinceLastPb3Edge = 0;
-    }
-
-    public void StopRecording() => _recording = false;
-
-    private bool Pb3Level => (_via2.PortBOutput & 0x08) != 0;
-
     /// <summary>Advances the tape by one CPU cycle: plays back the loaded tape's pulses onto VIA2
-    /// CA1 (LOAD) and/or captures VIA2 PB3 edges into <see cref="RecordedPulseCycles"/>
-    /// (SAVE) - either, both, or neither can be active at once (mirrors two independent physical
-    /// signals a real deck carries at the same time).</summary>
+    /// CA1. No-op if the motor is off, PLAY isn't pressed, no tape is loaded, or the loaded tape
+    /// has already played to the end.</summary>
     public void Tick()
     {
         // PA6 reflects the physical PLAY sense switch every cycle, independent of the motor/tape
         // state below (a real switch closes the moment PLAY is pressed, tape moving or not).
         _via1.PortAInput = (byte)(PlayPressed ? (_via1.PortAInput & ~0x40) : (_via1.PortAInput | 0x40));
-
-        if (_recording)
-        {
-            _cyclesSinceLastPb3Edge++;
-            var level = Pb3Level;
-            if (level != _lastPb3)
-            {
-                // Only FALLING edges are meaningful pulse boundaries - matches CA1's own
-                // convention on the read side (real hardware/KERNAL only times successive
-                // falling edges, per the KERNAL's own doc block on the four pulse symbols; a
-                // rising edge is just the brief strobe settling back high, not a real symbol
-                // boundary - see this class's own playback Tick() below, which produces the exact
-                // same brief high-low-high shape per pulse, not a sustained half-cycle level).
-                // The counter is therefore only ever reset on a falling edge - a rising edge in
-                // between must NOT reset it, or the recorded value would only span the brief low
-                // phase instead of the full falling-to-falling period a real pulse actually is.
-                if (!level)
-                {
-                    _recordedPulses.Add((int)_cyclesSinceLastPb3Edge);
-                    _cyclesSinceLastPb3Edge = 0;
-                }
-                _lastPb3 = level;
-            }
-        }
 
         if (!MotorOn || !PlayPressed || IsAtEnd)
             return;

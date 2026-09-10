@@ -33,6 +33,7 @@ public sealed class Vic20DebuggerSession
             {
                 "roms" => SetRoms(Argument(commandLine, parts[0])),
                 "tape" => LoadTape(Argument(commandLine, parts[0])),
+                "new-tape" => NewTape(Argument(commandLine, parts[0])),
                 "play" => PlayTape(),
                 "stop" => StopTape(),
                 "eject" => EjectTape(),
@@ -80,6 +81,12 @@ public sealed class Vic20DebuggerSession
         var tap = PetTapFile.Parse(File.ReadAllBytes(path));
         machine.Datasette.LoadTape(tap.PulseCycles, Path.GetFileName(path));
         return $"tape loaded: {Path.GetFileName(path)} ({tap.PulseCycles.Count} pulses)";
+    }
+
+    private string NewTape(string name)
+    {
+        EnsureMachine().Datasette.NewBlankTape(string.IsNullOrWhiteSpace(name) ? "New Tape" : name);
+        return $"new blank tape: {(string.IsNullOrWhiteSpace(name) ? "New Tape" : name)}";
     }
 
     private string PlayTape()

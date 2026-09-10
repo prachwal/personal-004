@@ -13,11 +13,14 @@ public sealed class Vic20DatasetteStatus(Vic20Datasette datasette) : IDeviceStat
 
     public string DisplayName => "Datasette";
 
+    // TapeName (not HasTape) decides "no tape": a freshly created blank tape (see
+    // Vic20Datasette.NewBlankTape) has zero pulses but a real name, and should read as present -
+    // ready to record, not "No tape".
     public string StatusText => datasette switch
     {
-        { HasTape: false } => "No tape",
-        { PlayPressed: false } => $"{datasette.TapeName ?? "(unnamed tape)"} - press play",
-        { MotorOn: false } => $"{datasette.TapeName ?? "(unnamed tape)"} - play pressed, waiting for motor",
-        _ => $"{datasette.TapeName ?? "(unnamed tape)"} - playing",
+        { TapeName: null } => "No tape",
+        { PlayPressed: false } => $"{datasette.TapeName} - press play",
+        { MotorOn: false } => $"{datasette.TapeName} - play pressed, waiting for motor",
+        _ => $"{datasette.TapeName} - playing",
     };
 }

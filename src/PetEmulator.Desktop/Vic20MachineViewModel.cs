@@ -98,6 +98,11 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     [RelayCommand]
     private void EjectTape() => _machine.Datasette.Eject();
 
+    /// <summary>Puts a fresh, empty, writable tape in the datasette - ready for a real SAVE (see
+    /// <see cref="Vic20Machine"/>'s doc comment), then LOAD straight back. Real deck: the user
+    /// still needs to press play once - <see cref="PlayTape"/> - before typing SAVE.</summary>
+    public void NewTape() => _machine.Datasette.NewBlankTape("New Tape");
+
     public void HandleKey(Key key, HostKeyEventKind kind)
     {
         var hostKey = KeyMapping.ToHostKey(key);
@@ -127,7 +132,9 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
             $"Cycles={_machine.Processor.CycleCount} Instructions={_machine.Processor.InstructionCount}";
 
         Devices = _machine.Devices.Where(d => d.Id is not "datasette").ToList();
-        TapeLoaded = _machine.Datasette.HasTape;
+        // TapeName (not HasTape) - a freshly created blank tape has zero pulses but is still "in
+        // the deck", same reasoning as Vic20DatasetteStatus's own switch.
+        TapeLoaded = _machine.Datasette.TapeName is not null;
         TapePlaying = _machine.Datasette.PlayPressed && _machine.Datasette.MotorOn;
 
         FrameReady?.Invoke(this, EventArgs.Empty);

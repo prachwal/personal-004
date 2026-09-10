@@ -193,28 +193,19 @@ public sealed class Vic20DatasetteTests
     }
 
     [Test]
-    public void Recording_CapturesOnlyFallingPb3EdgesAsFullPeriodCycleGaps()
+    public void NewBlankTape_IsPresentButEmpty()
     {
-        // Only falling edges are recorded (matching the real KERNAL's own CA1 convention - see
-        // Vic20Datasette's doc comment), and the counter is NOT reset on the intervening rising
-        // edge, so one recorded value spans the full falling-to-falling period: 30 idle ticks +
-        // 1 tick before the rising-edge write becomes visible + 49 more high ticks + 1 tick
-        // before the falling-edge write becomes visible = 81, not just the 50-tick high phase.
         var via1 = new Via6522();
         var via2 = new Via6522();
         var datasette = new Vic20Datasette(via1, via2);
-        via2.Write(Via6522.Ddrb, 0x08); // PB3 configured as output - required before ORB drives it
-        datasette.BeginRecording();
 
-        for (var i = 0; i < 30; i++) datasette.Tick();
-        via2.Write(Via6522.Orb, 0x08); // PB3 high
+        datasette.NewBlankTape("MYPROG");
 
-        for (var i = 0; i < 50; i++) datasette.Tick();
-        via2.Write(Via6522.Orb, 0x00); // PB3 low
-
-        for (var i = 0; i < 20; i++) datasette.Tick();
-        datasette.StopRecording();
-
-        datasette.RecordedPulseCycles.Should().Equal(81);
+        // TapeName (used by Vic20DatasetteStatus), not HasTape, is what says "a tape is in the
+        // deck" - see TapeName's own doc comment for why a blank tape still needs to read as
+        // present, not as "No tape".
+        datasette.TapeName.Should().Be("MYPROG");
+        datasette.HasTape.Should().BeFalse("zero pulses - nothing to play back yet, but the tape is still 'in the deck'");
+        datasette.IsAtEnd.Should().BeTrue();
     }
 }

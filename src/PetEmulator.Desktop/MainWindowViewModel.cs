@@ -88,6 +88,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             pet.LoadDisk(path);
     }
 
+    /// <summary>Puts a fresh, empty, writable tape in the current machine's datasette, if it has
+    /// one - VIC-20 only for now (real SAVE support - see docs/vic20-tape.md; PET has no SAVE
+    /// emulation yet). No file dialog needed (nothing to pick a path for yet), so this is a plain
+    /// command, not glue through <see cref="MainWindow"/>'s code-behind like <see cref="LoadTape"/>.</summary>
+    [RelayCommand]
+    private void NewTape()
+    {
+        if (CurrentMachine is Vic20MachineViewModel vic20)
+            vic20.NewTape();
+    }
+
     public void HandleKey(Key key, HostKeyEventKind kind) => CurrentMachine.HandleKey(key, kind);
 
     public void Dispose()

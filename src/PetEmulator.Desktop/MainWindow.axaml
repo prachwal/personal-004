@@ -14,6 +14,7 @@
             <MenuItem Header="_File">
                 <MenuItem Header="_Reset" Command="{Binding ResetCommand}" />
                 <Separator />
+                <MenuItem Header="_New Tape" Command="{Binding NewTapeCommand}" />
                 <MenuItem Header="Load _Tape…" Click="OnLoadTapeClick" />
                 <MenuItem Header="Load _Disk…" Click="OnLoadDiskClick" />
                 <Separator />

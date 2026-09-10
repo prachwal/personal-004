@@ -1,6 +1,7 @@
 using Cpu6502.Variants;
 using PetEmulator.Core;
 using PetEmulator.Pet.Chips;
+using PetEmulator.Pet.Tape;
 using PetEmulator.Vic20.Chips;
 using PetEmulator.Vic20.Devices;
 using PetEmulator.Vic20.Keyboard;
@@ -14,6 +15,10 @@ namespace PetEmulator.Vic20;
 /// its address-decoded bus (<see cref="Vic20MemoryBus"/>), and the VIC/VIA1/VIA2/color-RAM chips
 /// that hang off it. Mirrors PetEmulator.Pet.PetMachine's shape exactly (same StepInstruction/
 /// Reset/BusObserver pattern) - see docs/vic20-migration-plan.md step 8.
+///
+/// Also watches for a real SAVE dispatch to build <see cref="Datasette"/>'s content - see
+/// <see cref="CaptureSaveIfDispatched"/>'s doc comment and docs/vic20-tape.md's "Write (SAVE)"
+/// section for the full story (a real, labeled KERNAL disassembly, not a guess).
 /// </summary>
 public sealed class Vic20Machine : IMachine
 {
@@ -25,6 +30,16 @@ public sealed class Vic20Machine : IMachine
     private readonly Vic20ColorRam _colorRam;
     private readonly Vic20KeyboardMatrix _keyboard = new();
     private readonly Vic20Datasette _datasette;
+
+    // The real KERNAL's IRQ vector ($0314/$0315, "CINV") while idle - both LOAD and SAVE
+    // temporarily redirect it to their own tape ISR for the duration of the operation, then
+    // restore it (see TAPE's own restore-check loop in the real disassembly). Confirmed
+    // empirically (BusObserver-free: just reading $0314/$0315 across a real boot, LOAD, and
+    // SAVE) and cross-checked against the real disassembly's IRQVCTRS table (WRTZ is entry $08,
+    // "write tape leader IRQ routine" - the vector SAVE's TAPE dispatcher installs first).
+    private const ushort DefaultIrqVector = 0xEABF;
+    private const ushort SaveDispatchVector = 0xFCA8; // WRTZ
+    private ushort _lastIrqVector = DefaultIrqVector;
 
     public Vic20Machine(string romsRoot, Vic20DisplayConfig? displayConfig = null)
     {
@@ -117,6 +132,7 @@ public sealed class Vic20Machine : IMachine
         _colorRam.Reset();
         _keyboard.Reset();
         _datasette.Reset();
+        _lastIrqVector = 0; // RAM is cleared too - matches $0314/5 reading 0 until the KERNAL re-inits it
         _cpu.Reset();
     }
 
@@ -133,7 +149,61 @@ public sealed class Vic20Machine : IMachine
         for (var i = 0UL; i < cycles; i++)
             _datasette.Tick();
 
+        CaptureSaveIfDispatched();
+
         _cpu.SetIRQ(_via1.IRQ || _via2.IRQ);
+    }
+
+    /// <summary>
+    /// Builds a real tape from a real SAVE - see this class's own doc comment and
+    /// docs/vic20-tape.md's "Write (SAVE)" section.
+    ///
+    /// Detects the moment SAVE's <c>TAPE</c> dispatcher redirects $0314/$0315 to <c>WRTZ</c> (the
+    /// real KERNAL's own "start of a write" signal - see <see cref="SaveDispatchVector"/>'s doc
+    /// comment). At exactly that moment, the real KERNAL has already built a genuine 192-byte
+    /// tape header block in RAM (type/start-address/end-address/filename, at the buffer
+    /// <c>TAPE1</c> - zero page $B2/$B3 - points at) and hasn't touched the program bytes it's
+    /// about to save at all yet, so both are safe to read directly, no waiting required. The
+    /// bytes are re-encoded through <see cref="Vic20TapeEncoder"/> (the exact same pulse format
+    /// <see cref="Vic20Datasette"/>'s LOAD side already decodes reliably) and handed straight to
+    /// <see cref="Datasette"/> - so a real, unmodified SAVE followed by a real, unmodified LOAD
+    /// genuinely round-trips, without this class replicating the real ROM's own analog write
+    /// timing bit-for-bit (see <see cref="Vic20Datasette"/>'s doc comment for why that path was
+    /// tried and dropped).
+    /// </summary>
+    private void CaptureSaveIfDispatched()
+    {
+        var vector = (ushort)(_memoryBus.Read(0x0314) | (_memoryBus.Read(0x0315) << 8));
+        var justDispatched = vector == SaveDispatchVector && _lastIrqVector != SaveDispatchVector;
+        _lastIrqVector = vector;
+        if (!justDispatched)
+            return;
+
+        var tape1 = (ushort)(_memoryBus.Read(0x00B2) | (_memoryBus.Read(0x00B3) << 8));
+        var headerBytes = new byte[PetTapeHeaderBlock.Length];
+        for (var i = 0; i < headerBytes.Length; i++)
+            headerBytes[i] = _memoryBus.Read((ushort)(tape1 + i));
+
+        PetTapeHeaderBlock header;
+        try
+        {
+            header = PetTapeHeaderBlock.Parse(headerBytes);
+        }
+        catch (FormatException)
+        {
+            return; // buffer wasn't really a header (shouldn't happen, but never corrupt the deck over it)
+        }
+
+        if (header.EndAddress <= header.StartAddress)
+            return; // nothing real to save
+
+        var payload = new byte[header.EndAddress - header.StartAddress];
+        for (var i = 0; i < payload.Length; i++)
+            payload[i] = _memoryBus.Read((ushort)(header.StartAddress + i));
+
+        var pulses = Vic20TapeEncoder.EncodeTape(headerBytes, payload);
+        var name = string.IsNullOrEmpty(header.FileName) ? _datasette.TapeName ?? "saved" : header.FileName;
+        _datasette.ReplaceContentAfterSave(pulses, name);
     }
 
     public void Run(ulong instructionCount)

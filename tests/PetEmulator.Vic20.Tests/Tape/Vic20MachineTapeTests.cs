@@ -47,6 +47,47 @@ public sealed class Vic20MachineTapeTests
     }
 
     [Test]
+    [CancelAfter(60_000)]
+    public void SaveThenLoadRoundTripsTheRealProgramBytes()
+    {
+        // Real proof, not a false positive: corrupts the target RAM with garbage between SAVE and
+        // LOAD, so a match can only mean LOAD genuinely rewrote it - a program byte that happened
+        // to survive untouched would look identical whether or not LOAD ever ran (this file's own
+        // history already hit exactly that trap once - see docs/vic20-tape.md).
+        var machine = new Vic20Machine(RomsRoot());
+        machine.RunUntil(_ => machine.Vic.Columns > 0 && machine.Vic.Rows > 0, 2_000_000).Should().BeTrue("must boot first");
+        machine.Run(200_000);
+
+        machine.Datasette.NewBlankTape("MYPROG");
+        machine.Datasette.PressPlay();
+        Vic20TextTyper.Type(machine, "10 A=5\n", holdInstructions: 8000, gapInstructions: 8000);
+        machine.Run(200_000);
+        Vic20TextTyper.Type(machine, "SAVE\n", holdInstructions: 8000, gapInstructions: 8000);
+        machine.Run(3_000_000);
+
+        const ushort ProgramStart = 0x1000;
+        var saved = new byte[8];
+        for (var i = 0; i < saved.Length; i++) saved[i] = machine.Memory.Read((ushort)(ProgramStart + i));
+        saved.Should().NotBeEquivalentTo(new byte[8], "SAVE should have written a real, non-zero tokenized program");
+
+        for (var i = 0; i < saved.Length; i++) machine.Memory.Write((ushort)(ProgramStart + i), 0xFF);
+
+        // A real power-cycle with the tape still in the deck - Vic20Machine.Reset() rewinds the
+        // datasette but doesn't touch its content (see Vic20Datasette.Reset).
+        machine.Reset();
+        machine.RunUntil(_ => machine.Vic.Columns > 0 && machine.Vic.Rows > 0, 2_000_000).Should().BeTrue("must reboot");
+        machine.Run(200_000);
+        machine.Datasette.PressPlay();
+        Vic20TextTyper.Type(machine, "LOAD\n");
+        machine.Run(8_000_000);
+
+        var loaded = new byte[8];
+        for (var i = 0; i < loaded.Length; i++) loaded[i] = machine.Memory.Read((ushort)(ProgramStart + i));
+
+        loaded.Should().Equal(saved, "LOAD should have decoded the exact program SAVE wrote, overwriting the garbage");
+    }
+
+    [Test]
     public void Devices_ReportsTheDatasetteEvenWithNoTapeLoaded()
     {
         var machine = new Vic20Machine(RomsRoot());
