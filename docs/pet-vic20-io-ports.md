@@ -493,25 +493,25 @@ Plik: `lib/PetEmulator.Chips/MOS6522.cs`.
 
 Plik: `lib/PetEmulator.Chips/MT6520.cs`.
 
-- [ ] Pokryć cztery adresy lokalne i oba warianty wyboru DATA/DDR.
-- [ ] Port A/B:
-  - [ ] kierunek każdego bitu;
-  - [ ] mieszanie latcha z wejściem zewnętrznym;
-  - [ ] callbacki zapisu danych i odczytu;
-  - [ ] niestandardowe predykaty `SelectPortADataRegister` i `SelectPortBDataRegister`.
-- [ ] CA1/CB1:
-  - [ ] oba kierunki zbocza;
-  - [ ] ustawianie flagi;
-  - [ ] maskowanie przez CRA/CRB;
-  - [ ] kasowanie po odczycie portu.
-- [ ] CA2/CB2:
-  - [ ] wejście z przerwaniem;
-  - [ ] manual output;
-  - [ ] handshake output;
-  - [ ] pulse output i dokładnie jeden cykl `Tick`;
-  - [ ] callback zmiany poziomu.
-- [ ] Pokryć maskowanie zapisu rejestrów sterujących i stan po `Reset`.
-- [ ] Ustalić zachowanie adresów poza mapą i pokryć je testami.
+- [x] Pokryć cztery adresy lokalne i oba warianty wyboru DATA/DDR.
+- [x] Port A/B:
+  - [x] kierunek każdego bitu;
+  - [x] mieszanie latcha z wejściem zewnętrznym;
+  - [x] callbacki zapisu danych i odczytu;
+  - [x] niestandardowe predykaty `SelectPortADataRegister` i `SelectPortBDataRegister`.
+- [x] CA1/CB1:
+  - [x] oba kierunki zbocza;
+  - [x] ustawianie flagi;
+  - [x] maskowanie przez CRA/CRB;
+  - [x] kasowanie po odczycie portu.
+- [x] CA2/CB2:
+  - [x] wejście z przerwaniem;
+  - [x] manual output;
+  - [x] handshake output;
+  - [x] pulse output i dokładnie jeden cykl `Tick`;
+  - [x] callback zmiany poziomu.
+- [x] Pokryć maskowanie zapisu rejestrów sterujących i stan po `Reset`.
+- [x] Ustalić zachowanie adresów poza mapą i pokryć je testami.
 - [ ] Dodać testy integracyjne PET dla klawiatury, datasette, IEEE-488 i portu
       użytkownika, z osobnym testem aktywnego poziomu każdego używanego sygnału.
 
