@@ -61,6 +61,7 @@ public sealed class MOS6522 : IMemoryMappedDevice
     private bool _t2OneShotArmed;
     private bool _t1Pb7;
     private int _shiftCount;
+    private bool _ca2Output;
 
     public MOS6522(string name = "VIA", ushort baseAddress = 0)
     {
@@ -81,6 +82,8 @@ public sealed class MOS6522 : IMemoryMappedDevice
     public Action<byte>? PortAWritten { get; set; }
 
     public Action<byte>? PortBWritten { get; set; }
+
+    public Action<bool>? Ca2OutputChanged { get; set; }
 
     public byte ORA => _ora;
 
@@ -143,7 +146,18 @@ public sealed class MOS6522 : IMemoryMappedDevice
 
     public bool CB2 { get => _cb2; set => _cb2 = value; }
 
-    public bool CA2Output { get; private set; }
+    public bool CA2Output
+    {
+        get => _ca2Output;
+        private set
+        {
+            if (_ca2Output == value)
+                return;
+
+            _ca2Output = value;
+            Ca2OutputChanged?.Invoke(value);
+        }
+    }
 
     public bool CB2Output { get; private set; }
 

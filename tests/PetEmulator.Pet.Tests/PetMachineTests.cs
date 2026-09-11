@@ -211,6 +211,37 @@ public sealed class PetMachineTests
     }
 
     [Test]
+    public void UserPort_MapsViaPortAInputOutputDirectionAndCa2Handshake()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+        var viaBase = PetMemoryBus.ViaBase;
+
+        machine.UserPort.Input = 0x5A;
+        machine.Memory.Write((ushort)(viaBase + MOS6522.Ddra), 0xF0);
+        machine.Memory.Write((ushort)(viaBase + MOS6522.OraWithoutHandshake), 0xA5);
+
+        machine.UserPort.Output.Should().Be(0xA0);
+        machine.UserPort.Direction.Should().Be(0xF0);
+        machine.Memory.Read((ushort)(viaBase + MOS6522.OraWithoutHandshake)).Should().Be(0xAA);
+
+        machine.Memory.Write((ushort)(viaBase + MOS6522.PeripheralControl), 0x0C);
+        machine.UserPort.HandshakeOutput.Should().BeFalse();
+        machine.Memory.Write((ushort)(viaBase + MOS6522.PeripheralControl), 0x0E);
+        machine.UserPort.HandshakeOutput.Should().BeTrue();
+    }
+
+    [Test]
+    public void UserPort_HandshakeInput_IsForwardedToViaCa2()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+        machine.Memory.Write((ushort)(PetMemoryBus.ViaBase + MOS6522.PeripheralControl), 0x02);
+
+        machine.UserPort.HandshakeInput = false;
+
+        machine.Via.CA2.Should().BeFalse();
+    }
+
+    [Test]
     [CancelAfter(30_000)]
     public void RunUntil_StopsAsSoonAsConditionIsTrue()
     {

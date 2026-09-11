@@ -88,6 +88,17 @@ public sealed class PetMachine : IMachine
         };
         _pia1.PortBInput = () => Keyboard.ReadColumns(_keyboardSelectedRow);
 
+        UserPort.InputChanged += SyncUserPortInput;
+        UserPort.HandshakeInputChanged += SyncUserPortHandshakeInput;
+        _via.PortAInput = UserPort.Input;
+        _via.CA2 = UserPort.HandshakeInput;
+        _via.PortAWritten = output =>
+        {
+            UserPort.Output = output;
+            UserPort.Direction = _via.DDRA;
+        };
+        _via.Ca2OutputChanged = output => UserPort.HandshakeOutput = output;
+
         _ieeeBusBinding = new PetIeeeBusBinding(_pia2, _via, _ieeeBus);
 
         Reset();
@@ -104,6 +115,9 @@ public sealed class PetMachine : IMachine
 
     /// <summary>The VIA - exposed for debug tooling (timer/IRQ state).</summary>
     public MOS6522 Via => _via;
+
+    /// <summary>The PET User Port wired to VIA Port A and CA2.</summary>
+    public PetUserPort UserPort { get; } = new();
 
     /// <summary>Fires for every real bus access (RAM/ROM/chip read or write) the CPU makes - see
     /// <see cref="BusAccess"/>'s doc comment. Optional; zero added cost on the hot path when
@@ -200,6 +214,7 @@ public sealed class PetMachine : IMachine
         _datasette.Reset();
         _ieeeBusBinding.Reset();
         Keyboard.Reset();
+        SyncUserPortState();
         _keyboardSelectedRow = 0;
         _pia1Cb1Phase = 0;
         _cpu.Reset();
@@ -245,6 +260,19 @@ public sealed class PetMachine : IMachine
     {
         for (ulong i = 0; i < instructionCount; i++)
             StepInstruction();
+    }
+
+    private void SyncUserPortInput() => _via.PortAInput = UserPort.Input;
+
+    private void SyncUserPortHandshakeInput() => _via.CA2 = UserPort.HandshakeInput;
+
+    private void SyncUserPortState()
+    {
+        SyncUserPortInput();
+        SyncUserPortHandshakeInput();
+        UserPort.Output = _via.PortAOutput;
+        UserPort.Direction = _via.DDRA;
+        UserPort.HandshakeOutput = _via.CA2Output;
     }
 
     // RunUntil/RunUntilOrStalled moved to PetEmulator.Core.MachineExtensions (pure IMachine

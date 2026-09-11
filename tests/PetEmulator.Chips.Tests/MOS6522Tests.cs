@@ -79,6 +79,19 @@ public sealed class MOS6522Tests
     }
 
     [Test]
+    public void Ca2_output_binding_reports_manual_output_changes()
+    {
+        var changes = new List<bool>();
+        var via = new MOS6522 { Ca2OutputChanged = changes.Add };
+
+        via.Write(MOS6522.PeripheralControl, 0x0E); // manual CA2 output high
+        via.Write(MOS6522.PeripheralControl, 0x0C); // manual CA2 output low
+        via.Write(MOS6522.PeripheralControl, 0x0E); // manual CA2 output high
+
+        changes.Should().Equal(true, false, true);
+    }
+
+    [Test]
     public void PortAHandshakeWriteInvokesItsBinding()
     {
         var writes = new List<byte>();
