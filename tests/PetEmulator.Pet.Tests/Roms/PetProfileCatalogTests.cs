@@ -19,6 +19,15 @@ public sealed class PetProfileCatalogTests
         PetProfileCatalog.Cbm8032.KeyboardLayout.Should().Be(PetKeyboardLayout.Cbm8032);
     }
 
+    [Test]
+    public void Profiles_DeclareTheVideoHardwareUsedByTheirRevision()
+    {
+        PetProfileCatalog.Pet2001_8.VideoHardware.Should().Be(PetVideoHardware.Discrete);
+        PetProfileCatalog.Pet2001_32.VideoHardware.Should().Be(PetVideoHardware.Discrete);
+        PetProfileCatalog.Cbm4032.VideoHardware.Should().Be(PetVideoHardware.Crtc);
+        PetProfileCatalog.Cbm8032.VideoHardware.Should().Be(PetVideoHardware.Crtc);
+    }
+
     [TestCaseSource(nameof(Profiles))]
     public void RomManifest_LoadsFromProfileSubfolder(PetProfile profile)
     {

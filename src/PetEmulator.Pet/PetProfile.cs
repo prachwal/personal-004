@@ -16,6 +16,13 @@ public enum PetKeyboardLayout
     Cbm8032
 }
 
+/// <summary>Video hardware used by a PET profile's mainboard revision.</summary>
+public enum PetVideoHardware
+{
+    Discrete,
+    Crtc
+}
+
 /// <summary>
 /// A hardware configuration of the Commodore PET/CBM family: BASIC version, screen geometry,
 /// RAM/video RAM layout, and the exact ROM set it needs.
@@ -44,6 +51,9 @@ public sealed record PetProfile(
     PetKeyboardLayout KeyboardLayout)
 {
     public bool IsImplemented => Status == PetProfileStatus.Implemented;
+
+    /// <summary>Explicit video-hardware classification derived from the profile's I/O model.</summary>
+    public PetVideoHardware VideoHardware => RequiresCrtc ? PetVideoHardware.Crtc : PetVideoHardware.Discrete;
 
     public string Geometry => $"{Columns}x{Rows}";
 

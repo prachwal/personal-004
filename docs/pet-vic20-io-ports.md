@@ -396,11 +396,13 @@ wieloukładowe i bankowane nadal wymagają osobnego urządzenia przełączające
 
 ### 6. PET — rewizje modeli i obraz
 
-- [ ] Rozdzielić profile według rzeczywistych rewizji, jeśli różnice wpływają na I/O.
-  - [ ] Określić, które warianty mają CRTC, a które dyskretny układ obrazu.
-  - [ ] Dodać osobne manifesty ROM i test startu dla każdego profilu.
+- [x] Rozdzielić profile według dostępnych, rzeczywistych rewizji, jeśli różnice wpływają na I/O.
+  - [x] Jawnie określić, które warianty mają CRTC, a które dyskretny układ obrazu.
+  - [x] Utrzymywać osobne manifesty ROM i test startu dla każdego dostępnego profilu.
 - [ ] Zweryfikować różnice klawiatury, kaset i złączy między PET 2001, 3000,
       4000/4032 i 8000/8032.
+  - [ ] Brakuje jeszcze zweryfikowanych obrazów ROM dla PET 3000 i osobnych rewizji
+        4000 poza `cbm-4032`; nie tworzyć profili zastępczych bez tych obrazów.
   - [ ] Nie tworzyć profilu tylko dla różnicy obudowy lub nazwy handlowej.
 
 ### 7. PET 8096/8296 i SuperPET

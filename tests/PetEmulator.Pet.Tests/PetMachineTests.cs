@@ -153,6 +153,18 @@ public sealed class PetMachineTests
         machine.Processor.InstructionCount.Should().BeGreaterThan(0);
     }
 
+    [TestCaseSource(nameof(AllProfiles))]
+    [CancelAfter(30_000)]
+    public void EveryImplementedProfile_BootsWithoutThrowing_ForBoundedSteps(PetProfile profile)
+    {
+        var machine = CreateMachine(profile);
+
+        machine.Run(500);
+
+        machine.Processor.Halted.Should().BeFalse(profile.Id);
+        machine.Processor.InstructionCount.Should().BeGreaterThan(0, profile.Id);
+    }
+
     [Test]
     public void Reset_ZeroesRamAndRestartsCpuAtResetVector()
     {
@@ -527,4 +539,6 @@ public sealed class PetMachineTests
         var romsRoot = Directory.GetParent(profileDirectory)!.FullName;
         return new PetMachine(profile, romsRoot);
     }
+
+    private static IEnumerable<PetProfile> AllProfiles() => PetProfileCatalog.All;
 }
