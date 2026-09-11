@@ -1,5 +1,6 @@
 using FluentAssertions;
 using NUnit.Framework;
+using PetEmulator.Audio;
 using PetEmulator.Vic20.Tests.Roms;
 
 namespace PetEmulator.Vic20.Tests;
@@ -40,5 +41,18 @@ public sealed class Vic20AudioTests
         machine.Vic.Oscillator1Enabled.Should().BeFalse();
         machine.Vic.NoiseEnabled.Should().BeFalse();
         machine.Vic.Volume.Should().Be(0);
+    }
+
+    [Test]
+    public void AudioRegisters_ProduceSamplesThroughTheMachineBus()
+    {
+        var machine = new Vic20Machine(RomLocator.Directory("kernal.bin"));
+        machine.Memory.Write(0x900A, 0x80 | 0x40);
+        machine.Memory.Write(0x900E, 0x0F);
+
+        var frames = new AudioFrame[64];
+        machine.Vic.Render(frames).Should().Be(frames.Length);
+
+        frames.Should().Contain(frame => frame.Left != 0 || frame.Right != 0);
     }
 }
