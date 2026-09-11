@@ -588,14 +588,14 @@ Plik: `lib/PetEmulator.Chips/MC146818.cs`.
   - [x] zapis wszystkich pól czasu;
   - [x] wznowienie i zachowanie części ułamkowej cykli.
 - [ ] Rejestry A/B/C/D:
-  - [ ] UIP/divider;
+  - [x] UIP/divider;
   - [x] rate selection;
-  - [ ] AIE;
+  - [x] AIE;
   - [x] UIE/PIE i IRQ;
   - [x] read-to-clear status C;
   - [x] valid RAM/time bit D.
-- [ ] Dodać alarmy i testy porównania czasu z alarmem, jeśli kartridż ma zachowywać
-      się jak pełny DS12887; obecny kontrakt RTC świadomie nie obejmuje alarmu/AIE.
+- [x] Dodać alarmy i testy porównania czasu z alarmem; kartridż obejmuje teraz
+      podstawowy kontrakt alarmowy DS12887 wraz z AIE i polami don't-care.
 - [x] Dodać testy wszystkich częstotliwości periodic interrupt wynikających z Register A.
 - [x] Dodać integracyjny test kartridża: mapowanie I/O, IRQ 6502 i aktualizacja HH:MM.
 

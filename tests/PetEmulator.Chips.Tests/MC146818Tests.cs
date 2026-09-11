@@ -166,11 +166,62 @@ public sealed class MC146818Tests
 
         for (byte rate = 3; rate <= 15; rate++)
         {
-            Write(rtc, MC146818.RegisterA, rate);
+            Write(rtc, MC146818.RegisterA, (byte)(0x20 | rate)); // divider DV=010 plus rate
             rtc.Tick(1);
             Read(rtc, MC146818.RegisterC).Should().Be(MC146818.UpdateEndedFlag |
                 MC146818.PeriodicFlag | MC146818.InterruptRequestFlag);
         }
+    }
+
+    [Test]
+    public void RegisterA_ReportsUpdateInProgressBeforeSecondAndStopsWhenDividerIsDisabled()
+    {
+        var rtc = new MC146818(clock: () => new DateTime(2026, 9, 11, 12, 0, 0), cyclesPerSecond: 100);
+
+        rtc.Tick(99);
+        (Read(rtc, MC146818.RegisterA) & MC146818.UpdateInProgress).Should().NotBe(0);
+
+        rtc.Tick(1);
+        (Read(rtc, MC146818.RegisterA) & MC146818.UpdateInProgress).Should().Be(0);
+        Read(rtc, MC146818.Seconds).Should().Be(0x01);
+
+        Write(rtc, MC146818.RegisterA, 0x00); // divider stopped
+        rtc.Tick(100);
+        Read(rtc, MC146818.Seconds).Should().Be(0x01);
+    }
+
+    [Test]
+    public void AlarmMatch_RaisesAlarmFlagAndIrqOnlyWhenAieIsEnabled()
+    {
+        var rtc = new MC146818(clock: () => new DateTime(2026, 9, 11, 12, 34, 59), cyclesPerSecond: 100);
+        Write(rtc, MC146818.AlarmSeconds, 0x00);
+        Write(rtc, MC146818.AlarmMinutes, 0x35);
+        Write(rtc, MC146818.AlarmHours, 0x12);
+        Write(rtc, MC146818.RegisterB, MC146818.Hour24Mode);
+
+        rtc.Tick(100);
+        Read(rtc, MC146818.RegisterC).Should().Be(MC146818.UpdateEndedFlag | MC146818.AlarmFlag);
+
+        Write(rtc, MC146818.AlarmSeconds, 0x01);
+        Write(rtc, MC146818.RegisterB, MC146818.Hour24Mode | MC146818.AlarmInterruptEnable);
+        rtc.Tick(100);
+        Read(rtc, MC146818.RegisterC).Should().Be(MC146818.UpdateEndedFlag | MC146818.AlarmFlag |
+            MC146818.InterruptRequestFlag);
+    }
+
+    [Test]
+    public void AlarmRegisters_SupportDontCareFields()
+    {
+        var rtc = new MC146818(clock: () => new DateTime(2026, 9, 11, 12, 34, 59), cyclesPerSecond: 1);
+        Write(rtc, MC146818.AlarmSeconds, 0xC0);
+        Write(rtc, MC146818.AlarmMinutes, 0xC0);
+        Write(rtc, MC146818.AlarmHours, 0xC0);
+        Write(rtc, MC146818.RegisterB, MC146818.Hour24Mode | MC146818.AlarmInterruptEnable);
+
+        rtc.Tick(1);
+
+        (Read(rtc, MC146818.RegisterC) & (MC146818.AlarmFlag | MC146818.InterruptRequestFlag))
+            .Should().Be(MC146818.AlarmFlag | MC146818.InterruptRequestFlag);
     }
 
     [Test]

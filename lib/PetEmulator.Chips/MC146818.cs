@@ -13,8 +13,11 @@ namespace PetEmulator.Chips;
 public sealed class MC146818 : IMemoryMappedDevice
 {
     public const byte Seconds = 0x00;
+    public const byte AlarmSeconds = 0x01;
     public const byte Minutes = 0x02;
+    public const byte AlarmMinutes = 0x03;
     public const byte Hours = 0x04;
+    public const byte AlarmHours = 0x05;
     public const byte DayOfWeek = 0x06;
     public const byte DayOfMonth = 0x07;
     public const byte Month = 0x08;
@@ -25,13 +28,16 @@ public sealed class MC146818 : IMemoryMappedDevice
     public const byte RegisterD = 0x0D;
 
     public const byte UpdateEndedFlag = 0x10;
+    public const byte AlarmFlag = 0x20;
     public const byte PeriodicFlag = 0x40;
     public const byte InterruptRequestFlag = 0x80;
     public const byte UpdateEndedInterruptEnable = 0x10;
+    public const byte AlarmInterruptEnable = 0x20;
     public const byte PeriodicInterruptEnable = 0x40;
     public const byte DataModeBinary = 0x04;
     public const byte Hour24Mode = 0x02;
     public const byte SetTime = 0x80;
+    public const byte UpdateInProgress = 0x80;
 
     private readonly ushort _baseAddress;
     private readonly Func<DateTime> _clock;
@@ -44,6 +50,9 @@ public sealed class MC146818 : IMemoryMappedDevice
     private byte _registerB;
     private byte _registerC;
     private byte _dayOfWeek;
+    private byte _alarmSeconds;
+    private byte _alarmMinutes;
+    private byte _alarmHours;
 
     public MC146818(
         string name = "MC146818 RTC",
@@ -100,11 +109,12 @@ public sealed class MC146818 : IMemoryMappedDevice
         _registerA = 0x20; // divider running, no periodic rate selected
         _registerB = 0x02; // 24-hour BCD mode
         _registerC = 0;
+        _alarmSeconds = _alarmMinutes = _alarmHours = 0;
     }
 
     public void Tick(ulong cycles)
     {
-        if ((_registerB & SetTime) != 0)
+        if ((_registerB & SetTime) != 0 || !DividerEnabled)
             return;
 
         _cycleRemainder += cycles;
@@ -116,6 +126,12 @@ public sealed class MC146818 : IMemoryMappedDevice
             _registerC |= UpdateEndedFlag;
             if ((_registerB & UpdateEndedInterruptEnable) != 0)
                 _registerC |= InterruptRequestFlag;
+            if (AlarmMatchesCurrentTime())
+            {
+                _registerC |= AlarmFlag;
+                if ((_registerB & AlarmInterruptEnable) != 0)
+                    _registerC |= InterruptRequestFlag;
+            }
         }
 
         if ((_registerB & PeriodicInterruptEnable) == 0)
@@ -138,13 +154,16 @@ public sealed class MC146818 : IMemoryMappedDevice
     private byte ReadSelectedRegister() => _selectedRegister switch
     {
         Seconds => Encode(_currentTime.Second),
+        AlarmSeconds => _alarmSeconds,
         Minutes => Encode(_currentTime.Minute),
+        AlarmMinutes => _alarmMinutes,
         Hours => EncodeHour(_currentTime.Hour),
+        AlarmHours => _alarmHours,
         DayOfWeek => _dayOfWeek,
         DayOfMonth => Encode(_currentTime.Day),
         Month => Encode(_currentTime.Month),
         Year => Encode(_currentTime.Year % 100),
-        RegisterA => _registerA,
+        RegisterA => (byte)(_registerA | (IsUpdateInProgress ? UpdateInProgress : 0)),
         RegisterB => _registerB,
         RegisterC => ReadAndClearStatus(),
         RegisterD => 0x80, // valid CMOS RAM / time
@@ -193,6 +212,15 @@ public sealed class MC146818 : IMemoryMappedDevice
                 break;
             case RegisterC:
             case RegisterD:
+                break;
+            case AlarmSeconds:
+                _alarmSeconds = value;
+                break;
+            case AlarmMinutes:
+                _alarmMinutes = value;
+                break;
+            case AlarmHours:
+                _alarmHours = value;
                 break;
             case Seconds:
                 if ((_registerB & SetTime) != 0)
@@ -247,6 +275,19 @@ public sealed class MC146818 : IMemoryMappedDevice
     };
 
     private byte Encode(int value) => (_registerB & DataModeBinary) != 0 ? (byte)value : ToBcd(value);
+
+    private bool DividerEnabled => (_registerA & 0x70) == 0x20;
+
+    private bool IsUpdateInProgress =>
+        DividerEnabled && _cycleRemainder >= _cyclesPerSecond - Math.Max(1UL, _cyclesPerSecond / 64);
+
+    private bool AlarmMatchesCurrentTime() =>
+        AlarmMatches(_alarmSeconds, Encode(_currentTime.Second)) &&
+        AlarmMatches(_alarmMinutes, Encode(_currentTime.Minute)) &&
+        AlarmMatches(_alarmHours, EncodeHour(_currentTime.Hour));
+
+    private static bool AlarmMatches(byte alarm, byte current) =>
+        (alarm & 0xC0) == 0xC0 || alarm == current;
 
     private byte Decode(byte value) => (_registerB & DataModeBinary) != 0
         ? value
