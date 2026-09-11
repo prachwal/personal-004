@@ -544,7 +544,7 @@ Plik: `lib/PetEmulator.Chips/MOS6560.cs`.
 - [x] Dodać testy tolerancji częstotliwości na pełnym buforze próbek, a nie tylko
       test „nie jest ciszą”.
 - [x] Dodać osobny test PAL i test zgodności konfiguracji z `Vic20DisplayConfig`.
-- [ ] Dodać integracyjny test VIC-20: ekran, Color RAM, raster i dźwięk z ROM-em.
+- [x] Dodać integracyjny test VIC-20: ekran, Color RAM, raster i dźwięk z ROM-em.
 
 ### 8.6 `MT6545` — CRTC
 
