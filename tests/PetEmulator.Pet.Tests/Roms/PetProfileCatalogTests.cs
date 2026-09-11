@@ -28,6 +28,17 @@ public sealed class PetProfileCatalogTests
         PetProfileCatalog.Cbm8032.VideoHardware.Should().Be(PetVideoHardware.Crtc);
     }
 
+    [Test]
+    public void Cbm3000Profiles_ReuseOnlyTheVerifiedBasic2RomSet_AndVaryRamCapacity()
+    {
+        PetProfileCatalog.Cbm3008.RomDirectory.Should().Be(PetProfileCatalog.Pet2001_32.RomDirectory);
+        PetProfileCatalog.Cbm3016.RomDirectory.Should().Be(PetProfileCatalog.Pet2001_32.RomDirectory);
+        PetProfileCatalog.Cbm3032.RomDirectory.Should().Be(PetProfileCatalog.Pet2001_32.RomDirectory);
+        PetProfileCatalog.Cbm3008.RamSize.Should().Be(0x2000);
+        PetProfileCatalog.Cbm3016.RamSize.Should().Be(0x4000);
+        PetProfileCatalog.Cbm3032.RamSize.Should().Be(0x8000);
+    }
+
     [TestCaseSource(nameof(Profiles))]
     public void RomManifest_LoadsFromProfileSubfolder(PetProfile profile)
     {

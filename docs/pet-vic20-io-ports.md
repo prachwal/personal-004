@@ -403,8 +403,10 @@ wieloukładowe i bankowane nadal wymagają osobnego urządzenia przełączające
       4000/4032 i 8000/8032.
   - [x] Dla dostępnych profili potwierdzić testem różne układy klawiatury/obrazu
         oraz wspólną wiązkę dwóch kaset, IEEE-488 i User Portu.
-  - [ ] Brakuje jeszcze zweryfikowanych obrazów ROM dla PET 3000 i osobnych rewizji
-        4000 poza `cbm-4032`; nie tworzyć profili zastępczych bez tych obrazów.
+  - [x] Dodać profile CBM 3008/3016/3032 na zweryfikowanym zestawie BASIC 2,
+        z osobnymi pojemnościami RAM i współdzielonym katalogiem ROM.
+  - [ ] Zweryfikować osobne rewizje 4000 poza `cbm-4032`; wymagają doboru właściwego
+        wariantu editor ROM (40/80 kolumn, klawiatura normalna/business, 50/60 Hz).
   - [x] Nie tworzyć profilu tylko dla różnicy obudowy lub nazwy handlowej.
 
 ### 7. PET 8096/8296 i SuperPET

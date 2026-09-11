@@ -57,8 +57,12 @@ public sealed record PetProfile(
 
     public string Geometry => $"{Columns}x{Rows}";
 
+    /// <summary>Optional shared ROM-set folder. This is used when several hardware models use
+    /// the same verified BASIC/editor/KERNAL images but differ in RAM capacity.</summary>
+    public string? RomDirectoryOverride { get; init; }
+
     /// <summary>Subfolder name under <c>roms/pet/</c> holding this profile's ROM set.</summary>
-    public string RomDirectory => Id;
+    public string RomDirectory => RomDirectoryOverride ?? Id;
 
     /// <summary>
     /// Physical width:height ratio of one on-screen pixel on real PET/CBM hardware - pixels are
