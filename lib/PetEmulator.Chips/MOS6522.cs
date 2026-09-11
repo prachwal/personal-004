@@ -382,19 +382,20 @@ public sealed class MOS6522 : IMemoryMappedDevice
         // UpdateTimers. T2 has no free-run mode of its own, so there's no reload branch here.
         if (--_t2Counter == ushort.MaxValue)
         {
+            var srMode = (byte)(_acr & 0x1C);
             if (_t2OneShotArmed)
             {
                 SetInterrupt(Timer2Interrupt);
-                _t2OneShotArmed = false;
+                if (srMode != 0x10)
+                    _t2OneShotArmed = false;
             }
 
-            // ponytail: SR modes clocked by T2 (0x04 in, 0x10 out-free-run, 0x14 out-once) all
-            // shift one bit per T2 underflow here - real 0x10 additionally free-runs T2 itself
-            // (reloading from the latch forever, ignoring one-shot) to keep generating a
-            // continuous shift clock; that reload isn't implemented, so 0x10 clocks the same
-            // single bit as 0x14 then goes quiet like any other one-shot T2. Upgrade path: give
-            // 0x10 its own always-reload branch here if a real shift-out-free-running user shows up.
-            var srMode = (byte)(_acr & 0x1C);
+            // T2-driven shift-out free-run reloads T2 after every underflow so it can keep
+            // producing the serial clock. The other T2 shift modes retain normal one-shot
+            // behavior.
+            if (srMode == 0x10)
+                _t2Counter = _t2Latch;
+
             if (srMode is 0x04 or 0x10 or 0x14)
                 ClockShiftRegister();
         }

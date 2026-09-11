@@ -475,7 +475,7 @@ Plik: `lib/PetEmulator.Chips/MOS6522.cs`.
   - [x] zegar T2 i CB1;
   - [x] 8 bitów do ustawienia flagi;
   - [x] poprawne źródło bitu CB2 i kolejność przesuwania;
-  - [x] pełny tryb free-run T2, obecnie jawnie niepełny w implementacji.
+  - [x] pełny tryb free-run T2 dla shift-out (`ACR=0x10`).
 - [x] Linie CA1/CA2/CB1/CB2:
   - [x] zbocze narastające i opadające;
   - [x] tryb wejścia niezależnego;

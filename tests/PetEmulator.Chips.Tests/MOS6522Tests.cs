@@ -262,6 +262,26 @@ public sealed class MOS6522Tests
     }
 
     [Test]
+    public void ShiftRegister_T2FreeRunMode_ReloadsTimerAndContinuesClocking()
+    {
+        var via = new MOS6522();
+        via.Write(MOS6522.AuxiliaryControl, 0x10); // SR output, T2 free-run
+        via.Write(MOS6522.ShiftRegister, 0x80);
+        via.Write(MOS6522.T2CounterLow, 0x01);
+        via.Write(MOS6522.T2CounterHigh, 0x00);
+
+        for (var i = 0; i < 8; i++)
+        {
+            via.Update();
+            via.Update();
+        }
+
+        (via.Read(MOS6522.InterruptFlag) & MOS6522.ShiftRegisterInterrupt).Should().NotBe(0,
+            "free-run T2 should provide all eight shift clocks");
+        via.Timer2Counter.Should().Be(0x0001, "T2 should reload from its latch after each underflow");
+    }
+
+    [Test]
     public void Pcr_configures_ca1_and_cb1_edges()
     {
         var via = new MOS6522();
