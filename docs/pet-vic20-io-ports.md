@@ -566,8 +566,8 @@ Plik: `lib/PetEmulator.Chips/MT6545.cs`.
 - [x] Pokryć oba skews pipeline: display-enable i cursor.
 - [x] Pokryć interlace sync/video oraz przełączanie pola.
 - [x] Pokryć light-pen latch, status i kasowanie statusu po odczycie.
-- [ ] Jawnie zdecydować, czy implementowane są tryby `Update`/`Transparent`; jeżeli
-      pozostają poza zakresem, dodać test dokumentujący ich bezpieczne zachowanie.
+- [x] Jawnie ograniczyć tryby `Update`/`Transparent`: pozostają poza zakresem,
+      ponieważ model nie ma rejestrów adresu aktualizacji; zachowanie jest pokryte testem.
 - [ ] Dodać test integracyjny PET dla każdego profilu z CRTC oraz test renderer/CRTC.
 
 ### 8.7 `MC146818` — RTC

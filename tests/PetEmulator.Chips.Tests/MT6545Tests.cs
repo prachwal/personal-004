@@ -54,6 +54,20 @@ public sealed class MT6545Tests
     }
 
     [Test]
+    public void UpdateAndTransparentModes_AreExplicitlyUnsupportedWithoutUpdateAddressRegisters()
+    {
+        var crtc = new MT6545();
+        WriteRegister(crtc, 0, 3);
+        WriteRegister(crtc, 1, 2);
+        WriteRegister(crtc, 8, 0x60);
+
+        ReadRegister(crtc, 8).Should().Be(0x60);
+        crtc.Tick(4);
+        crtc.MACounter.Should().BeInRange((ushort)0, (ushort)0x3FFF);
+        (crtc.Read(0) & 0x80).Should().Be(0);
+    }
+
+    [Test]
     public void ResetClearsRegistersCountersAndSignals()
     {
         var crtc = new MT6545();
