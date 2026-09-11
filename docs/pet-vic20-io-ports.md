@@ -569,7 +569,7 @@ Plik: `lib/PetEmulator.Chips/MT6545.cs`.
 - [x] Pokryć light-pen latch, status i kasowanie statusu po odczycie.
 - [x] Jawnie ograniczyć tryby `Update`/`Transparent`: pozostają poza zakresem,
       ponieważ model nie ma rejestrów adresu aktualizacji; zachowanie jest pokryte testem.
-- [ ] Dodać test integracyjny PET dla każdego profilu z CRTC oraz test renderer/CRTC.
+- [x] Dodać test integracyjny PET dla każdego profilu z CRTC oraz test renderer/CRTC.
 
 ### 8.7 `MC146818` — RTC
 
