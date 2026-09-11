@@ -148,6 +148,27 @@ public sealed class Vic20DatasetteTests
     }
 
     [Test]
+    public void WriteLevel_TracksVia2Pb3OnlyWhileThePinIsDriven()
+    {
+        var via1 = new MOS6522();
+        var via2 = new MOS6522();
+        var datasette = new Vic20Datasette(via1, via2);
+
+        datasette.WriteLevel.Should().BeFalse();
+
+        via2.Write(MOS6522.Ddrb, 0x08);
+        via2.Write(MOS6522.Orb, 0x08);
+        datasette.WriteLevel.Should().BeTrue("PB3 high is the asserted WRITE level");
+
+        via2.Write(MOS6522.Orb, 0x00);
+        datasette.WriteLevel.Should().BeFalse();
+
+        via2.Write(MOS6522.Ddrb, 0x00);
+        via2.Write(MOS6522.Orb, 0x08);
+        datasette.WriteLevel.Should().BeFalse("an input pin is not driving the cassette WRITE line");
+    }
+
+    [Test]
     public void LoadingATape_DoesNotPressPlayForYou()
     {
         var via1 = new MOS6522();

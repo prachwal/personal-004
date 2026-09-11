@@ -373,7 +373,7 @@ wieloukładowe i bankowane nadal wymagają osobnego urządzenia przełączające
 - [ ] Oddzielić model linii fizycznych kasety od obecnego dekodowania impulsów.
   - [ ] Zachować istniejące, działające SAVE/LOAD logiczne jako ścieżkę zgodności.
   - [ ] Dodać osobny zapis impulsów z VIA2 PB3 tylko wtedy, gdy testy potwierdzą stabilność.
-- [ ] Dodać testy przejść motor, sense, READ i WRITE oraz test round-trip z prawdziwym ROM-em.
+- [x] Dodać testy przejść motor, sense, READ i WRITE oraz test round-trip z prawdziwym ROM-em.
 
 ### 5. PET — druga kaseta i pełne linie VIA
 

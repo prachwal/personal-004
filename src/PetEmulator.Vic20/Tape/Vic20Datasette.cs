@@ -48,6 +48,10 @@ public sealed class Vic20Datasette
     /// $08-$0E) and held low - active-low motor-on, same convention as PET's PIA1 CB2.</summary>
     public bool MotorOn => (_via1.PCR & 0x0E) >= 0x08 && !_via1.CA2Output;
 
+    /// <summary>Current level driven on VIA2 PB3, the physical cassette WRITE line. It is low
+    /// while PB3 is configured as an input because the emulated VIA is not driving the pin.</summary>
+    public bool WriteLevel => (_via2.PortBOutput & 0x08) != 0;
+
     public bool HasTape => _pulseCycles.Count > 0;
 
     /// <summary>Whether the (emulated) physical PLAY button is currently held down - see
