@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Core;
+using PetEmulator.Cpu6502;
 using PetEmulator.Chips;
 using PetEmulator.Debugger;
 using PetEmulator.Pet.CbmDos;
@@ -35,6 +36,32 @@ public sealed class Vic20MachineTests
         machine.Via2.Write(0x9120, unchecked((byte)~(1 << 2))); // select row 2 only
 
         machine.Via2.Read(0x9121).Should().Be(unchecked((byte)~1), "row 2 col 0 is pressed");
+    }
+
+    [Test]
+    [CancelAfter(10_000)]
+    public void Via1TimerIrq_IsPropagatedToThe6502IrqVector()
+    {
+        var machine = CreateMachine();
+        machine.RunUntil(_ => machine.Vic.Columns > 0 && machine.Vic.Rows > 0, 2_000_000)
+            .Should().BeTrue("the KERNAL must finish initialization before the timer IRQ is injected");
+
+        var reads = new List<ushort>();
+        machine.BusObserver = access =>
+        {
+            if (!access.IsWrite)
+                reads.Add(access.Address);
+        };
+
+        machine.Memory.Write(0x911D, 0x7F); // clear any boot-time VIA1 interrupt flags
+        ((PetEmulator.Cpu6502.Cpu6502)machine.Processor).Registers.P &= unchecked((byte)~0x04); // CLI for the test CPU
+        machine.Memory.Write(0x911E, 0xC0); // enable VIA1 Timer 1 interrupt
+        machine.Memory.Write(0x9114, 0x01);
+        machine.Memory.Write(0x9115, 0x00); // start T1 with a two-cycle period
+        machine.Run(20);
+
+        reads.Should().Contain(0xFFFE, "the 6502 must fetch the low byte of the IRQ vector");
+        reads.Should().Contain(0xFFFF, "the 6502 must fetch the high byte of the IRQ vector");
     }
 
     [Test]

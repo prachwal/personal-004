@@ -487,7 +487,7 @@ Plik: `lib/PetEmulator.Chips/MOS6522.cs`.
   - [x] maskowanie IER;
   - [x] bit `AnyInterrupt` tylko jako wynik, nie jako niezależna flaga;
   - [x] przejścia IRQ 0→1 i 1→0.
-- [ ] Dodać test integracyjny PET i VIC-20 dla klawiatury, datasette, IEC oraz IRQ.
+- [x] Dodać test integracyjny PET i VIC-20 dla klawiatury, datasette, IEC oraz IRQ.
 
 ### 8.4 `MT6520` — PIA
 
