@@ -401,9 +401,11 @@ wieloukładowe i bankowane nadal wymagają osobnego urządzenia przełączające
   - [x] Utrzymywać osobne manifesty ROM i test startu dla każdego dostępnego profilu.
 - [ ] Zweryfikować różnice klawiatury, kaset i złączy między PET 2001, 3000,
       4000/4032 i 8000/8032.
+  - [x] Dla dostępnych profili potwierdzić testem różne układy klawiatury/obrazu
+        oraz wspólną wiązkę dwóch kaset, IEEE-488 i User Portu.
   - [ ] Brakuje jeszcze zweryfikowanych obrazów ROM dla PET 3000 i osobnych rewizji
         4000 poza `cbm-4032`; nie tworzyć profili zastępczych bez tych obrazów.
-  - [ ] Nie tworzyć profilu tylko dla różnicy obudowy lub nazwy handlowej.
+  - [x] Nie tworzyć profilu tylko dla różnicy obudowy lub nazwy handlowej.
 
 ### 7. PET 8096/8296 i SuperPET
 

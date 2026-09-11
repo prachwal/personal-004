@@ -165,6 +165,17 @@ public sealed class PetMachineTests
         machine.Processor.InstructionCount.Should().BeGreaterThan(0, profile.Id);
     }
 
+    [TestCaseSource(nameof(AllProfiles))]
+    public void EveryImplementedProfile_UsesTheVerifiedCommonPeripheralWiring(PetProfile profile)
+    {
+        var machine = CreateMachine(profile);
+
+        machine.Devices.Select(device => device.Id).Should().Contain(["datasette", "datasette2"],
+            profile.Id);
+        machine.UserPort.Should().NotBeNull(profile.Id);
+        (machine.Crtc is not null).Should().Be(profile.VideoHardware == PetVideoHardware.Crtc, profile.Id);
+    }
+
     [Test]
     public void Reset_ZeroesRamAndRestartsCpuAtResetVector()
     {
