@@ -29,6 +29,7 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     private const ulong InstructionsPerTick = 20_000;
 
     private readonly Vic20Machine _machine;
+    private readonly string _romsRoot;
     private readonly Vic20RasterDisplay _display;
     private readonly IAudioOutput _audioOutput;
     private readonly Vic20KeyboardMap _keyboardMap = new();
@@ -87,7 +88,10 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
 
+        _romsRoot = romsRoot;
         _machine = new Vic20Machine(romsRoot, expansionPreset: expansionPreset);
+        ProfileSelector = new Vic20ProfileSelectorViewModel(expansionPreset);
+        ProgramProfileSelector = new Vic20ProgramProfileSelectorViewModel();
         _display = new Vic20RasterDisplay(_machine.Memory, _machine.Vic);
         _audioOutput = AudioOutputFactory.CreateDefault();
         _audioOutput.Start(_machine.Vic);
@@ -100,6 +104,10 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     }
 
     public int PixelWidth => _display.PixelWidth;
+
+    public Vic20ProfileSelectorViewModel ProfileSelector { get; }
+
+    public Vic20ProgramProfileSelectorViewModel ProgramProfileSelector { get; }
 
     public int PixelHeight => _display.PixelHeight;
 
@@ -142,6 +150,24 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
         UpdateCartridgeState();
     }
 
+    public void LoadProgramProfile(Vic20ProgramProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        var cartridgeDirectory = Path.Combine(_romsRoot, "cartridges");
+        var cartridgeImage = Path.Combine(cartridgeDirectory, profile.CartridgeFileName);
+
+        if (profile.RamImageFileName is { Length: > 0 } ramImageFileName)
+        {
+            var ramImage = Path.Combine(cartridgeDirectory, ramImageFileName);
+            var pluginPath = typeof(PetEmulator.Vic20.Cartridge.Ram.RamExpansionCartridgePlugin).Assembly.Location;
+            _machine.MountCartridgePlugin(pluginPath, ramImage);
+        }
+
+        _machine.MountCartridge(cartridgeImage);
+        _machine.Reset();
+        UpdateCartridgeState();
+    }
+
     [RelayCommand]
     private void EjectCartridge()
     {
@@ -152,6 +178,12 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     public void EjectCartridge(string path)
     {
         _machine.EjectCartridge(path);
+        UpdateCartridgeState();
+    }
+
+    public void EjectAllCartridges()
+    {
+        _machine.EjectCartridge();
         UpdateCartridgeState();
     }
 
@@ -227,6 +259,9 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
         if (cell is { } position)
             ApplyKeyAction(new MatrixAction(position.Row, position.Column, kind == HostKeyEventKind.Press));
     }
+
+    public void SetJoystickInput(Vic20JoystickInput input, bool pressed) =>
+        _machine.Joystick.Set(input, pressed);
 
     private void ApplyKeyAction(MatrixAction action)
     {

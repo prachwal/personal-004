@@ -42,6 +42,30 @@ public sealed class Vic20PrgParserTests
             .Should().Throw<InvalidDataException>().WithMessage("*at least one byte*");
     }
 
-    private static string Fixture(string name) =>
-        Path.Combine(RomLocator.Directory("kernal.bin"), "cartridges", name);
+    [Test]
+    public void Machine_MountsDownloadedIfrCartridgeImage()
+    {
+        var machine = new Vic20Machine(RomLocator.Directory("kernal.bin"));
+        string path = Fixture("IFR-Flight-Simulator.prg", "cartridges");
+        byte[] file = File.ReadAllBytes(path);
+
+        machine.MountCartridge(path);
+
+        machine.Memory.Read(0xA000).Should().Be(file[2]);
+        machine.Memory.Read(0xBFFF).Should().Be(file[^1]);
+    }
+
+    [TestCase("Alphoids.prg")]
+    [TestCase("Alien-Blitz.NTSC.prg")]
+    [TestCase("Alien-Blitz.PAL.prg")]
+    public void Parse_RecognizesDownloadedRamProgram(string name)
+    {
+        Vic20PrgImage image = Vic20PrgParser.Parse(Fixture(name, "test-programs"));
+
+        image.LoadAddress.Should().Be(0x1001);
+        image.Data.Should().NotBeEmpty();
+    }
+
+    private static string Fixture(string name, string directory = "cartridges") =>
+        Path.Combine(RomLocator.Directory("kernal.bin"), directory, name);
 }

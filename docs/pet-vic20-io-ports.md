@@ -7,6 +7,9 @@ planem dalszej rozbudowy VIC-20; nie zakłada tworzenia równoległych projektó
 `CmosCpu.*`, ponieważ repozytorium ma już warstwy `PetEmulator.Core`,
 `PetEmulator.Chips` i `PetEmulator.Vic20`.
 
+Stan dokumentu: po commitach `9de48b3`–`2b540b7` obejmujących obsługę IEC
+Desktop, profile cartridge/RAM, joystick, profile programów i test audio.
+
 ## Zasada architektoniczna
 
 Istniejący `Vic20MemoryBus` pozostaje dekoderem całej przestrzeni CPU. Nie
@@ -46,8 +49,8 @@ walidacji.
 | CBM 4032 / 40 kolumn | klawiatura, IEEE-488, kasety, User Port, rozszerzenie; wariant CRTC zależny od rewizji | j.w.; CRTC `$E880-$E881` w rewizjach z CRTC | ◐ profil `cbm-4032`, 40×25, CRTC, klawiatura, IEEE-488, kaseta #1 | druga kaseta, User Port, rozszerzenie; profil upraszcza różnice rewizji |
 | CBM 8032 / seria 8000 | klawiatura, IEEE-488, kasety, User Port, rozszerzenie, CRTC; 80×25 | j.w. + CRTC `$E880-$E881` | ◐ profil `cbm-8032`, 80×25, CRTC, klawiatura, IEEE-488, kaseta #1 | druga kaseta, User Port, rozszerzenie 8096/8296 |
 | 8096 / 8296 / SuperPET / SP9000 | porty PET/CBM oraz — zależnie od modelu — bankowane RAM, dodatkowy procesor, ACIA/RS-232 lub inne rozszerzenia | PET I/O j.w.; sterowanie pamięcią rozszerzoną m.in. `$FFF0` w 8096/8296 | ❌ brak osobnych profili | cały dodatkowy sprzęt i bankowanie |
-| VIC-20 bez rozszerzenia | VIC-I, dwa VIA, joystick/paddle, User Port, kaseta, IEC serial, cartridge/expansion | `$9000-$900F`, `$9110-$911F`, `$9120-$912F`, `$9400-$97FF` | ◐ VIC-I, VIA1/VIA2, klawiatura, joystick, User Port, kaseta, IEC, Color RAM i model cartridge | fizyczne źródło paddle/light-pen, adapter RS-232, format `.crt` |
-| VIC-20 +3K / +8K / +16K / +24K / All | te same porty zewnętrzne; dodatkowo odpowiedni blok RAM | jak wyżej; pamięć bloków `$0400`, `$2000`, `$4000`, `$6000`, `$A000` | ◐ profile są konkretnymi obrazami RAM z opisem zasobów; ROM cartridge jest osobnym typem | pluginy DLL, bank switching i pełny format `.crt` |
+| VIC-20 bez rozszerzenia | VIC-I, dwa VIA, joystick/paddle, User Port, kaseta, IEC serial, cartridge/expansion | `$9000-$900F`, `$9110-$911F`, `$9120-$912F`, `$9400-$97FF` | ◐ VIC-I, VIA1/VIA2, klawiatura, joystick, User Port, kaseta, IEC, Color RAM, CRT i pluginy cartridge | fizyczne źródło paddle/light-pen, adapter RS-232 |
+| VIC-20 +3K / +8K / +16K / +24K / All | te same porty zewnętrzne; dodatkowo odpowiedni blok RAM | jak wyżej; pamięć bloków `$0400`, `$2000`, `$4000`, `$6000`, `$A000` | ◐ profile pamięci i pluginy DLL mają jawne zasoby oraz walidację konfliktów | bardziej złożone multi-cartridge i pełne warianty sprzętowe |
 
 ## PET/CBM — szczegółowe mapowanie
 
@@ -89,7 +92,7 @@ szeregową magistralą IEC, której linie są rozdzielone pomiędzy oba VIA.
 | `$912C` | VIA2 PCR/CA1/CA2/CB1/CB2 | cassette READ; IEC CLK OUT, DATA OUT i SRQ | ◐ cassette READ i IEC CLK/DATA; SRQ bez urządzenia |
 | `$9400-$97FF` | Color RAM | pamięć atrybutów koloru | ✅ `MOS2114` |
 | `$9800-$9FFF` | I/O2/I/O3 | obszar urządzeń cartridge/rozszerzeń I/O | ✅ konfigurowalne urządzenia rejestrowe cartridge; bez urządzenia otwarta magistrala |
-| `$A000-$BFFF` | cartridge / expansion | ROM/RAM cartridge i urządzenia rozszerzeń | ◐ surowy ROM cartridge i profil RAM; przyszłe urządzenia muszą przejść walidację zasobów |
+| `$A000-$BFFF` | cartridge / expansion | ROM/RAM cartridge i urządzenia rozszerzeń | ✅ surowy ROM, pojedynczy i bankowany CRT oraz pluginy RAM; zasoby są walidowane przed montowaniem |
 
 W repozytorium podłączenie dysku VIC-20 jest zatem funkcjonalne dla IEC:
 
@@ -113,10 +116,10 @@ VIA1 CA2 jako sterowania silnikiem oraz VIA2 PB3 jako `cassette WRITE`.
 | PET kasety | kaseta #1 i jej status | kaseta #2, pełny User Port i zewnętrzne linie VIA |
 | PET obraz | profile 40/80 kolumn, CRTC dla profili CRTC | brak 8096/8296 i ich bankowania |
 | VIC-20 klawiatura | VIA2 skanowanie matrycy | brak konfliktu z joystickiem; joystick Desktop używa numpada |
-| VIC-20 dyski | IEC przez VIA1/VIA2, napędy D64 i status w modelu | brak dodatkowych urządzeń pod I/O2/I/O3 i cartridge bus |
+| VIC-20 dyski | IEC przez VIA1/VIA2, napędy D64, status w modelu i podgląd Desktop | brak dodatkowych urządzeń pod I/O2/I/O3 poza kontraktem cartridge |
 | VIC-20 kaseta | odczyt, zapis logiczny/SAVE-LOAD, motor/sense | brak osobnego zewnętrznego modelu analogowego portu |
 | VIC-20 User Port / RS-232 | User Port VIA1 PB0-PB7 z DDRB; odczyt/zapis dostępny przez `Vic20Machine.UserPort` | brak adaptera RS-232 i obsługi protokołu szeregowego |
-| VIC-20 pamięć | presety 3K/8K/16K/24K/All | nie jest to pełna emulacja cartridge ROM ani urządzeń rozszerzeń |
+| VIC-20 pamięć | presety 3K/8K/16K/24K/All oraz odpowiadające pluginy DLL | brak pełnej emulacji wszystkich komercyjnych urządzeń rozszerzeń |
 
 ## Źródła i kod repozytorium
 
@@ -128,6 +131,8 @@ VIA1 CA2 jako sterowania silnikiem oraz VIA2 PB3 jako `cassette WRITE`.
 - Implementacja PET: `src/PetEmulator.Pet/PetMemoryBus.cs`, `src/PetEmulator.Pet/PetMachine.cs`, `src/PetEmulator.Pet/PetProfileCatalog.cs`.
 - Implementacja VIC-20: `src/PetEmulator.Vic20/Vic20MemoryMap.cs`, `src/PetEmulator.Vic20/Vic20MemoryBus.cs`, `src/PetEmulator.Vic20/Vic20Cartridge.cs`, `src/PetEmulator.Vic20/Vic20CartridgePluginLoader.cs`, `src/PetEmulator.Vic20/Serial/Vic20SerialBusBinding.cs`, `src/PetEmulator.Vic20/Tape/Vic20Datasette.cs`.
 - Kontrakt DLL: `lib/PetEmulator.Vic20.Cartridge.Abstractions/Vic20CartridgeContracts.cs`; przykładowy plugin: `plugins/PetEmulator.Vic20.Cartridge.Sample/SampleCartridgePlugin.cs`.
+- Programy testowe i wrappery autostart: `roms/vic20/test-programs/`, `roms/vic20/cartridges/` oraz `tools/generate-vic20-autostart-basic-cartridges.py`.
+- Test audio kartridża: `roms/vic20/test-programs/vic20-sound-test.asm` i `vic20-sound-test-autostart.crt`.
 
 ## Zaktualizowany zakres zmian
 
@@ -154,7 +159,7 @@ Kolejność minimalizuje ryzyko zmian w krytycznych klasach `Vic20Machine`,
 - [x] Ustalić `Vic20CartridgeResource` jako wspólny opis zasobów i konfliktów.
 - [x] Ujawnić wybrany profil na `Vic20Machine.ExpansionProfile`.
 - [x] Dodać test zgodności profilu, alokowanych bloków RAM i wszystkich zakresów zasobów.
-- [x] Usunąć techniczne obrazy `vic20-ram-*.bin` oraz generator ich zawartości.
+- [x] Utrzymać obrazy `vic20-ram-*.bin` jako fixture’y pluginów RAM; profile programów używają ich tylko tam, gdzie są wymagane.
 
 ### Etap 1 — wspólny kontrakt rozszerzenia
 
@@ -215,6 +220,8 @@ Kolejność minimalizuje ryzyko zmian w krytycznych klasach `Vic20Machine`,
 ### Etap 4 — joystick i porty zewnętrzne
 
 - [x] Zachować lokalne mapowanie Desktop do `Vic20Joystick`.
+- [x] Dodać wirtualny joystick Desktop jako osobny komponent z kierunkami i FIRE.
+- [x] Zachować sterowanie klawiaturą numpada `8/2/4/6/0`.
 - [ ] Dodać `IJoystickSource` jako źródło stanu, bez zależności od Avalonia.
 - [ ] Dodać adapter klawiatura/test/Windows.
 - [ ] Dodać osobny transport TCP dla WSL; protokół nie może zależeć od pamięci VIC-20.
@@ -227,8 +234,13 @@ Kolejność minimalizuje ryzyko zmian w krytycznych klasach `Vic20Machine`,
 - [x] Zachować `IAudioOutput` i uruchamianie backendu w Desktop.
 - [x] Dodać testy mapowania rejestrów `$900A-$900E` do parametrów audio.
   - [x] `Vic20AudioTests` — mapowanie przez magistralę i reset rejestrów.
+- [x] Poprawić obliczanie częstotliwości z pełnej wartości rejestru VIC, włącznie z bitem enable.
+  - [x] `MOS6560Tests` — częstotliwość i liczba zboczy generatora.
+- [x] Dodać assemblerowy kartridż testowy z trzema tonami i profilem Desktop.
+  - [x] `Vic20AutostartCartridgeTests.SoundTestCartridge_EnablesVicOscillatorAndVolume`.
+- [x] Zweryfikować backend PulseAudio testem rzeczywistego odtwarzania.
 - [ ] Dodać `NullAudioOutput`/backend testowy, jeżeli aktualny kontrakt nie wystarcza do testów integracyjnych.
-- [ ] Nie wiązać audio z cartridge ani pluginem.
+- [x] Nie wiązać implementacji audio z cartridge ani pluginem; kartridż testowy korzysta wyłącznie z rejestrów VIC.
 
 ### Etap 6 — formaty i warianty sprzętowe
 
@@ -240,10 +252,11 @@ Kolejność minimalizuje ryzyko zmian w krytycznych klasach `Vic20Machine`,
   - [x] Montować pojedynczy układ w banku 0 według jego adresu ładowania.
   - [x] Odrzucać niezgodne rozmiary/adresy i banki poza rejestrem jednobajtowym.
   - [x] Testy: `Vic20CrtParserTests` (7 testów).
-- [ ] Rozszerzyć manifest profilu o wariant PAL/NTSC dopiero po potwierdzeniu potrzeb ROM/VIC.
+- [x] Dodać profile programów testowych Alien Blitz PAL/NTSC, Alphoids i test audio.
+- [ ] Rozszerzyć model VIC o pełną separację wariantu PAL/NTSC poza profilami programów.
 - [x] Dodać bank switching jako urządzenie z własnym zasobem sterującym `$9800`.
   - [x] Przełączanie, reset i brak częściowego montowania są pokryte przez `Vic20CrtParserTests`.
-- [ ] Dopiero potem implementować MegaCart i multi-cartridge poza obecnym montowaniem wielu niezależnych ROM-ów.
+- [ ] Dopiero potem implementować MegaCart i jawny obiekt `MultiCartridge` dla konkurujących banków/zasobów.
 
 ### Etap 7 — PET i elementy niezależne
 
@@ -270,23 +283,27 @@ odpowiedniego testu. Punkty `[ ]` są planem i nie są raportowane jako gotowe.
 | Kontrakt i loader DLL | `dotnet test tests/PetEmulator.Vic20.Tests/PetEmulator.Vic20.Tests.csproj --no-restore --filter FullyQualifiedName~Vic20CartridgePluginTests` | ✅ 6 testów |
 | CLI pluginu | `dotnet test tests/PetEmulator.Cli.Tests/PetEmulator.Cli.Tests.csproj --no-restore --disable-build-servers --filter FullyQualifiedName~Vic20DebuggerSessionTests` | ✅ 9 testów |
 | Desktop pluginu | `dotnet test tests/PetEmulator.Desktop.Tests/PetEmulator.Desktop.Tests.csproj --no-restore --disable-build-servers` | ✅ 2 testy |
-| Integracja VIC-20 | pełny projekt `PetEmulator.Vic20.Tests` | ✅ 127/127 |
+| Kartridż testu audio | `dotnet test tests/PetEmulator.Vic20.Tests/PetEmulator.Vic20.Tests.csproj --no-restore --filter FullyQualifiedName~SoundTestCartridge` | ✅ 1 test |
+| MOS6560 audio | `dotnet test tests/PetEmulator.Chips.Tests/PetEmulator.Chips.Tests.csproj --no-restore --filter FullyQualifiedName~MOS6560Tests` | ✅ 14 testów |
+| Profile Desktop | `dotnet test tests/PetEmulator.Desktop.Tests/PetEmulator.Desktop.Tests.csproj --no-restore --filter FullyQualifiedName~Vic20ProgramProfileTests` | ✅ 3 testy |
+| Backend PulseAudio | `dotnet test tests/PetEmulator.Audio.Tests/PetEmulator.Audio.Tests.csproj --no-restore --filter FullyQualifiedName~PulseAudioSinkPlaybackTests` | ✅ 1 test |
+| Integracja VIC-20 | pełny projekt `PetEmulator.Vic20.Tests` | ✅ ostatni pełny przebieg: 127/127; po dodaniu testu audio należy powtórzyć pełną regresję |
 | Desktop | `dotnet build src/PetEmulator.Desktop/PetEmulator.Desktop.csproj --no-restore` | ✅ 0 błędów |
 | CLI | `dotnet build src/PetEmulator.Cli/PetEmulator.Cli.csproj --no-restore` | ✅ 0 błędów |
 | Pełny solution | `dotnet build PetEmulator.slnx --no-restore` | ⚠️ istniejące błędy NUnit1001 w testach PET |
 
 ### Następny niezamknięty punkt
 
-Najbliższym krokiem jest potwierdzenie testami urządzenia przełączającego banki
-dla wieloukładowych CRT. Przed oznaczeniem go jako wykonane trzeba przejść:
+Najbliższym krokiem jest wydzielenie jawnego obiektu `MultiCartridge` oraz
+potwierdzenie testami zarządzania grupą banków i konkurujących zasobów.
+Do zamknięcia pozostaje:
 
-1. rejestr sterujący bankiem jako jawny zasób I/O2/I/O3;
-2. przełączanie widocznego układu bez naruszenia konfliktów zasobów;
-3. odczyt danych z każdego banku i reset do banku domyślnego;
-4. odrzucenie nieobsługiwanych typów CRT bez częściowego montowania.
+1. wydzielenie jawnego obiektu `MultiCartridge` ponad rejestrem urządzeń;
+2. zarządzanie grupą banków i niezależnych zasobów bez duplikowania walidatora;
+3. testy konfliktów dla bardziej złożonych multi-cartridge.
 
 Parser obsługuje pojedynczy układ oraz wielopakietowy CRT z bankami o wspólnym
-adresie i rozmiarze; wynik runtime wymaga ponowienia po usunięciu blokady VSTest.
+adresie i rozmiarze. Runtime testy zostały potwierdzone po uruchomieniu VSTest poza ograniczeniem sandboxa.
 
 ### 1. Wspólne przygotowanie
 

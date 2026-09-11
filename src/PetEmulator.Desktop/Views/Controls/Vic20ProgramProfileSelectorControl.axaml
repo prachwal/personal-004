@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             xmlns:program="clr-namespace:PetEmulator.Desktop.ViewModels"
+             x:Class="PetEmulator.Desktop.Views.Controls.Vic20ProgramProfileSelectorControl"
+             x:DataType="viewModels:Vic20ProgramProfileSelectorViewModel">
+    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+        <TextBlock Text="🧪" FontSize="14" ToolTip.Tip="VIC-20 test program profile" />
+        <ComboBox Width="180"
+                  ItemsSource="{Binding Profiles}"
+                  SelectedItem="{Binding SelectedProfile, Mode=TwoWay}"
+                  ToolTip.Tip="Load a VIC-20 test program profile">
+            <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="program:Vic20ProgramProfile">
+                    <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Foreground="{DynamicResource ErrorTextBrush}"
+                   Text="{Binding ErrorMessage}" />
+    </StackPanel>
+</UserControl>

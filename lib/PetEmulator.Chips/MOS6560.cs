@@ -180,7 +180,10 @@ public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
     }
 
     private static double CalculateFrequency(byte register, int divider) =>
-        Phi2Ntsc / divider / (255 - (register & 0x7F) + 1);
+        // VIC frequency registers use the complete 8-bit value while enabled.
+        // Bit 7 is the enable bit, but it also participates in the divider; masking
+        // it out turns values such as $F0 into a ~28 Hz rumble instead of ~266 Hz.
+        Phi2Ntsc / divider / (255 - register + 1);
 
     private double RenderSquare(bool enabled, double frequency, int phaseIndex, double dt, ref int generators)
     {

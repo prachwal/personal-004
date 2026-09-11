@@ -1,0 +1,56 @@
+{
+  "profiles": [
+    {
+      "id": "alphoids_autostart",
+      "name": "Alphoids (autostart cartridge)",
+      "cartridge": "Alphoids-autostart.crt",
+      "sourcePrg": "../test-programs/Alphoids.prg",
+      "recommendedExpansionPreset": "Unexpanded",
+      "cartridgeRange": "$A000-$BFFF",
+      "requiresResetAfterMount": true,
+      "notes": "The original PRG is copied to $1001 after BASIC initialization and entered at its SYS target $100E."
+    },
+    {
+      "id": "alien_blitz_ntsc_autostart",
+      "name": "Alien Blitz NTSC (autostart cartridge)",
+      "cartridge": "Alien-Blitz-NTSC-autostart.crt",
+      "sourcePrg": "../test-programs/Alien-Blitz.NTSC.prg",
+      "recommendedExpansionPreset": "Unexpanded",
+      "cartridgeRange": "$A000-$BFFF",
+      "requiresResetAfterMount": true,
+      "notes": "The original PRG is copied to $1001 after BASIC initialization and entered at its SYS target $100E.",
+      "optionalRamCartridge": {
+        "pluginId": "vic20-ram-24k",
+        "pluginAssembly": "PetEmulator.Vic20.Cartridge.Ram.24K.dll",
+        "image": "vic20-ram-24k.bin",
+        "resources": "$2000-$7FFF"
+      }
+    },
+    {
+      "id": "alien_blitz_pal_autostart",
+      "name": "Alien Blitz PAL (autostart cartridge)",
+      "cartridge": "Alien-Blitz-PAL-autostart.crt",
+      "sourcePrg": "../test-programs/Alien-Blitz.PAL.prg",
+      "recommendedExpansionPreset": "Unexpanded",
+      "cartridgeRange": "$A000-$BFFF",
+      "requiresResetAfterMount": true,
+      "notes": "The original PRG is copied to $1001 after BASIC initialization and entered at its SYS target $100E.",
+      "optionalRamCartridge": {
+        "pluginId": "vic20-ram-24k",
+        "pluginAssembly": "PetEmulator.Vic20.Cartridge.Ram.24K.dll",
+        "image": "vic20-ram-24k.bin",
+        "resources": "$2000-$7FFF"
+      }
+    },
+    {
+      "id": "vic20_sound_test_autostart",
+      "name": "VIC-20 Sound Test (autostart cartridge)",
+      "cartridge": "vic20-sound-test-autostart.crt",
+      "sourcePrg": "../test-programs/vic20-sound-test.prg",
+      "recommendedExpansionPreset": "Unexpanded",
+      "cartridgeRange": "$A000-$BFFF",
+      "requiresResetAfterMount": true,
+      "notes": "The original PRG is copied to $1001 after BASIC initialization and entered at its SYS target $100E."
+    }
+  ]
+}

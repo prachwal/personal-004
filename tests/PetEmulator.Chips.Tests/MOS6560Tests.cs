@@ -140,7 +140,17 @@ public sealed class MOS6560Tests
 
         var risingEdges = frames.Zip(frames.Skip(1))
             .Count(pair => pair.First.Left <= 0 && pair.Second.Left > 0);
-        risingEdges.Should().BeInRange(29, 33);
+        risingEdges.Should().BeInRange(3_950, 4_050);
+    }
+
+    [Test]
+    public void EnabledFrequencyUsesTheEnableBitAsPartOfTheVicDivider()
+    {
+        var vic = new MOS6560(baseAddress: 0x9000);
+
+        vic.Write(0x900A, 0xF0);
+
+        vic.Oscillator1Frequency.Should().BeApproximately(MOS6560.Phi2Ntsc / 256 / 16, 0.01);
     }
 
     [Test]
