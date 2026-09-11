@@ -45,6 +45,18 @@ public sealed class PetDebuggerSessionTests
     }
 
     [Test]
+    public void SuperPetProfile_CanBeSelected()
+    {
+        var session = new PetDebuggerSession();
+        session.Execute("profile superpet");
+        session.Execute($"roms {RomsRoot()}");
+
+        var status = session.Execute("status");
+
+        status.Should().Contain("profile=SuperPET");
+    }
+
+    [Test]
     public void Devices_ReportsTheDatasetteEvenBeforeATapeIsLoaded()
     {
         var session = new PetDebuggerSession();

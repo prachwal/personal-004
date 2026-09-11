@@ -2,6 +2,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Desktop.Services;
 using PetEmulator.Desktop.ViewModels;
+using PetEmulator.Pet;
 
 namespace PetEmulator.Desktop.Tests;
 
@@ -16,6 +17,14 @@ public sealed class MainWindowViewModelTests
             .Select(choice => choice.Label)
             .Where(label => label.StartsWith("VIC-20", StringComparison.Ordinal))
             .Should().Equal("VIC-20");
+    }
+
+    [Test]
+    public void ModuleChoices_ExposeValidatedSuperPetProfile()
+    {
+        using var viewModel = new MainWindowViewModel(new StubFilePickerService());
+
+        viewModel.ModuleChoices.Should().Contain(choice => choice.Label == PetProfileCatalog.SuperPet.Name);
     }
 
     private sealed class StubFilePickerService : IFilePickerService

@@ -89,11 +89,14 @@ public static class PetProfileCatalog
 
     public static IReadOnlyList<PetProfile> All { get; } = [Pet2001_8, Pet2001_32, Cbm3008, Cbm3016, Cbm3032, Cbm4008Crtc40N60, Cbm4016Crtc40N60, Cbm4032, Cbm4032Crtc40N50, Cbm4032Crtc40B50, Cbm4032Crtc40B60, Cbm8032, Cbm8032Crtc80B50, Cbm8016Converted80N50, Converted80NUnknown];
 
+    /// <summary>Profiles that passed the ROM and memory-bus checks and may be selected by a host.</summary>
+    public static IReadOnlyList<PetProfile> Available { get; } = [.. All, SuperPet];
+
     /// <summary>Looks up a profile by <see cref="PetProfile.Id"/> (e.g. "pet-2001-32") - the
     /// string form a script/CLI command line points at, as opposed to <see cref="All"/>'s typed
     /// enumeration.</summary>
     public static PetProfile Find(string id) =>
-        All.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase))
+        Available.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase))
         ?? throw new InvalidOperationException(
-            $"Unknown PET profile '{id}'. Available: {string.Join(", ", All.Select(p => p.Id))}.");
+            $"Unknown PET profile '{id}'. Available: {string.Join(", ", Available.Select(p => p.Id))}.");
 }

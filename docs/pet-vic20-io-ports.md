@@ -436,7 +436,8 @@ wieloukładowe i bankowane nadal wymagają osobnego urządzenia przełączające
       SuperPET/SP9000.
   - [ ] Zweryfikować testem rzeczywisty firmware Waterloo uruchomiony na rdzeniu 6809.
   - [ ] Każdy dodatkowy układ powinien mieć własną mapę adresów i test boot/diagnostic.
-- [ ] Rozszerzyć Desktop/CLI o wybór tych profili po przejściu testów ROM i magistrali.
+- [x] Rozszerzyć Desktop/CLI o wybór zweryfikowanego profilu SuperPET po testach
+      ROM i magistrali; profile CBM 8096/8296 nadal pozostają ukryte jako placeholdery.
 
 ## 8. `PetEmulator.Chips` — plan doprowadzenia modeli do 100% pokrycia
 

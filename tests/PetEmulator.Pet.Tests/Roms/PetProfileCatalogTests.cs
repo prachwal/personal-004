@@ -89,6 +89,15 @@ public sealed class PetProfileCatalogTests
         PetProfileCatalog.SuperPet.ExpansionRomManifest.Should().HaveCount(3);
     }
 
+    [Test]
+    public void AvailableProfiles_IncludeOnlyProfilesValidatedForHostSelection()
+    {
+        PetProfileCatalog.Available.Should().Contain(PetProfileCatalog.SuperPet);
+        PetProfileCatalog.Available.Should().Contain(PetProfileCatalog.Cbm8032);
+        PetProfileCatalog.Available.Should().NotContain(PetProfileCatalog.Cbm8096French);
+        PetProfileCatalog.Available.Should().NotContain(PetProfileCatalog.Cbm8296);
+    }
+
     [TestCaseSource(nameof(Profiles))]
     public void RomManifest_LoadsFromProfileSubfolder(PetProfile profile)
     {
