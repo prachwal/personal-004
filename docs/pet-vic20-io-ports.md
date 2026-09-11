@@ -381,12 +381,12 @@ wieloukładowe i bankowane nadal wymagają osobnego urządzenia przełączające
   - [x] Podłączyć sense PIA1 PA5 i sterowanie silnikiem VIA Port B bit 4.
   - [x] Rozdzielić status, transport i obraz taśmy od kasety #1.
   - [x] Dodać test równoległego podłączenia kasety #1 i #2.
-- [ ] Uzupełnić brakujące linie IEEE/User Portu w wiązaniu PET VIA.
-  - [ ] Zweryfikować bity DAV, NRFD, NDAC, ATN i zapisu kasety względem mapy PET.
-  - [ ] Nie zmieniać działającego transferu D64 bez testu regresji IEEE-488.
-- [ ] Dodać model PET User Portu.
-  - [ ] Udostępnić Port A VIA oraz handshake CA2 jako zewnętrzny interfejs.
-  - [ ] Dodać test kierunku linii i aktywnego handshake.
+- [x] Uzupełnić brakujące linie IEEE/User Portu w wiązaniu PET VIA.
+  - [x] Zweryfikować bity DAV, NRFD, NDAC, ATN i zapisu kasety względem mapy PET.
+  - [x] Nie zmieniać działającego transferu D64 bez testu regresji IEEE-488.
+- [x] Dodać model PET User Portu.
+  - [x] Udostępnić Port A VIA oraz handshake CA2 jako zewnętrzny interfejs.
+  - [x] Dodać test kierunku linii i aktywnego handshake.
 
 ### 6. PET — rewizje modeli i obraz
 
