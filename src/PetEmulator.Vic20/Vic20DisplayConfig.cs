@@ -1,3 +1,5 @@
+using PetEmulator.Chips;
+
 namespace PetEmulator.Vic20;
 
 /// <summary>
@@ -8,7 +10,10 @@ namespace PetEmulator.Vic20;
 /// a field on a bigger profile type (VIC-20 v1 has no profile catalog - see
 /// docs/vic20-migration-plan.md's NTSC-only scope cut).
 /// </summary>
-public sealed record Vic20DisplayConfig(int PixelAspectWidth, int PixelAspectHeight)
+public sealed record Vic20DisplayConfig(
+    int PixelAspectWidth,
+    int PixelAspectHeight,
+    MOS6560Standard VideoStandard = MOS6560Standard.Ntsc)
 {
     /// <summary>NTSC pixel aspect ratio, derived the same way PetProfile.PixelAspect documents
     /// its own values: real hardware paints a physical 4:3 CRT regardless of native pixel count,
@@ -17,5 +22,8 @@ public sealed record Vic20DisplayConfig(int PixelAspectWidth, int PixelAspectHei
     /// reduced by their gcd (16) to 46:33 (~1.39:1 - wider than tall, unlike PET's narrower-than-
     /// tall correction, because VIC-20's native aspect (176:184 ~ 0.957:1, near-square) already
     /// undershoots 4:3 more than PET's 40-column 320:200 does).</summary>
-    public static Vic20DisplayConfig Ntsc { get; } = new(46, 33);
+    public static Vic20DisplayConfig Ntsc { get; } = new(46, 33, MOS6560Standard.Ntsc);
+
+    /// <summary>PAL-B display profile for a VIC-20 with a MOS 6561.</summary>
+    public static Vic20DisplayConfig Pal { get; } = new(5, 3, MOS6560Standard.Pal);
 }

@@ -62,7 +62,7 @@ public sealed class Vic20Machine : IMachine
         DisplayConfig = displayConfig ?? Vic20DisplayConfig.Ntsc;
         var roms = Vic20RomLoader.Load(romsRoot, Vic20RomManifest.Ntsc);
 
-        _vic = new MOS6560("VIC", Vic20MemoryMap.VicBaseAddress);
+        _vic = new MOS6560("VIC", Vic20MemoryMap.VicBaseAddress, DisplayConfig.VideoStandard);
         _via1 = new MOS6522("VIA1", Vic20MemoryMap.Via1BaseAddress);
         _via2 = new MOS6522("VIA2", Vic20MemoryMap.Via2BaseAddress);
         _colorRam = new MOS2114("Color RAM", Vic20MemoryMap.ColorRamStart, Vic20MemoryMap.ColorRamSize);

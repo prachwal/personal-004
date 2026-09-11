@@ -519,31 +519,31 @@ Plik: `lib/PetEmulator.Chips/MT6520.cs`.
 
 Plik: `lib/PetEmulator.Chips/MOS6560.cs`.
 
-- [ ] Rozdzielić konfigurację timingów NTSC (`6560`) i PAL (`6561`); obecny model
+- [x] Rozdzielić konfigurację timingów NTSC (`6560`) i PAL (`6561`); obecny model
       jest jawnie NTSC-only.
-- [ ] Pokryć wszystkie 16 rejestrów:
-  - [ ] maskowanie bitów zapisywalnych;
-  - [ ] rejestry wejściowe light pen/paddle jako read-only;
-  - [ ] raster low/high;
-  - [ ] kolumny, wiersze, wysokość znaków i bazy pamięci;
-  - [ ] kolory, reverse mode i volume.
-- [ ] Pokryć `ToCpuAddress` dla każdej kombinacji bitu A13 oraz granic 14-bitowego adresu.
-- [ ] Raster:
-  - [ ] dokładnie jeden wzrost po `CyclesPerLine`;
-  - [ ] brak wzrostu przed granicą;
-  - [ ] zawinięcie po `TotalScanlines`;
-  - [ ] odczyt bieżącego rastera przez oba rejestry.
-- [ ] Audio:
-  - [ ] częstotliwość każdego z trzech oscylatorów;
-  - [ ] generator noise i deterministyczny reset LFSR;
-  - [ ] enable/disable każdego generatora;
-  - [ ] miksowanie kilku generatorów;
-  - [ ] volume 0..15;
-  - [ ] `SampleRate` i format audio;
-  - [ ] brak próbek niezerowych przy wyłączonych generatorach.
-- [ ] Dodać testy tolerancji częstotliwości na pełnym buforze próbek, a nie tylko
+- [x] Pokryć wszystkie 16 rejestrów:
+  - [x] maskowanie bitów zapisywalnych;
+  - [x] rejestry wejściowe light pen/paddle jako read-only;
+  - [x] raster low/high;
+  - [x] kolumny, wiersze, wysokość znaków i bazy pamięci;
+  - [x] kolory, reverse mode i volume.
+- [x] Pokryć `ToCpuAddress` dla każdej kombinacji bitu A13 oraz granic 14-bitowego adresu.
+- [x] Raster:
+  - [x] dokładnie jeden wzrost po `CyclesPerLine`;
+  - [x] brak wzrostu przed granicą;
+  - [x] zawinięcie po `TotalScanlines`;
+  - [x] odczyt bieżącego rastera przez oba rejestry.
+- [x] Audio:
+  - [x] częstotliwość każdego z trzech oscylatorów;
+  - [x] generator noise i deterministyczny reset LFSR;
+  - [x] enable/disable każdego generatora;
+  - [x] miksowanie kilku generatorów;
+  - [x] volume 0..15;
+  - [x] `SampleRate` i format audio;
+  - [x] brak próbek niezerowych przy wyłączonych generatorach.
+- [x] Dodać testy tolerancji częstotliwości na pełnym buforze próbek, a nie tylko
       test „nie jest ciszą”.
-- [ ] Dodać osobny test PAL i test zgodności konfiguracji z `Vic20DisplayConfig`.
+- [x] Dodać osobny test PAL i test zgodności konfiguracji z `Vic20DisplayConfig`.
 - [ ] Dodać integracyjny test VIC-20: ekran, Color RAM, raster i dźwięk z ROM-em.
 
 ### 8.6 `MT6545` — CRTC

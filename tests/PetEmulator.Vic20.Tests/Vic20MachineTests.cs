@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Core;
+using PetEmulator.Chips;
 using PetEmulator.Debugger;
 using PetEmulator.Pet.CbmDos;
 using PetEmulator.Vic20.Tests.Roms;
@@ -10,6 +11,16 @@ namespace PetEmulator.Vic20.Tests;
 
 public sealed class Vic20MachineTests
 {
+    [Test]
+    public void DisplayConfigSelectsTheMatchingVicTimingProfile()
+    {
+        var machine = new Vic20Machine(RomLocator.Directory("kernal.bin"), Vic20DisplayConfig.Pal);
+
+        machine.DisplayConfig.Should().Be(Vic20DisplayConfig.Pal);
+        machine.Vic.Standard.Should().Be(MOS6560Standard.Pal);
+        machine.Vic.TimingCyclesPerLine.Should().Be(MOS6560.PalCyclesPerLine);
+        machine.Vic.TimingTotalScanlines.Should().Be(MOS6560.PalTotalScanlines);
+    }
     [Test]
     public void Keyboard_RoutesThroughVia2PortBOutPortAIn_NotVia1()
     {
