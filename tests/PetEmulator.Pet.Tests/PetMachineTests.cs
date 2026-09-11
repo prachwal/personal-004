@@ -191,6 +191,26 @@ public sealed class PetMachineTests
     }
 
     [Test]
+    public void DatasetteSense_IsActiveLowOnPetPia1PortA()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_32);
+        var pia1Base = PetMemoryBus.Pia1Base;
+
+        machine.Memory.Write((ushort)(pia1Base + 1), 0x04); // CRA: select ORA
+        machine.Memory.Write((ushort)(pia1Base + 3), 0x04); // CRB: select ORB
+        machine.Memory.Write(pia1Base, 0x00); // select keyboard row 0
+
+        var idle = machine.Memory.Read(pia1Base);
+        (idle & 0x10).Should().Be(0x10, "cassette sense is released high before PLAY");
+
+        machine.Datasette.LoadTape([100, 200], "sense-test.tap");
+        machine.Datasette.PressPlay();
+
+        var playing = machine.Memory.Read(pia1Base);
+        (playing & 0x10).Should().Be(0, "cassette sense is active-low while PLAY is pressed");
+    }
+
+    [Test]
     [CancelAfter(30_000)]
     public void RunUntil_StopsAsSoonAsConditionIsTrue()
     {

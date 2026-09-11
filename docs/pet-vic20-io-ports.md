@@ -513,7 +513,8 @@ Plik: `lib/PetEmulator.Chips/MT6520.cs`.
 - [x] Pokryć maskowanie zapisu rejestrów sterujących i stan po `Reset`.
 - [x] Ustalić zachowanie adresów poza mapą i pokryć je testami.
 - [ ] Dodać testy integracyjne PET dla klawiatury, datasette, IEEE-488 i portu
-      użytkownika, z osobnym testem aktywnego poziomu każdego używanego sygnału.
+      użytkownika, z osobnym testem aktywnego poziomu każdego używanego sygnału
+      (VIC-20 i PET datasette/klawiatura/IEEE są już pokryte; pozostał User Port PET).
 
 ### 8.5 `MOS6560`/`MOS6561` — VIC-I
 
