@@ -405,8 +405,10 @@ wieloukładowe i bankowane nadal wymagają osobnego urządzenia przełączające
         oraz wspólną wiązkę dwóch kaset, IEEE-488 i User Portu.
   - [x] Dodać profile CBM 3008/3016/3032 na zweryfikowanym zestawie BASIC 2,
         z osobnymi pojemnościami RAM i współdzielonym katalogiem ROM.
-  - [ ] Zweryfikować osobne rewizje 4000 poza `cbm-4032`; wymagają doboru właściwego
-        wariantu editor ROM (40/80 kolumn, klawiatura normalna/business, 50/60 Hz).
+  - [x] Dodać jawne profile wariantów `cbm-4008-crtc-40n60` i
+        `cbm-4016-crtc-40n60`, bez ukrywania wariantu editor ROM.
+  - [ ] Zweryfikować pozostałe rewizje 4000; wymagają osobnych obrazów editor ROM
+        dla wariantów 40/80 kolumn, klawiatury normalnej/business oraz 50/60 Hz.
   - [x] Nie tworzyć profilu tylko dla różnicy obudowy lub nazwy handlowej.
 
 ### 7. PET 8096/8296 i SuperPET

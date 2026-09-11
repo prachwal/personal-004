@@ -39,6 +39,17 @@ public sealed class PetProfileCatalogTests
         PetProfileCatalog.Cbm3032.RamSize.Should().Be(0x8000);
     }
 
+    [Test]
+    public void Cbm4000Profiles_DeclareTheExactCrtcEditorVariant()
+    {
+        PetProfileCatalog.Cbm4008Crtc40N60.VideoHardware.Should().Be(PetVideoHardware.Crtc);
+        PetProfileCatalog.Cbm4016Crtc40N60.VideoHardware.Should().Be(PetVideoHardware.Crtc);
+        PetProfileCatalog.Cbm4008Crtc40N60.Name.Should().Contain("40n60");
+        PetProfileCatalog.Cbm4016Crtc40N60.Name.Should().Contain("40n60");
+        PetProfileCatalog.Cbm4008Crtc40N60.RomDirectory.Should().Be(PetProfileCatalog.Cbm4032.RomDirectory);
+        PetProfileCatalog.Cbm4016Crtc40N60.RomDirectory.Should().Be(PetProfileCatalog.Cbm4032.RomDirectory);
+    }
+
     [TestCaseSource(nameof(Profiles))]
     public void RomManifest_LoadsFromProfileSubfolder(PetProfile profile)
     {
