@@ -550,22 +550,22 @@ Plik: `lib/PetEmulator.Chips/MOS6560.cs`.
 
 Plik: `lib/PetEmulator.Chips/MT6545.cs`.
 
-- [ ] Pokryć wszystkie 18 rejestrów i wszystkie maski zapisu.
-- [ ] Pokryć wybór rejestru, odczyt statusu i odczyt rejestrów light pen.
-- [ ] Timing poziomy:
-  - [ ] długość linii;
-  - [ ] pozycja i szerokość HSync;
-  - [ ] wartość szerokości 0 oznaczająca 16;
-  - [ ] granice końca linii.
-- [ ] Timing pionowy:
-  - [ ] liczba wierszy;
-  - [ ] raster per character row;
-  - [ ] VSync i vertical adjust;
-  - [ ] początek nowej ramki.
-- [ ] Pokryć MA/R display start, cursor address, cursor raster i tryby migania kursora.
-- [ ] Pokryć oba skews pipeline: display-enable i cursor.
-- [ ] Pokryć interlace sync/video oraz przełączanie pola.
-- [ ] Pokryć light-pen latch, status i kasowanie statusu po odczycie.
+- [x] Pokryć wszystkie 18 rejestrów i wszystkie maski zapisu.
+- [x] Pokryć wybór rejestru, odczyt statusu i odczyt rejestrów light pen.
+- [x] Timing poziomy:
+  - [x] długość linii;
+  - [x] pozycja i szerokość HSync;
+  - [x] wartość szerokości 0 oznaczająca 16;
+  - [x] granice końca linii.
+- [x] Timing pionowy:
+  - [x] liczba wierszy;
+  - [x] raster per character row;
+  - [x] VSync i vertical adjust;
+  - [x] początek nowej ramki.
+- [x] Pokryć MA/R display start, cursor address, cursor raster i tryby migania kursora.
+- [x] Pokryć oba skews pipeline: display-enable i cursor.
+- [x] Pokryć interlace sync/video oraz przełączanie pola.
+- [x] Pokryć light-pen latch, status i kasowanie statusu po odczycie.
 - [ ] Jawnie zdecydować, czy implementowane są tryby `Update`/`Transparent`; jeżeli
       pozostają poza zakresem, dodać test dokumentujący ich bezpieczne zachowanie.
 - [ ] Dodać test integracyjny PET dla każdego profilu z CRTC oraz test renderer/CRTC.
