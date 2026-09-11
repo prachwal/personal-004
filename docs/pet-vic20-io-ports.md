@@ -241,7 +241,7 @@ Kolejność minimalizuje ryzyko zmian w krytycznych klasach `Vic20Machine`,
 - [x] Dodać assemblerowy kartridż testowy z trzema tonami i profilem Desktop.
   - [x] `Vic20AutostartCartridgeTests.SoundTestCartridge_EnablesVicOscillatorAndVolume`.
 - [x] Zweryfikować backend PulseAudio testem rzeczywistego odtwarzania.
-- [ ] Dodać `NullAudioOutput`/backend testowy, jeżeli aktualny kontrakt nie wystarcza do testów integracyjnych.
+- [x] Dodać `NullAudioOutput`/backend testowy, jeżeli aktualny kontrakt nie wystarcza do testów integracyjnych.
 - [x] Nie wiązać implementacji audio z cartridge ani pluginem; kartridż testowy korzysta wyłącznie z rejestrów VIC.
 
 ### Etap 6 — formaty i warianty sprzętowe
