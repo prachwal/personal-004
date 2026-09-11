@@ -1,3 +1,4 @@
+using PetEmulator.Audio;
 using PetEmulator.Core;
 
 namespace PetEmulator.Chips;
@@ -6,11 +7,10 @@ namespace PetEmulator.Chips;
 /// Minimal MOS 6560/6561 VIC (Video Interface Chip) - the VIC-20's video/audio chip, 16
 /// memory-mapped registers. Ported (rewritten, not copied - different bus/device contracts) from
 /// a reference implementation (see docs/vic20-migration-plan.md step 2), NTSC-only for v1: no
-/// audio oscillators (nothing in "boot to BASIC READY + render text" needs them - a documented
-/// gap, not a guess), no PAL timing (<see cref="TotalScanlines"/>/<see cref="CyclesPerLine"/> are
-/// NTSC constants only).
+/// three tone oscillators and one noise generator, no PAL timing (<see cref="TotalScanlines"/>/<see
+/// cref="CyclesPerLine"/> are NTSC constants only).
 /// </summary>
-public sealed class MOS6560 : IMemoryMappedDevice
+public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
 {
     public const int RegisterCount = 16;
 
@@ -23,6 +23,8 @@ public sealed class MOS6560 : IMemoryMappedDevice
     private readonly byte[] _registers = new byte[RegisterCount];
     private int _rasterCounter;
     private long _lineCycles;
+    private readonly double[] _audioPhases = new double[4];
+    private ushort _noiseLfsr = 0xFFFF;
 
     public MOS6560(string name = "VIC", ushort baseAddress = 0)
     {
@@ -33,6 +35,22 @@ public sealed class MOS6560 : IMemoryMappedDevice
     public string Name { get; }
 
     public uint Length => RegisterCount;
+
+    public double SampleRate { get; set; } = 44_100;
+
+    public AudioFormat Format => new((uint)Math.Round(SampleRate), 2);
+
+    public bool Oscillator1Enabled => (_registers[0x0A] & 0x80) != 0;
+    public bool Oscillator2Enabled => (_registers[0x0B] & 0x80) != 0;
+    public bool Oscillator3Enabled => (_registers[0x0C] & 0x80) != 0;
+    public bool NoiseEnabled => (_registers[0x0D] & 0x80) != 0;
+
+    public double Oscillator1Frequency => CalculateFrequency(_registers[0x0A], 256);
+    public double Oscillator2Frequency => CalculateFrequency(_registers[0x0B], 128);
+    public double Oscillator3Frequency => CalculateFrequency(_registers[0x0C], 64);
+    public double NoiseFrequency => CalculateFrequency(_registers[0x0D], 32);
+
+    public byte Volume => (byte)(_registers[0x0E] & 0x0F);
 
     /// <summary>14-bit VIC-internal address translated to a CPU-bus address: A15 = NOT A13
     /// (real VIC-I address-line inversion quirk - matches how the chip's own screen/char-matrix
@@ -103,6 +121,66 @@ public sealed class MOS6560 : IMemoryMappedDevice
         Array.Clear(_registers);
         _rasterCounter = 0;
         _lineCycles = 0;
+        Array.Clear(_audioPhases);
+        _noiseLfsr = 0xFFFF;
+    }
+
+    public int Render(Span<AudioFrame> destination)
+    {
+        var dt = 1.0 / SampleRate;
+        var volume = Volume / 15.0;
+
+        for (var i = 0; i < destination.Length; i++)
+        {
+            var sample = 0.0;
+            var generators = 0;
+            sample += RenderSquare(Oscillator1Enabled, Oscillator1Frequency, 0, dt, ref generators);
+            sample += RenderSquare(Oscillator2Enabled, Oscillator2Frequency, 1, dt, ref generators);
+            sample += RenderSquare(Oscillator3Enabled, Oscillator3Frequency, 2, dt, ref generators);
+            sample += RenderNoise(dt, ref generators);
+            var value = generators == 0 ? 0f : (float)(sample / generators * volume);
+            destination[i] = new AudioFrame(value, value);
+        }
+
+        return destination.Length;
+    }
+
+    private static double CalculateFrequency(byte register, int divider) =>
+        Phi2Ntsc / divider / (255 - (register & 0x7F) + 1);
+
+    private double RenderSquare(bool enabled, double frequency, int phaseIndex, double dt, ref int generators)
+    {
+        if (!enabled)
+            return 0;
+
+        _audioPhases[phaseIndex] = AdvancePhase(_audioPhases[phaseIndex], frequency, dt);
+        generators++;
+        return _audioPhases[phaseIndex] < 0.5 ? 1 : -1;
+    }
+
+    private double RenderNoise(double dt, ref int generators)
+    {
+        if (!NoiseEnabled)
+            return 0;
+
+        var previous = _audioPhases[3];
+        _audioPhases[3] = AdvancePhase(previous, NoiseFrequency, dt);
+        if (_audioPhases[3] < previous)
+        {
+            var feedback = (ushort)(((_noiseLfsr >> 14) ^ (_noiseLfsr >> 13)) & 1);
+            _noiseLfsr = (ushort)((_noiseLfsr << 1) | feedback);
+            if (_noiseLfsr == 0)
+                _noiseLfsr = 0xFFFF;
+        }
+
+        generators++;
+        return (_noiseLfsr & 1) == 0 ? 1 : -1;
+    }
+
+    private static double AdvancePhase(double phase, double frequency, double dt)
+    {
+        phase += frequency * dt;
+        return phase - Math.Floor(phase);
     }
 
     /// <summary>Advances the raster line counter by real elapsed CPU cycles (not once-per-call

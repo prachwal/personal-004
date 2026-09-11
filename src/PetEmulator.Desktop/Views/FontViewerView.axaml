@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             x:Class="PetEmulator.Desktop.Views.FontViewerView"
+             x:DataType="viewModels:FontViewerViewModel">
+    <Grid ColumnDefinitions="240,*" Margin="16">
+        <StackPanel Grid.Column="0" Spacing="8">
+            <TextBlock Text="Character ROM" FontWeight="Bold" />
+            <ListBox ItemsSource="{Binding Fonts}" SelectedItem="{Binding SelectedFont}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="viewModels:FontSource"><TextBlock Text="{Binding Name}" /></DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <Button Content="Reverse video" Command="{Binding ToggleReverseCommand}" />
+        </StackPanel>
+        <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Glyphs}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="viewModels:GlyphCell">
+                        <Border BorderBrush="Gray" BorderThickness="1" Margin="2" Padding="3">
+                            <StackPanel><TextBlock Text="{Binding Code, StringFormat='{}{0:X2}'}" /><TextBlock Text="{Binding Pattern}" FontFamily="monospace" /></StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

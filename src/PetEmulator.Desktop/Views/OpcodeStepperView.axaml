@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             x:Class="PetEmulator.Desktop.Views.OpcodeStepperView"
+             x:DataType="viewModels:OpcodeStepperViewModel">
+    <Grid Margin="24" RowDefinitions="Auto,Auto,*" RowSpacing="12">
+        <TextBlock Text="{Binding StatusText}" FontSize="20" />
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+            <ComboBox ItemsSource="{Binding Variants}" SelectedItem="{Binding SelectedVariant}" Width="220">
+                <ComboBox.ItemTemplate><DataTemplate x:DataType="viewModels:CpuVariantEntry"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Content="Run" Command="{Binding RunCommand}" />
+            <Button Content="Pause" Command="{Binding PauseCommand}" />
+            <Button Content="Step" Command="{Binding StepCommand}" />
+            <Button Content="Reset" Command="{Binding ResetCommand}" />
+        </StackPanel>
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="24">
+            <ItemsControl ItemsSource="{Binding Registers}">
+                <ItemsControl.ItemTemplate><DataTemplate x:DataType="viewModels:CpuRegisterRow"><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Name, StringFormat='{}{0}: '}" /><TextBlock Text="{Binding Value, StringFormat='0x{0:X}'}" /></StackPanel></DataTemplate></ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <ItemsControl Grid.Column="1" ItemsSource="{Binding MemoryDiff}">
+                <ItemsControl.ItemTemplate><DataTemplate x:DataType="viewModels:MemoryDiffRow"><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Address, StringFormat='0x{0:X4}: '}" /><TextBlock Text="{Binding Before, StringFormat='0x{0:X2}'}" /><TextBlock Text="{Binding After, StringFormat=' -&gt; 0x{0:X2}'}" /></StackPanel></DataTemplate></ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
+    </Grid>
+</UserControl>

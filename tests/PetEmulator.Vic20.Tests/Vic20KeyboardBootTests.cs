@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Core;
+using PetEmulator.Pet.Keyboard;
 using PetEmulator.Vic20.Keyboard;
 
 namespace PetEmulator.Vic20.Tests;
@@ -27,6 +28,24 @@ public sealed class Vic20KeyboardBootTests
         machine.Run(200_000);
 
         ScreenContainsDigitFour(machine).Should().BeTrue("PRINT2+2 typed in direct mode should actually evaluate and print '4'");
+    }
+
+    [Test]
+    [CancelAfter(30_000)]
+    public void LiveQuoteMapping_EchoesVIC20QuoteScreenCode()
+    {
+        var machine = new Vic20Machine(RomsRoot());
+        machine.RunUntil(_ => HasScreenText(machine), 2_000_000).Should().BeTrue("must boot first");
+        var map = new Vic20KeyboardMap();
+
+        foreach (var action in map.Translate("Quote", HostKeyEventKind.Press))
+            machine.Keyboard.Press(action.Row, action.Column);
+        machine.Run(8_000);
+        foreach (var action in map.Translate("Quote", HostKeyEventKind.Release))
+            machine.Keyboard.Release(action.Row, action.Column);
+        machine.Run(8_000);
+
+        ScreenContainsCode(machine, 0x22).Should().BeTrue("Shift+2 must echo the VIC-20 quote screen code");
     }
 
     private static bool HasScreenText(Vic20Machine machine)
@@ -56,6 +75,17 @@ public sealed class Vic20KeyboardBootTests
         var screenAddr = machine.Vic.ScreenAddr;
         for (var i = 0; i < cols * rows; i++)
             if (machine.Memory.Read((ushort)(screenAddr + i)) == 0x34) // screen-code '4' (unshifted 0x20-0x3F mirrors ASCII)
+                return true;
+        return false;
+    }
+
+    private static bool ScreenContainsCode(Vic20Machine machine, byte expected)
+    {
+        var cols = machine.Vic.Columns;
+        var rows = machine.Vic.Rows;
+        var screenAddr = machine.Vic.ScreenAddr;
+        for (var i = 0; i < cols * rows; i++)
+            if (machine.Memory.Read((ushort)(screenAddr + i)) == expected)
                 return true;
         return false;
     }

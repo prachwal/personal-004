@@ -43,16 +43,18 @@ internal static class Program
         var viewModel = (MainWindowViewModel)window.DataContext!;
         if (machine.Equals("vic20", StringComparison.OrdinalIgnoreCase))
         {
-            var entry = viewModel.MachineChoices.First(e => e.Label == "VIC-20");
+            var entry = viewModel.ModuleChoices.First(e => e.Label == "VIC-20");
             viewModel.SwitchMachineCommand.Execute(entry);
         }
+
+        var machineViewModel = (IMachineViewModel)viewModel.CurrentModule;
 
         // Tick the machine directly the same number of times real wall-clock ticks would -
         // PetMachineViewModel/Vic20MachineViewModel.Tick() raises FrameReady synchronously, which
         // the child View's code-behind handles immediately (Screen.UpdateFrame), so the
         // WriteableBitmap content is already current after this loop.
         for (var i = 0; i < ticks; i++)
-            viewModel.CurrentMachine.Tick();
+            machineViewModel.Tick();
 
         var typeText = ArgValue(args, "--type");
         if (typeText is not null)
@@ -77,16 +79,16 @@ internal static class Program
                 Console.WriteLine($"typing '{ch}' -> {key}, hostKey={hk}, atKey={atKey}, cell={cell}");
 
                 if (direct)
-                    viewModel.CurrentMachine.HandleKey(key.Value, PetEmulator.Pet.Keyboard.HostKeyEventKind.Press);
+                    machineViewModel.HandleKey(key.Value, PetEmulator.Pet.Keyboard.HostKeyEventKind.Press);
                 else
                     window.KeyPress(key.Value, RawInputModifiers.None, PhysicalKey.None, null);
-                viewModel.CurrentMachine.Tick(); // 20,000 instructions - plenty of hold time (TextTyper needs only 8-12K)
+                machineViewModel.Tick(); // 20,000 instructions - plenty of hold time (TextTyper needs only 8-12K)
 
                 if (direct)
-                    viewModel.CurrentMachine.HandleKey(key.Value, PetEmulator.Pet.Keyboard.HostKeyEventKind.Release);
+                    machineViewModel.HandleKey(key.Value, PetEmulator.Pet.Keyboard.HostKeyEventKind.Release);
                 else
                     window.KeyRelease(key.Value, RawInputModifiers.None, PhysicalKey.None, null);
-                viewModel.CurrentMachine.Tick();
+                machineViewModel.Tick();
             }
         }
 

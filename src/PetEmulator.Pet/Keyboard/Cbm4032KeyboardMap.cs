@@ -34,7 +34,11 @@ public sealed class Cbm4032KeyboardMap : IPetKeyboardMap
     public IReadOnlyList<MatrixAction> Translate(string hostKey, HostKeyEventKind kind)
     {
         if (PetKeyboardMapPrimitives.PlusKeys.Contains(hostKey))
-            return PetKeyboardMapPrimitives.PlusForceReleaseShift(7, 7, kind);
+            return PetKeyboardMapPrimitives.ForceReleaseShift(7, 7, kind);
+        // Same fix as '+', and the same live-keyboard bug as Pet2001GraphicsKeyboardMap: '"'
+        // is its own unshifted cell here too, but a host keyboard needs Shift+' to type it.
+        if (hostKey == "Quote")
+            return PetKeyboardMapPrimitives.ForceReleaseShift(1, 0, kind);
 
         return Table.TryGetValue(hostKey, out var cell)
             ? [new MatrixAction(cell.Row, cell.Column, kind == HostKeyEventKind.Press)]

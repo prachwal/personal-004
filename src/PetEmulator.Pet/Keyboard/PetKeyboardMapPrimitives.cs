@@ -9,10 +9,15 @@ internal static class PetKeyboardMapPrimitives
     /// that Shift row and echo a graphics character instead.</summary>
     internal static readonly string[] PlusKeys = ["Equal", "OemPlus", "NumPadAdd"];
 
-    /// <summary>PET 2001 graphics keyboard / CBM 4032 '+' behavior: press or release the target
-    /// cell to match the event, and force-release both Shift cells either way (same effects list
-    /// on both Press and Release - only the target cell's own state follows the event kind).</summary>
-    internal static IReadOnlyList<MatrixAction> PlusForceReleaseShift(int row, int column, HostKeyEventKind kind) =>
+    /// <summary>General fix for any key whose PET matrix cell already fully encodes the printed
+    /// character without needing the PET's own Shift row (the '+' key above; also Quote - PET's
+    /// graphics/4032 keyboards give '"' its own dedicated cell, but a modern host keyboard needs
+    /// Shift+' to type it, so a live key event drives the host's physical Shift matrix cell too).
+    /// Presses or releases the target cell to match the event, and force-releases both Shift
+    /// cells either way (same effects list on both Press and Release - only the target cell's own
+    /// state follows the event kind), so an incidentally-held host Shift can't corrupt what the
+    /// real ROM reads back.</summary>
+    internal static IReadOnlyList<MatrixAction> ForceReleaseShift(int row, int column, HostKeyEventKind kind) =>
     [
         new MatrixAction(row, column, kind == HostKeyEventKind.Press),
         new MatrixAction(8, 0, false),

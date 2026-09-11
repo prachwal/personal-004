@@ -8,7 +8,7 @@ namespace PetEmulator.Desktop.ViewModels;
 /// <summary>
 /// The contract one running machine (PET, VIC-20, ...) exposes to the Desktop shell -
 /// <see cref="MainWindowViewModel"/> holds exactly one of these at a time
-/// (<see cref="MainWindowViewModel.CurrentMachine"/>), and the View picks which composite
+/// (<see cref="MainWindowViewModel.CurrentModule"/>), and the View picks which composite
 /// screen+device-bar UserControl to show purely by the concrete implementation's type
 /// (Avalonia <c>DataTemplate DataType</c> matching in MainWindow.axaml) - "podmiana komponentu
 /// MVVM" the user asked for, not an if/else in code-behind.
@@ -22,12 +22,8 @@ namespace PetEmulator.Desktop.ViewModels;
 /// over a concrete use during design; both PetMachineViewModel and Vic20MachineViewModel return
 /// null today).
 /// </summary>
-public interface IMachineViewModel : IDisposable
+public interface IMachineViewModel : IShellModule
 {
-    string WindowTitle { get; }
-
-    string StatusText { get; }
-
     int PixelWidth { get; }
 
     int PixelHeight { get; }

@@ -280,6 +280,22 @@ public sealed class CbmDosEngine
         _fileOutput.Add((byte)(addr & 0xFF));
         _fileOutput.Add((byte)(addr >> 8));
 
+        // Header line: real CBM DOS directory listings always lead with the disk name/id/DOS
+        // type, quoted, before any file entries - e.g. `0 "MY DISK         " 2a 2A`. This was
+        // missing entirely (jumped straight to entries/BLOCKS FREE), so LIST never showed the
+        // mounted disk's name even though every entry after it was correctly formed.
+        string header = $"\"{_image.DiskName,-16}\" {_image.DiskId,-2} 2A";
+        ushort headerNextLine = (ushort)(addr + 4 + header.Length + 1);
+
+        _fileOutput.Add((byte)(headerNextLine & 0xFF));
+        _fileOutput.Add((byte)(headerNextLine >> 8));
+        _fileOutput.Add(0x00);
+        _fileOutput.Add(0x00);
+        foreach (char ch in header)
+            _fileOutput.Add((byte)ch);
+        _fileOutput.Add(0x00);
+        addr = headerNextLine;
+
         foreach (var entry in dir)
         {
             if (entry.Type == FileType.Del)

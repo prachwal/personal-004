@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Mos2114" xml:space="preserve">
+    <value>MOS 2114 - 1024x4-bit static RAM. Used in early Commodore machines as color RAM: only the low 4 bits of each addressed cell are wired up, so every byte read or written is masked to a nibble - the upper 4 bits simply don't exist in hardware.</value>
+  </data>
+  <data name="Mos6522" xml:space="preserve">
+    <value>MOS 6522 VIA (Versatile Interface Adapter) - general-purpose I/O: two independent 8-bit parallel ports (A/B), each with its own data-direction register; two 16-bit interval timers (one-shot or free-running, Timer 2 also countable via CB1 pulses); an 8-bit shift register; and four handshake/control lines (CA1, CA2, CB1, CB2) that can also raise interrupts. Used throughout the PET/VIC-20/C64 family for keyboard scanning, IEEE-488, cassette motor/sense, and user-port I/O.</value>
+  </data>
+  <data name="Mos6560" xml:space="preserve">
+    <value>MOS 6560/6561 VIC ("VIC-I") - the VIC-20's combined video and sound chip. Generates NTSC/PAL composite video directly from character-cell screen RAM (with an optional 2-bit-per-pixel multicolor mode), and drives 3 independent square-wave tone oscillators plus a noise generator through one shared volume register. Has no hardware sprite unit at all - hardware sprites are a later chip, the VIC-II used in the Commodore 64, not this one.</value>
+  </data>
+  <data name="Mt6520" xml:space="preserve">
+    <value>MOS/MDA 6520 PIA (Peripheral Interface Adapter) - two independent 8-bit parallel ports (A/B), each with its own data-direction register and two control lines (CA1/CA2, CB1/CB2) for handshaking and interrupt generation on edge transitions. The simpler, earlier sibling of the VIA: no built-in timers and no shift register, just parallel I/O with handshaking.</value>
+  </data>
+  <data name="Mt6545" xml:space="preserve">
+    <value>Motorola 6845-compatible CRTC (Cathode Ray Tube Controller) - generates character-based video timing and addressing: horizontal/vertical sync pulses, the scanning address fed to external character-ROM/screen-RAM hardware, and cursor position/shape. It holds no pixel data itself - a pure timing and addressing generator, its 18 internal registers selected through one index/data port pair (write the register index, then read or write its value).</value>
+  </data>
+</root>

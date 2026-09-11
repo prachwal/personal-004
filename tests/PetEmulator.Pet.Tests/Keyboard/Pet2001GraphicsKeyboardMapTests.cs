@@ -84,4 +84,38 @@ public sealed class Pet2001GraphicsKeyboardMapTests
             else matrix.Release(action.Row, action.Column);
         }
     }
+
+    // Same fix as '+': a host Shift held to type '"' (Shift+Quote on a modern keyboard) must not
+    // also drive the PET's own Shift row, since (1,0) already means '"' unshifted - live bug
+    // report: pressing Shift+' on the desktop GUI echoed a graphics glyph instead of '"'.
+    [Test]
+    public void Quote_force_releases_both_shift_cells()
+    {
+        var map = new Pet2001GraphicsKeyboardMap();
+
+        var actions = map.Translate("Quote", HostKeyEventKind.Press);
+
+        Assert.That(actions, Is.EqualTo(new[]
+        {
+            new MatrixAction(1, 0, true),
+            new MatrixAction(8, 0, false),
+            new MatrixAction(8, 5, false)
+        }));
+    }
+
+    // CellLabels is derived from Table (single source of truth) for the Keyboard Matrix demo -
+    // spot-checks that the inversion lands on the same cells Translate itself produces.
+    [TestCase(4, 0, "A")]
+    [TestCase(2, 6, "7")]
+    [TestCase(9, 2, "SPACE")]
+    [TestCase(6, 5, "RETURN")]
+    [TestCase(1, 7, "←")]
+    [TestCase(8, 0, "SHIFT")]
+    [TestCase(8, 5, "SHIFT")]
+    [TestCase(7, 3, ",")]
+    [TestCase(7, 7, "+")]
+    public void CellLabels_MatchesWhatTranslateProducesForTheSameCell(int row, int column, string expectedLabel)
+    {
+        Assert.That(Pet2001GraphicsKeyboardMap.CellLabels[(row, column)], Is.EqualTo(expectedLabel));
+    }
 }

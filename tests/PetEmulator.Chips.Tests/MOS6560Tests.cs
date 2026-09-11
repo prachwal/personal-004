@@ -1,5 +1,6 @@
 using FluentAssertions;
 using NUnit.Framework;
+using PetEmulator.Audio;
 using PetEmulator.Chips;
 
 namespace PetEmulator.Chips.Tests;
@@ -86,5 +87,62 @@ public sealed class MOS6560Tests
         var vic = new MOS6560();
 
         vic.Length.Should().Be(16);
+    }
+
+    [Test]
+    public void Render_UsesConfiguredOscillatorFrequency()
+    {
+        var vic = new MOS6560(baseAddress: 0x9000);
+        vic.Write(0x900A, 0xFF); // 127 raw, enabled
+        vic.Write(0x900E, 0x0F);
+        var frames = new AudioFrame[44_100];
+
+        vic.Render(frames);
+
+        var risingEdges = frames.Zip(frames.Skip(1))
+            .Count(pair => pair.First.Left <= 0 && pair.Second.Left > 0);
+        risingEdges.Should().BeInRange(29, 33);
+    }
+
+    [Test]
+    public void Render_IsSilentWhenAllGeneratorsAreDisabled()
+    {
+        var vic = new MOS6560(baseAddress: 0x9000);
+        var frames = new AudioFrame[128];
+
+        vic.Render(frames);
+
+        frames.Should().OnlyContain(frame => frame == new AudioFrame(0, 0));
+    }
+
+    [Test]
+    public void Render_ScalesVolumeToSilence()
+    {
+        var vic = new MOS6560(baseAddress: 0x9000);
+        vic.Write(0x900A, 0xFF);
+        var silent = new AudioFrame[128];
+        var loud = new AudioFrame[128];
+
+        vic.Write(0x900E, 0x00);
+        vic.Render(silent);
+        vic.Write(0x900E, 0x0F);
+        vic.Render(loud);
+
+        silent.Max(frame => Math.Abs(frame.Left)).Should().Be(0);
+        loud.Max(frame => Math.Abs(frame.Left)).Should().BeGreaterThan(0);
+    }
+
+    [Test]
+    public void Render_NoiseIsNonSilentAndNotConstant()
+    {
+        var vic = new MOS6560(baseAddress: 0x9000);
+        vic.Write(0x900D, 0xFF);
+        vic.Write(0x900E, 0x0F);
+        var frames = new AudioFrame[4_410];
+
+        vic.Render(frames);
+
+        frames.Select(frame => frame.Left).Distinct().Should().HaveCount(2);
+        frames.Should().Contain(frame => frame.Left != 0);
     }
 }

@@ -12,6 +12,17 @@ public static class Vic20MemoryMap
     public const ushort BuiltinRamStart = 0x1000;
     public const int BuiltinRamSize = 0x1000; // 4K built-in RAM block (includes default screen RAM at $1E00)
 
+    public const ushort Block0Start = 0x0400;
+    public const int Block0Size = 0x0C00;
+    public const ushort Block1Start = 0x2000;
+    public const int Block1Size = 0x2000;
+    public const ushort Block2Start = 0x4000;
+    public const int Block2Size = 0x2000;
+    public const ushort Block3Start = 0x6000;
+    public const int Block3Size = 0x2000;
+    public const ushort CartridgeStart = 0xA000;
+    public const int CartridgeSize = 0x2000;
+
     public const ushort CharRomStart = 0x8000;
 
     public const ushort VicBaseAddress = 0x9000;

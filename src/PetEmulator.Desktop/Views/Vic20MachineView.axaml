@@ -17,6 +17,7 @@
         <Border DockPanel.Dock="Bottom" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4">
             <StackPanel Orientation="Horizontal" Spacing="16">
                 <controls:DatasetteControl />
+                <controls:DiskDriveControl />
 
                 <ItemsControl ItemsSource="{Binding Devices}">
                     <ItemsControl.ItemsPanel>

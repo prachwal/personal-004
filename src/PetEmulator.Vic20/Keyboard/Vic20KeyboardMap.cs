@@ -1,4 +1,5 @@
 using PetEmulator.Core.Keyboard;
+using PetEmulator.Pet.Keyboard;
 
 namespace PetEmulator.Vic20.Keyboard;
 
@@ -7,18 +8,106 @@ namespace PetEmulator.Vic20.Keyboard;
 /// PET-originated Desktop project) into one <see cref="Vic20KeyboardMatrix"/> cell. Mirrors the
 /// shape of PetEmulator.Pet.Keyboard.IPetKeyboardMap's Translate for live GUI key handling
 /// (distinct from <see cref="Vic20HostKeyMap"/>, which is char-based for scripted typing only -
-/// see that class's doc comment for why they aren't merged).</summary>
-public sealed class Vic20KeyboardMap : AtKeyboardMapping
+/// see that class's doc comment for why they aren't merged).
+///
+/// Every letter/digit/punctuation cell below was already correct (cross-checked against
+/// <see cref="Vic20HostKeyMap"/>'s independently, empirically-verified table - identical for
+/// every one of the 26 letters, 10 digits, and 7 punctuation keys both tables cover). The five
+/// control-key cells (Shift, Ctrl, Escape, Home, Backspace/Delete) were not covered by that
+/// empirical sweep and were simply wrong - re-derived here directly from the real KERNAL
+/// disassembly's own "VIC 20 keyboard matrix layout" table (vic-20-rom.asm, the row/column
+/// comment block under VIA2PA1 $9121), transposed to this class's (row, column) convention
+/// (verified by transposing every already-confirmed letter/digit cell first and checking it
+/// lands exactly where <see cref="Vic20HostKeyMap"/> says it should, before trusting the
+/// transpose for the previously-unverified control cells):
+/// LeftShift=(3,1) [was wrongly combined with RightShift at (4,7), which is really F1],
+/// RightShift=(4,6), Ctrl=(2,0) [was (7,7), really F7], Escape=(3,0) [RUN/STOP - was (3,7),
+/// which is really CRSR-DOWN, a different key entirely], Home=(7,6) [was (0,7), really DEL],
+/// Backspace/Delete=(0,7) [was (2,7), really CRSR-RIGHT]. Also adds the real Commodore/C= key
+/// (5,0) and the unshifted function keys F1/F3/F5/F7 (their shifted F2/F4/F6/F8 forms need
+/// asserting Shift alongside the same cell - this class returns one position per key, no
+/// multi-action support yet, so those and the shifted cursor directions stay a documented gap,
+/// not a guess).</summary>
+public sealed class Vic20KeyboardMap : AtKeyboardMapping, IPetKeyboardMap
 {
+    private bool _rightShiftHeld;
+    private bool _quoteInjectedRightShift;
+
+    public string Id => "vic20";
+
+    /// <summary>Translates one live host-key event. The host Quote key is synthesized as the
+    /// VIC-20's Shift+2 combination; a physically held Shift is never released by Quote.</summary>
+    public IReadOnlyList<MatrixAction> Translate(string hostKey, HostKeyEventKind kind)
+    {
+        if (hostKey == "ShiftLeft")
+        {
+            return [new MatrixAction(3, 1, kind == HostKeyEventKind.Press)];
+        }
+
+        if (hostKey == "ShiftRight")
+        {
+            _rightShiftHeld = kind == HostKeyEventKind.Press;
+            return [new MatrixAction(4, 6, _rightShiftHeld)];
+        }
+
+        if (hostKey == "Quote")
+        {
+            if (kind == HostKeyEventKind.Press)
+            {
+                _quoteInjectedRightShift = !_rightShiftHeld;
+                return _quoteInjectedRightShift
+                    ? [new MatrixAction(4, 6, true), new MatrixAction(7, 0, true)]
+                    : [new MatrixAction(7, 0, true)];
+            }
+
+            var actions = new List<MatrixAction> { new(7, 0, false) };
+            if (_quoteInjectedRightShift && !_rightShiftHeld)
+                actions.Add(new MatrixAction(4, 6, false));
+            _quoteInjectedRightShift = false;
+            return actions;
+        }
+
+        var atKey = hostKey switch
+        {
+            "KeyA" => AtKeyboardKey.A, "KeyB" => AtKeyboardKey.B, "KeyC" => AtKeyboardKey.C,
+            "KeyD" => AtKeyboardKey.D, "KeyE" => AtKeyboardKey.E, "KeyF" => AtKeyboardKey.F,
+            "KeyG" => AtKeyboardKey.G, "KeyH" => AtKeyboardKey.H, "KeyI" => AtKeyboardKey.I,
+            "KeyJ" => AtKeyboardKey.J, "KeyK" => AtKeyboardKey.K, "KeyL" => AtKeyboardKey.L,
+            "KeyM" => AtKeyboardKey.M, "KeyN" => AtKeyboardKey.N, "KeyO" => AtKeyboardKey.O,
+            "KeyP" => AtKeyboardKey.P, "KeyQ" => AtKeyboardKey.Q, "KeyR" => AtKeyboardKey.R,
+            "KeyS" => AtKeyboardKey.S, "KeyT" => AtKeyboardKey.T, "KeyU" => AtKeyboardKey.U,
+            "KeyV" => AtKeyboardKey.V, "KeyW" => AtKeyboardKey.W, "KeyX" => AtKeyboardKey.X,
+            "KeyY" => AtKeyboardKey.Y, "KeyZ" => AtKeyboardKey.Z,
+            "Digit1" => AtKeyboardKey.D1, "Digit2" => AtKeyboardKey.D2, "Digit3" => AtKeyboardKey.D3,
+            "Digit4" => AtKeyboardKey.D4, "Digit5" => AtKeyboardKey.D5, "Digit6" => AtKeyboardKey.D6,
+            "Digit7" => AtKeyboardKey.D7, "Digit8" => AtKeyboardKey.D8, "Digit9" => AtKeyboardKey.D9,
+            "Digit0" => AtKeyboardKey.D0, "Space" => AtKeyboardKey.Space, "Enter" => AtKeyboardKey.Enter,
+            "Backspace" => AtKeyboardKey.Backspace, "Minus" => AtKeyboardKey.OemMinus,
+            "OemPlus" => AtKeyboardKey.OemPlus, "Comma" => AtKeyboardKey.OemComma,
+            "Period" => AtKeyboardKey.OemPeriod, "Slash" => AtKeyboardKey.OemQuestion,
+            "Semicolon" => AtKeyboardKey.OemSemicolon,
+            _ => (AtKeyboardKey?)null
+        };
+
+        var cell = atKey is { } key ? Map(key) : null;
+        return cell is { } position
+            ? [new MatrixAction(position.Row, position.Column, kind == HostKeyEventKind.Press)]
+            : [];
+    }
+
     protected override KeyboardMatrixPosition? Map(AtKeyboardKey key) => key switch
     {
         AtKeyboardKey.Enter => new(1, 7),
         AtKeyboardKey.Space => new(4, 0),
-        AtKeyboardKey.LeftShift or AtKeyboardKey.RightShift => new(4, 7),
-        AtKeyboardKey.LeftCtrl or AtKeyboardKey.RightCtrl => new(7, 7),
-        AtKeyboardKey.Escape => new(3, 7),
-        AtKeyboardKey.Home => new(0, 7),
-        AtKeyboardKey.Backspace or AtKeyboardKey.Delete => new(2, 7),
+        AtKeyboardKey.LeftShift => new(3, 1),
+        AtKeyboardKey.RightShift => new(4, 6),
+        AtKeyboardKey.LeftCtrl or AtKeyboardKey.RightCtrl => new(2, 0),
+        AtKeyboardKey.Escape => new(3, 0), // RUN/STOP
+        AtKeyboardKey.Home => new(7, 6),
+        AtKeyboardKey.Backspace or AtKeyboardKey.Delete => new(0, 7), // DEL/INST
+        AtKeyboardKey.LeftAlt or AtKeyboardKey.RightAlt => new(5, 0), // C=
+        AtKeyboardKey.F1 => new(4, 7), AtKeyboardKey.F3 => new(5, 7),
+        AtKeyboardKey.F5 => new(6, 7), AtKeyboardKey.F7 => new(7, 7),
         AtKeyboardKey.A => new(2, 1), AtKeyboardKey.B => new(4, 3),
         AtKeyboardKey.C => new(4, 2), AtKeyboardKey.D => new(2, 2),
         AtKeyboardKey.E => new(6, 1), AtKeyboardKey.F => new(5, 2),
@@ -43,4 +132,37 @@ public sealed class Vic20KeyboardMap : AtKeyboardMapping
         AtKeyboardKey.OemQuestion => new(3, 6),
         _ => null,
     };
+
+    /// <summary>(Row, Column) -> the character or key name printed there - the full real 64-cell
+    /// matrix, not just what <see cref="AtKeyboardKey"/> happens to have a host key for. Same real
+    /// KERNAL disassembly source ("VIC 20 keyboard matrix layout", vic-20-rom.asm under VIA2PA1
+    /// $9121) as this class's control-key fixes above, transposed and cross-checked the same
+    /// way.</summary>
+    public static IReadOnlyDictionary<(int Row, int Column), string> CellLabels { get; } =
+        new Dictionary<(int, int), string>
+        {
+            [(0, 0)] = "1", [(0, 1)] = "3", [(0, 2)] = "5", [(0, 3)] = "7",
+            [(0, 4)] = "9", [(0, 5)] = "+", [(0, 6)] = "£", [(0, 7)] = "DEL",
+
+            [(1, 0)] = "←", [(1, 1)] = "W", [(1, 2)] = "R", [(1, 3)] = "Y",
+            [(1, 4)] = "I", [(1, 5)] = "P", [(1, 6)] = "*", [(1, 7)] = "RETURN",
+
+            [(2, 0)] = "CTRL", [(2, 1)] = "A", [(2, 2)] = "D", [(2, 3)] = "G",
+            [(2, 4)] = "J", [(2, 5)] = "L", [(2, 6)] = ";", [(2, 7)] = "→",
+
+            [(3, 0)] = "RUN/STOP", [(3, 1)] = "SHIFT", [(3, 2)] = "X", [(3, 3)] = "V",
+            [(3, 4)] = "N", [(3, 5)] = ",", [(3, 6)] = "/", [(3, 7)] = "↓",
+
+            [(4, 0)] = "SPACE", [(4, 1)] = "Z", [(4, 2)] = "C", [(4, 3)] = "B",
+            [(4, 4)] = "M", [(4, 5)] = ".", [(4, 6)] = "SHIFT", [(4, 7)] = "F1",
+
+            [(5, 0)] = "C=", [(5, 1)] = "S", [(5, 2)] = "F", [(5, 3)] = "H",
+            [(5, 4)] = "K", [(5, 5)] = ":", [(5, 6)] = "=", [(5, 7)] = "F3",
+
+            [(6, 0)] = "Q", [(6, 1)] = "E", [(6, 2)] = "T", [(6, 3)] = "U",
+            [(6, 4)] = "O", [(6, 5)] = "@", [(6, 6)] = "↑", [(6, 7)] = "F5",
+
+            [(7, 0)] = "2", [(7, 1)] = "4", [(7, 2)] = "6", [(7, 3)] = "8",
+            [(7, 4)] = "0", [(7, 5)] = "-", [(7, 6)] = "HOME", [(7, 7)] = "F7",
+        };
 }

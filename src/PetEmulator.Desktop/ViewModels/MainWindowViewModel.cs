@@ -8,14 +8,15 @@ using PetEmulator.Desktop.Services;
 using PetEmulator.Desktop.Views;
 using PetEmulator.Pet;
 using PetEmulator.Pet.Keyboard;
+using PetEmulator.Vic20;
 
 namespace PetEmulator.Desktop.ViewModels;
 
 /// <summary>
-/// The Desktop shell: owns the currently-running machine (<see cref="CurrentMachine"/>, one
-/// <see cref="IMachineViewModel"/> at a time) and the render-loop timer that ticks it. Switching
+/// The Desktop shell: owns the currently-running machine (<see cref="CurrentModule"/>, one
+/// <see cref="IShellModule"/> at a time) and the render-loop timer that ticks it. Switching
 /// machine (<see cref="SwitchMachineCommand"/>) disposes the old one and replaces
-/// <see cref="CurrentMachine"/> wholesale with a freshly-constructed instance - MainWindow.axaml's
+/// <see cref="CurrentModule"/> wholesale with a freshly-constructed instance - MainWindow.axaml's
 /// <c>DataTemplate</c>s pick which composite screen+device-bar View to show purely from the new
 /// instance's concrete type ("podmiana komponentu MVVM", not an if/else).
 /// </summary>
@@ -26,44 +27,59 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly DispatcherTimer _timer;
 
     [ObservableProperty]
-    private IMachineViewModel _currentMachine;
+    private IShellModule _currentModule;
 
     public MainWindowViewModel(IFilePickerService filePicker)
     {
         _filePicker = filePicker;
         _romsRoot = RomsRootLocator.Find();
 
-        MachineChoices =
+        ModuleChoices =
         [
-            .. PetProfileCatalog.All.Select(profile =>
-                new MachineMenuEntry(profile.Name, () => new PetMachineViewModel(profile, Path.Combine(_romsRoot, "pet")))),
-            new MachineMenuEntry("VIC-20", () => new Vic20MachineViewModel(Path.Combine(_romsRoot, "vic20"))),
-        ];
+             .. PetProfileCatalog.All.Select(profile =>
+                 new ModuleMenuEntry(profile.Name, () => new PetMachineViewModel(profile, Path.Combine(_romsRoot, "pet")))),
+               .. Vic20ExpansionPresetCatalog.All.Select(preset =>
+                   new ModuleMenuEntry(preset.Label, () => new Vic20MachineViewModel(
+                       Path.Combine(_romsRoot, "vic20"), preset.Preset))),
+              new ModuleMenuEntry("Chip Tester", () => new ChipTesterViewModel(_romsRoot)),
+              new ModuleMenuEntry("Media Tester", () => new MediaTesterViewModel(_filePicker)),
+              new ModuleMenuEntry("Font / Glyph Viewer", () => new FontViewerViewModel(_romsRoot)),
+              new ModuleMenuEntry("CPU Opcode Stepper", () => new OpcodeStepperViewModel()),
+              new ModuleMenuEntry("Keyboard Matrix", () => new KeyboardMatrixViewModel()),
+         ];
 
-        _currentMachine = MachineChoices[0].Create();
+        _currentModule = ModuleChoices[0].Create();
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
-        _timer.Tick += (_, _) => CurrentMachine.Tick();
+        _timer.Tick += (_, _) =>
+        {
+            if (CurrentModule is IMachineViewModel machine)
+                machine.Tick();
+        };
         _timer.Start();
     }
 
     /// <summary>Every selectable machine configuration, for the Machine menu.</summary>
-    public IReadOnlyList<MachineMenuEntry> MachineChoices { get; }
+    public IReadOnlyList<ModuleMenuEntry> ModuleChoices { get; }
 
     /// <summary>Raised by <see cref="ExitCommand"/> - the View closes the window.</summary>
     public event EventHandler? CloseRequested;
 
     [RelayCommand]
-    private void Reset() => CurrentMachine.Reset();
+    private void Reset()
+    {
+        if (CurrentModule is IMachineViewModel machine)
+            machine.Reset();
+    }
 
     [RelayCommand]
     private void Exit() => CloseRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
-    private void SwitchMachine(MachineMenuEntry entry)
+    private void SwitchMachine(ModuleMenuEntry entry)
     {
-        var old = CurrentMachine;
-        CurrentMachine = entry.Create();
+        var old = CurrentModule;
+        CurrentModule = entry.Create();
         old.Dispose();
     }
 
@@ -89,7 +105,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     public void LoadTape(string path)
     {
-        switch (CurrentMachine)
+        switch (CurrentModule)
         {
             case PetMachineViewModel pet: pet.LoadTape(path); break;
             case Vic20MachineViewModel vic20: vic20.LoadTape(path); break;
@@ -114,17 +130,23 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     public void LoadDisk(string path)
     {
-        if (CurrentMachine is PetMachineViewModel pet)
-            pet.LoadDisk(path);
+        switch (CurrentModule)
+        {
+            case PetMachineViewModel pet: pet.LoadDisk(path); break;
+            case Vic20MachineViewModel vic20: vic20.LoadDisk(path); break;
+        }
     }
 
     /// <summary>Creates a fresh, formatted, writable D64 at <paramref name="path"/> and mounts it,
-    /// if the current machine has a disk drive - PET only (VIC-20 has none in this repo). See
-    /// <see cref="PetMachineViewModel.NewDisk"/>.</summary>
+    /// if the current machine has a disk drive. See <see cref="PetMachineViewModel.NewDisk"/>.
+    /// </summary>
     public void NewDisk(string path)
     {
-        if (CurrentMachine is PetMachineViewModel pet)
-            pet.NewDisk(path);
+        switch (CurrentModule)
+        {
+            case PetMachineViewModel pet: pet.NewDisk(path); break;
+            case Vic20MachineViewModel vic20: vic20.NewDisk(path); break;
+        }
     }
 
     [RelayCommand]
@@ -149,15 +171,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void NewTape()
     {
-        if (CurrentMachine is Vic20MachineViewModel vic20)
+        if (CurrentModule is Vic20MachineViewModel vic20)
             vic20.NewTape();
     }
 
-    public void HandleKey(Key key, HostKeyEventKind kind) => CurrentMachine.HandleKey(key, kind);
+    public void HandleKey(Key key, HostKeyEventKind kind)
+    {
+        if (CurrentModule is IMachineViewModel machine)
+            machine.HandleKey(key, kind);
+    }
 
     public void Dispose()
     {
         _timer.Stop();
-        CurrentMachine.Dispose();
+        CurrentModule.Dispose();
     }
 }

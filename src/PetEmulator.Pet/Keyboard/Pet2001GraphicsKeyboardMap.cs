@@ -38,10 +38,54 @@ public sealed class Pet2001GraphicsKeyboardMap : IPetKeyboardMap
     public IReadOnlyList<MatrixAction> Translate(string hostKey, HostKeyEventKind kind)
     {
         if (PetKeyboardMapPrimitives.PlusKeys.Contains(hostKey))
-            return PetKeyboardMapPrimitives.PlusForceReleaseShift(7, 7, kind);
+            return PetKeyboardMapPrimitives.ForceReleaseShift(7, 7, kind);
+        // Same fix as '+' above: on a modern keyboard '"' needs Shift+' held, but this cell
+        // already means '"' unshifted on the real PET - live Shift+Quote was pressing (8,0)/(8,5)
+        // alongside it and the real ROM decoded that combo to something else (a graphics glyph,
+        // not '"'). Force-release both Shift cells the same way '+' does.
+        if (hostKey == "Quote")
+            return PetKeyboardMapPrimitives.ForceReleaseShift(1, 0, kind);
 
         return Table.TryGetValue(hostKey, out var cell)
             ? [new MatrixAction(cell.Row, cell.Column, kind == HostKeyEventKind.Press)]
             : [];
+    }
+
+    /// <summary>(Row, Column) -> the character or key name printed there, for display purposes
+    /// (e.g. the Keyboard Matrix demo) - derived from this class's own <see cref="Table"/> (single
+    /// source of truth, not a separately-maintained copy) plus the '+'-family's forced cell.</summary>
+    public static IReadOnlyDictionary<(int Row, int Column), string> CellLabels { get; } = BuildLabels();
+
+    private static IReadOnlyDictionary<(int Row, int Column), string> BuildLabels()
+    {
+        var labels = new Dictionary<(int, int), string>();
+        foreach (var (hostKey, cell) in Table)
+            labels[cell] = ToLabel(hostKey);
+        labels[(7, 7)] = "+";
+        return labels;
+    }
+
+    private static string ToLabel(string hostKey)
+    {
+        if (hostKey.StartsWith("Key", StringComparison.Ordinal))
+            return hostKey[3..];
+        if (hostKey.StartsWith("Digit", StringComparison.Ordinal))
+            return hostKey[5..];
+
+        return hostKey switch
+        {
+            "Space" => "SPACE",
+            "Enter" => "RETURN",
+            "Backspace" => "←",
+            "ShiftLeft" or "ShiftRight" => "SHIFT",
+            "Quote" => "\"",
+            "Comma" => ",",
+            "Period" => ".",
+            "Slash" => "/",
+            "Semicolon" => ";",
+            "Colon" => ":",
+            "Minus" => "-",
+            _ => hostKey,
+        };
     }
 }

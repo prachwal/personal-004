@@ -1,0 +1,89 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+              xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+              xmlns:chipTests="clr-namespace:PetEmulator.Desktop.ViewModels.ChipTests"
+             xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
+             x:Class="PetEmulator.Desktop.Views.ChipTesterView"
+             x:DataType="viewModels:ChipTesterViewModel">
+    <Grid ColumnDefinitions="260,*">
+        <Border Grid.Column="0" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="12">
+            <TreeView ItemsSource="{Binding Chips}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+                <TreeView.DataTemplates>
+                    <TreeDataTemplate DataType="viewModels:ChipTreeNode" ItemsSource="{Binding Scenarios}">
+                        <TextBlock Text="{Binding Name}" />
+                    </TreeDataTemplate>
+                    <DataTemplate x:DataType="viewModels:ChipScenarioEntry">
+                        <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                </TreeView.DataTemplates>
+            </TreeView>
+        </Border>
+        <Border Grid.Column="1" Padding="24">
+            <ContentControl Content="{Binding SelectedScenario}">
+                <ContentControl.DataTemplates>
+                    <DataTemplate DataType="viewModels:IChipDebugSessionViewModel">
+                        <TabControl>
+                            <TabItem Header="Live">
+                                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="12">
+                                    <TextBlock Text="{Binding StatusText}" FontSize="20" />
+                                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+                                        <Button Content="Run" Command="{Binding RunCommand}" />
+                                        <Button Content="Pause" Command="{Binding PauseCommand}" />
+                                        <Button Content="Step" Command="{Binding StepCommand}" />
+                                        <Button Content="Reset" Command="{Binding ResetCommand}" />
+                                    </StackPanel>
+                                    <ContentControl Grid.Row="2" Content="{Binding Visual}">
+                                        <ContentControl.DataTemplates>
+                                            <DataTemplate DataType="chipTests:CrtcPreviewViewModel">
+                                                <controls:ChipVisualControl />
+                                            </DataTemplate>
+                                            <DataTemplate DataType="chipTests:VicPreviewViewModel">
+                                                <controls:ChipVisualControl />
+                                            </DataTemplate>
+                                            <DataTemplate DataType="chipTests:ColorRamPreviewViewModel">
+                                                <ItemsControl ItemsSource="{Binding Swatches}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <WrapPanel Orientation="Horizontal" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="chipTests:ColorSwatch">
+                                                            <Border Background="{Binding Color}" Width="42" Height="32" Margin="2">
+                                                                <TextBlock Text="{Binding Value}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </DataTemplate>
+                                        </ContentControl.DataTemplates>
+                                    </ContentControl>
+                                    <controls:WaveformControl Grid.Row="3" Source="{Binding Timeline}" />
+                                    <Grid Grid.Row="4" ColumnDefinitions="*,*" ColumnSpacing="24">
+                                        <ItemsControl ItemsSource="{Binding Registers}" />
+                                        <ItemsControl Grid.Column="1" ItemsSource="{Binding Pins}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="viewModels:PinRow">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Text="{Binding Name}" Width="120" />
+                                                        <ToggleSwitch IsChecked="{Binding Level}"
+                                                                      IsEnabled="{Binding IsWritable}"
+                                                                      Tag="{Binding Name}"
+                                                                      Click="OnPinToggled" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                </Grid>
+                            </TabItem>
+                            <TabItem Header="Opis">
+                                <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Margin="8" />
+                            </TabItem>
+                        </TabControl>
+                    </DataTemplate>
+                </ContentControl.DataTemplates>
+            </ContentControl>
+        </Border>
+    </Grid>
+</UserControl>

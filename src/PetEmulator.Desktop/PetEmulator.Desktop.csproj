@@ -14,5 +14,11 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <ProjectReference Include="../PetEmulator.Pet/PetEmulator.Pet.csproj" />
     <ProjectReference Include="../PetEmulator.Vic20/PetEmulator.Vic20.csproj" />
+    <!-- Direct reference, not just transitive through Vic20->Chips->Audio: Vic20MachineViewModel
+         constructs AudioOutputFactory directly, and a stale project.assets.json (IDE build without
+         a fresh restore right after that 3-hop chain was added) can skip copying PetEmulator.Audio.dll
+         to this project's own output even though a plain `dotnet build` resolves it fine - seen as a
+         FileNotFoundException on PetEmulator.Audio at Vic20MachineViewModel construction. -->
+    <ProjectReference Include="../../lib/PetEmulator.Audio/PetEmulator.Audio.csproj" />
   </ItemGroup>
 </Project>

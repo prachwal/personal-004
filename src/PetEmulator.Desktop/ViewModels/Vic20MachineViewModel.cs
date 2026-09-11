@@ -3,6 +3,7 @@ using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PetEmulator.Desktop.Input;
+using PetEmulator.Audio;
 using PetEmulator.Core;
 using PetEmulator.Pet.Keyboard;
 using PetEmulator.Core.Keyboard;
@@ -18,18 +19,20 @@ namespace PetEmulator.Desktop.ViewModels;
 /// VIC-20 implementation of <see cref="IMachineViewModel"/>, mirroring
 /// <see cref="PetMachineViewModel"/>'s shape exactly, tape widget included (see
 /// <see cref="Vic20Machine.Datasette"/>, added by docs/vic20-tape.md). <see cref="Devices"/>
-/// excludes the datasette itself (own dedicated widget) the same way PetMachineViewModel's does;
-/// nothing else is modeled yet, so today it only ever yields the datasette's own entry filtered
-/// back out - effectively always empty, but wired generically like PET's for whatever's next.
+/// excludes the datasette and primary disk drive (both have dedicated widgets), while any other
+/// attached device is exposed through the generic status bar like PET's.
 /// </summary>
-public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel
+public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel, IDiskDriveViewModel
 {
     // Same budget as PetMachineViewModel - see that class's identical constant for why.
     private const ulong InstructionsPerTick = 20_000;
 
     private readonly Vic20Machine _machine;
     private readonly Vic20RasterDisplay _display;
+    private readonly IAudioOutput _audioOutput;
     private readonly Vic20KeyboardMap _keyboardMap = new();
+    private static readonly TimeSpan DiskActivityLinger = TimeSpan.FromMilliseconds(200);
+    private DateTime _diskActivityUntilUtc = DateTime.MinValue;
 
     [ObservableProperty]
     private string _windowTitle = "VIC-20 Emulator";
@@ -49,12 +52,26 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     /// comment.</summary>
     public IBrush TapeIconBrush => !TapeLoaded ? Brushes.Gray : TapePlaying ? Brushes.LimeGreen : Brushes.LightGray;
 
-    public Vic20MachineViewModel(string romsRoot)
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DiskIconBrush))]
+    private bool _diskLoaded;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DiskIconBrush))]
+    private bool _diskBusy;
+
+    public IBrush DiskIconBrush => !DiskLoaded ? Brushes.Gray : DiskBusy ? Brushes.Red : Brushes.LimeGreen;
+
+    public Vic20MachineViewModel(
+        string romsRoot,
+        Vic20ExpansionPreset expansionPreset = Vic20ExpansionPreset.Unexpanded)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
 
-        _machine = new Vic20Machine(romsRoot);
+        _machine = new Vic20Machine(romsRoot, expansionPreset: expansionPreset);
         _display = new Vic20RasterDisplay(_machine.Memory, _machine.Vic);
+        _audioOutput = AudioOutputFactory.CreateDefault();
+        _audioOutput.Start(_machine.Vic);
         FrameBuffer = new uint[_display.PixelWidth * _display.PixelHeight];
 
         // See PetMachineViewModel's constructor for why this fires here (CS0067 + documents
@@ -91,6 +108,10 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
         _machine.Datasette.LoadTape(tap.PulseCycles, Path.GetFileName(path));
     }
 
+    public void LoadDisk(string path) => _machine.MountDisk(path);
+
+    public void NewDisk(string path) => _machine.MountNewDisk(path, Path.GetFileNameWithoutExtension(path).ToUpperInvariant());
+
     [RelayCommand]
     private void PlayTape() => _machine.Datasette.PressPlay();
 
@@ -108,17 +129,30 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     public void HandleKey(Key key, HostKeyEventKind kind)
     {
         var atKey = KeyMapping.ToAtKeyboardKey(key);
-        if (atKey is not { } physicalKey)
+        var hostKey = atKey is { } physicalKey ? KeyMapping.ToHostKey(physicalKey) : null;
+        if (hostKey is not null)
+        {
+            foreach (var action in _keyboardMap.Translate(hostKey, kind))
+                ApplyKeyAction(action);
+            return;
+        }
+
+        if (atKey is not { } unsupportedHostKey)
             return;
 
-        var cell = _keyboardMap.Translate(physicalKey);
-        if (cell is not { } c)
-            return;
+        // KeyMapping intentionally exposes only the common text-key vocabulary. Preserve the
+        // VIC-20's existing direct mapping for controls (Escape, function keys, Ctrl, Home, ...).
+        var cell = _keyboardMap.Translate(unsupportedHostKey);
+        if (cell is { } position)
+            ApplyKeyAction(new MatrixAction(position.Row, position.Column, kind == HostKeyEventKind.Press));
+    }
 
-        if (kind == HostKeyEventKind.Press)
-            _machine.Keyboard.Press(c.Row, c.Column);
+    private void ApplyKeyAction(MatrixAction action)
+    {
+        if (action.Pressed)
+            _machine.Keyboard.Press(action.Row, action.Column);
         else
-            _machine.Keyboard.Release(c.Row, c.Column);
+            _machine.Keyboard.Release(action.Row, action.Column);
     }
 
     public void Tick()
@@ -133,7 +167,11 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
             $"SP=0x{regs["SP"]:X2} P=0x{regs["P"]:X2} " +
             $"Cycles={_machine.Processor.CycleCount} Instructions={_machine.Processor.InstructionCount}";
 
-        Devices = _machine.Devices.Where(d => d.Id is not "datasette").ToList();
+        Devices = _machine.Devices.Where(d => d.Id is not ("datasette" or "ieee488:8")).ToList();
+        DiskLoaded = _machine.HasDisk();
+        if (_machine.PollDiskActivity())
+            _diskActivityUntilUtc = DateTime.UtcNow + DiskActivityLinger;
+        DiskBusy = DateTime.UtcNow < _diskActivityUntilUtc;
         // TapeName (not HasTape) - a freshly created blank tape has zero pulses but is still "in
         // the deck", same reasoning as Vic20DatasetteStatus's own switch.
         TapeLoaded = _machine.Datasette.TapeName is not null;
@@ -142,5 +180,5 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
         FrameReady?.Invoke(this, EventArgs.Empty);
     }
 
-    public void Dispose() { }
+    public void Dispose() => _audioOutput.Dispose();
 }

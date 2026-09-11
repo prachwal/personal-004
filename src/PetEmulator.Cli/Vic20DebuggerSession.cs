@@ -37,6 +37,8 @@ public sealed class Vic20DebuggerSession
                 "play" => PlayTape(),
                 "stop" => StopTape(),
                 "eject" => EjectTape(),
+                "disk" => LoadDisk(parts),
+                "new-disk" => NewDisk(parts),
                 "key" => Key(parts),
                 "type" => Type(commandLine[(parts[0].Length + 1)..]),
                 "devices" => Devices(),
@@ -105,6 +107,24 @@ public sealed class Vic20DebuggerSession
     {
         EnsureMachine().Datasette.Eject();
         return "tape ejected";
+    }
+
+    private string LoadDisk(string[] parts)
+    {
+        var machine = EnsureMachine();
+        var device = parts.Length > 2 ? int.Parse(parts[2], CultureInfo.InvariantCulture) : 8;
+        machine.MountDisk(parts[1], device);
+        return $"disk mounted: {Path.GetFileName(parts[1])} on device {device}";
+    }
+
+    private string NewDisk(string[] parts)
+    {
+        var machine = EnsureMachine();
+        var path = parts[1];
+        var diskName = parts.Length > 2 ? parts[2] : Path.GetFileNameWithoutExtension(path).ToUpperInvariant();
+        var device = parts.Length > 3 ? int.Parse(parts[3], CultureInfo.InvariantCulture) : 8;
+        machine.MountNewDisk(path, diskName, deviceNumber: device);
+        return $"new disk created and mounted: {Path.GetFileName(path)} ({diskName}) on device {device}";
     }
 
     private string Devices()

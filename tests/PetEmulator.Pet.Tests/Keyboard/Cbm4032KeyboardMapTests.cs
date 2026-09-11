@@ -38,6 +38,23 @@ public sealed class Cbm4032KeyboardMapTests
         }));
     }
 
+    // Same fix as '+': a host Shift held to type '"' (Shift+Quote on a modern keyboard) must not
+    // also drive the PET's own Shift row, since (1,0) already means '"' unshifted.
+    [Test]
+    public void Quote_force_releases_both_shift_cells()
+    {
+        var map = new Cbm4032KeyboardMap();
+
+        var actions = map.Translate("Quote", HostKeyEventKind.Press);
+
+        Assert.That(actions, Is.EqualTo(new[]
+        {
+            new MatrixAction(1, 0, true),
+            new MatrixAction(8, 0, false),
+            new MatrixAction(8, 5, false)
+        }));
+    }
+
     // Mandatory verification step: sanity-check the computed table instead of eyeballing hex.
     [Test]
     public void Computed_table_places_distinct_in_range_letter_positions_with_no_duplicates()

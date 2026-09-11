@@ -10,8 +10,8 @@ READY (`Vic20BootTests`) na prawdziwych ROM-ach. **Nic stamtąd nie kompiluje si
 core (`Mos6502.Core`/`MachineBoard`/`IDevice` vs ten repo's `Cpu6502Classic`/`IProcessor`/
 `IMemoryBus`). Import = przepisać logikę/dane pod wzorzec `PetMachine`, nie copy-paste plików.
 Cel v1: `Vic20Machine` bootuje do BASIC READY na realnym KERNAL-u, klawiatura działa, ekran
-tekstowy (w tym multicolor) się renderuje. Poza zakresem v1: cartridge, tape/disk, audio, PAL
-(NTSC only), banking presets (start: tylko "unexpanded", $2000-$7FFF/$A000 wolne).
+tekstowy (w tym multicolor) się renderuje. Poza zakresem v1: cartridge, PAL (NTSC only), banking
+presets (start: tylko "unexpanded", $2000-$7FFF/$A000 wolne).
 
 ## Krok 0 — decyzja: `BusAccess`/`Observer` współdzielony czy zduplikowany
 
@@ -39,8 +39,8 @@ tablica + computed properties na Raster/Columns/Rows/ScreenAddr/CharAddr/AuxColo
 ReverseMode + audio-oscylatory) w kształcie zgodnym z istniejącymi chipami tego repo
 (`MOS6522`/`MT6545`: `BaseAddress`, `Length`, `Read`/`Write`, `Tick(cycles)` zamiast `Update()`
 per-cycle). NTSC-only na start (`MOS6560Constants.Phi2Ntsc`/`CyclesPerLineNtsc`/
-`TotalScanlinesNtsc` - stałe, importowalne wprost, to fakty sprzętowe). Audio pominięte w v1
-(YAGNI - nic w celu "boot do READY + ekran" go nie potrzebuje).
+`TotalScanlinesNtsc` - stałe, importowalne wprost, to fakty sprzętowe). Audio jest dostarczane przez
+`PetEmulator.Audio` i odtwarzane z `Vic20MachineViewModel`.
 
 **Impact-check**: nowy plik, brak istniejących callerów - bez ryzyka.
 
