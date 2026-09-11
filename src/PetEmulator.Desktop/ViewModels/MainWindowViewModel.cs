@@ -38,7 +38,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         [
              .. PetProfileCatalog.All.Select(profile =>
                  new ModuleMenuEntry(profile.Name, () => new PetMachineViewModel(profile, Path.Combine(_romsRoot, "pet")))),
-               .. Vic20ExpansionPresetCatalog.All.Select(preset =>
+               .. Vic20ExpansionPresetCatalog.All
+                   .Where(preset => preset.Preset == Vic20ExpansionPreset.Unexpanded)
+                   .Select(preset =>
                    new ModuleMenuEntry(preset.Label, () => new Vic20MachineViewModel(
                        Path.Combine(_romsRoot, "vic20"), preset.Preset))),
               new ModuleMenuEntry("Chip Tester", () => new ChipTesterViewModel(_romsRoot)),

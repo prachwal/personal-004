@@ -7,4 +7,8 @@ public interface IFilePickerService
     Task<string?> PickDiskToOpenAsync();
 
     Task<string?> PickDiskToSaveAsync();
+
+    Task<string?> PickCartridgeToOpenAsync();
+
+    Task<string?> PickCartridgePluginToOpenAsync();
 }

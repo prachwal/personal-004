@@ -3,6 +3,7 @@ using NUnit.Framework;
 using PetEmulator.Chips;
 using PetEmulator.Vic20.Roms;
 using PetEmulator.Vic20.Tests.Roms;
+using PetEmulator.Vic20.Cartridge.Abstractions;
 
 namespace PetEmulator.Vic20.Tests;
 
@@ -69,6 +70,30 @@ public sealed class Vic20MemoryBusTests
         }
     }
 
+    [Test]
+    public void Cartridge_RomIsMappedAtA000_AndRomWritesAreIgnored()
+    {
+        var cartridge = new Vic20Cartridge([0x42, 0x43]);
+        var bus = CreateBus(cartridge: cartridge);
+
+        bus.Read(0xA000).Should().Be(0x42);
+        bus.Read(0xA001).Should().Be(0x43);
+        bus.Write(0xA000, 0x99);
+        bus.Read(0xA000).Should().Be(0x42);
+    }
+
+    [Test]
+    public void Cartridge_RegisterDevice_IsMappedToIo2AndIo3()
+    {
+        var device = new Vic20RegisterIoDevice(0x9800, 2);
+        var bus = CreateBus(cartridge: new Vic20Cartridge([0x42], ioDevices: [device]));
+
+        bus.Write(0x9801, 0x77);
+
+        bus.Read(0x9801).Should().Be(0x77);
+        bus.Read(0xA000).Should().Be(0x42);
+    }
+
     [TestCase(Vic20ExpansionPreset.ThreeK, 0x0400, 0x2000)]
     [TestCase(Vic20ExpansionPreset.EightK, 0x2000, 0x0400)]
     [TestCase(Vic20ExpansionPreset.SixteenK, 0x4000, 0x6000)]
@@ -94,6 +119,70 @@ public sealed class Vic20MemoryBusTests
             bus.Write(address, 0x42);
             bus.Read(address).Should().Be(0x42);
         }
+    }
+
+    [Test]
+    public void ExpansionResources_DescribeNonContiguousMemoryCartridgeRanges()
+    {
+        var resources = Vic20ExpansionResources.For(Vic20ExpansionPreset.All);
+
+        resources.Select(resource => (resource.StartAddress, resource.Length))
+            .Should().Equal(
+                (0x0400, 0x0C00), (0x2000, 0x2000), (0x4000, 0x2000),
+                (0x6000, 0x2000), (0xA000, 0x2000));
+    }
+
+    [Test]
+    public void CartridgeResources_RejectOverlappingRanges()
+    {
+        var first = new Vic20Cartridge([0x42]);
+        var second = new Vic20Cartridge([0x43]);
+
+        Action action = () => Vic20CartridgeResourceValidator.ThrowIfConflicting(
+            first.Resources.Concat(second.Resources));
+
+        action.Should().Throw<InvalidOperationException>().WithMessage("*ROM*overlap*$A000*");
+    }
+
+    [Test]
+    public void Cartridge_CannotConsumeRangeAlreadyOwnedByAllRamExpansion()
+    {
+        var cartridge = new Vic20Cartridge([0x42]);
+
+        Action action = () => CreateBus(
+            expansionPreset: Vic20ExpansionPreset.All,
+            cartridge: cartridge);
+
+        action.Should().Throw<InvalidOperationException>().WithMessage("*overlap*$A000*");
+    }
+
+    [Test]
+    public void MultipleCartridges_AllowIndependentRanges_AndKeepPreviousOnConflict()
+    {
+        var bus = CreateBus();
+        var first = new Vic20Cartridge([0x42], 0xA000);
+        var second = new Vic20Cartridge([0x43], 0xB000);
+        var conflicting = new Vic20Cartridge([0x99], 0xA000);
+
+        bus.InsertCartridge(first);
+        bus.InsertCartridge(second);
+        Action action = () => bus.InsertCartridge(conflicting);
+
+        action.Should().Throw<InvalidOperationException>();
+        bus.Cartridges.Should().HaveCount(2);
+        bus.Read(0xA000).Should().Be(0x42);
+        bus.Read(0xB000).Should().Be(0x43);
+    }
+
+    [Test]
+    public void ExpansionProfileCatalog_ContainsConcreteResourceDefinitions()
+    {
+        var profiles = Vic20ExpansionPresetCatalog.All;
+
+        profiles.Should().HaveCount(6);
+        profiles.Where(profile => profile.Preset != Vic20ExpansionPreset.Unexpanded)
+            .All(profile => profile.Resources.Count > 0)
+            .Should().BeTrue();
     }
 
     [Test]
@@ -134,7 +223,8 @@ public sealed class Vic20MemoryBusTests
 
     private static Vic20MemoryBus CreateBus(
         MOS6560? vic = null,
-        Vic20ExpansionPreset expansionPreset = Vic20ExpansionPreset.Unexpanded)
+        Vic20ExpansionPreset expansionPreset = Vic20ExpansionPreset.Unexpanded,
+        Vic20Cartridge? cartridge = null)
     {
         var romsRoot = RomLocator.Directory("kernal.bin");
         var roms = Vic20RomLoader.Load(romsRoot, Vic20RomManifest.Ntsc);
@@ -142,6 +232,6 @@ public sealed class Vic20MemoryBusTests
         var via1 = new MOS6522("VIA1", 0x9110);
         var via2 = new MOS6522("VIA2", 0x9120);
         var colorRam = new MOS2114("Color RAM", 0x9400, 0x0400);
-        return new Vic20MemoryBus(roms, vic, via1, via2, colorRam, expansionPreset);
+        return new Vic20MemoryBus(roms, vic, via1, via2, colorRam, expansionPreset, cartridge);
     }
 }

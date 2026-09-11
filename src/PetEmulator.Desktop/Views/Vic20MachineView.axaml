@@ -18,6 +18,7 @@
             <StackPanel Orientation="Horizontal" Spacing="16">
                 <controls:DatasetteControl />
                 <controls:DiskDriveControl />
+                <controls:CartridgeControl />
 
                 <ItemsControl ItemsSource="{Binding Devices}">
                     <ItemsControl.ItemsPanel>

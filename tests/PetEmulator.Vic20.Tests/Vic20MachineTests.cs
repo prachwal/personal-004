@@ -4,6 +4,7 @@ using PetEmulator.Core;
 using PetEmulator.Debugger;
 using PetEmulator.Pet.CbmDos;
 using PetEmulator.Vic20.Tests.Roms;
+using PetEmulator.Vic20.Cartridge.Abstractions;
 
 namespace PetEmulator.Vic20.Tests;
 
@@ -166,6 +167,26 @@ public sealed class Vic20MachineTests
         {
             File.Delete(diskPath);
         }
+    }
+
+    [TestCase(Vic20ExpansionPreset.ThreeK, 0x0400)]
+    [TestCase(Vic20ExpansionPreset.EightK, 0x2000)]
+    [TestCase(Vic20ExpansionPreset.SixteenK, 0x4000)]
+    [TestCase(Vic20ExpansionPreset.TwentyFourK, 0x6000)]
+    [TestCase(Vic20ExpansionPreset.All, 0xA000)]
+    public void ExpansionProfile_AllocatesItsMemoryRanges(
+        Vic20ExpansionPreset preset, int mappedAddress)
+    {
+        var romsRoot = RomLocator.Directory("kernal.bin");
+        var machine = new Vic20Machine(romsRoot, expansionPreset: preset);
+
+        machine.HasCartridge.Should().BeTrue();
+        machine.MountedCartridges.Should().BeEmpty();
+        machine.CartridgeResources.Any(resource => resource.Kind == Vic20CartridgeResourceKind.Ram)
+            .Should().BeTrue();
+        machine.Memory.Read((ushort)mappedAddress).Should().Be(0);
+        machine.ExpansionProfile.Preset.Should().Be(preset);
+        machine.ExpansionProfile.Resources.Should().NotBeEmpty();
     }
 
     [Test]

@@ -11,6 +11,7 @@ using PetEmulator.Pet.Tape;
 using PetEmulator.Vic20;
 using PetEmulator.Vic20.Display;
 using PetEmulator.Vic20.Keyboard;
+using PetEmulator.Vic20.Cartridge.Abstractions;
 
 namespace PetEmulator.Desktop.ViewModels;
 
@@ -22,7 +23,7 @@ namespace PetEmulator.Desktop.ViewModels;
 /// excludes the datasette and primary disk drive (both have dedicated widgets), while any other
 /// attached device is exposed through the generic status bar like PET's.
 /// </summary>
-public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel, IDiskDriveViewModel
+public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel, IDiskDriveViewModel, ICartridgeViewModel
 {
     // Same budget as PetMachineViewModel - see that class's identical constant for why.
     private const ulong InstructionsPerTick = 20_000;
@@ -62,6 +63,24 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
 
     public IBrush DiskIconBrush => !DiskLoaded ? Brushes.Gray : DiskBusy ? Brushes.Red : Brushes.LimeGreen;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CartridgeIconBrush))]
+    private bool _cartridgeLoaded;
+
+    [ObservableProperty]
+    private string _cartridgeName = "No cartridge";
+
+    [ObservableProperty]
+    private bool _canEjectCartridge;
+
+    [ObservableProperty]
+    private IReadOnlyList<CartridgeResourceRow> _cartridgeResources = [];
+
+    [ObservableProperty]
+    private IReadOnlyList<LoadedCartridgeRow> _loadedCartridges = [];
+
+    public IBrush CartridgeIconBrush => CartridgeLoaded ? Brushes.LimeGreen : Brushes.Gray;
+
     public Vic20MachineViewModel(
         string romsRoot,
         Vic20ExpansionPreset expansionPreset = Vic20ExpansionPreset.Unexpanded)
@@ -73,6 +92,7 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
         _audioOutput = AudioOutputFactory.CreateDefault();
         _audioOutput.Start(_machine.Vic);
         FrameBuffer = new uint[_display.PixelWidth * _display.PixelHeight];
+        UpdateCartridgeState();
 
         // See PetMachineViewModel's constructor for why this fires here (CS0067 + documents
         // geometry is fixed for this instance's lifetime).
@@ -109,6 +129,61 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     }
 
     public void LoadDisk(string path) => _machine.MountDisk(path);
+
+    public void LoadCartridge(string path)
+    {
+        _machine.MountCartridge(path);
+        UpdateCartridgeState();
+    }
+
+    public void LoadCartridgePlugin(string pluginPath, string imagePath)
+    {
+        _machine.MountCartridgePlugin(pluginPath, imagePath);
+        UpdateCartridgeState();
+    }
+
+    [RelayCommand]
+    private void EjectCartridge()
+    {
+        _machine.EjectCartridge();
+        UpdateCartridgeState();
+    }
+
+    public void EjectCartridge(string path)
+    {
+        _machine.EjectCartridge(path);
+        UpdateCartridgeState();
+    }
+
+    public IReadOnlyList<CartridgeResourceRow> GetCartridgeResources() => CartridgeResources;
+
+    private void UpdateCartridgeState()
+    {
+        CartridgeLoaded = _machine.HasCartridge;
+        CartridgeName = _machine.CartridgePath is not null
+            ? Path.GetFileName(_machine.CartridgePath)
+            : _machine.ExpansionProfile.Resources.Count > 0
+                ? _machine.ExpansionProfile.Label
+                : "No cartridge";
+        CanEjectCartridge = _machine.Cartridge is not null;
+        CartridgeResources = _machine.CartridgeResources
+            .Select(resource => new CartridgeResourceRow(
+                resource.Name,
+                $"${resource.StartAddress:X4}-${resource.EndAddress:X4}",
+                resource.Kind.ToString().ToUpperInvariant(),
+                resource.Access.ToString()))
+            .ToArray();
+        LoadedCartridges = _machine.MountedCartridges
+            .Select(mounted => new LoadedCartridgeRow(
+                Path.GetFileName(mounted.Path),
+                mounted.Path,
+                mounted.Cartridge.Resources.Select(resource => new CartridgeResourceRow(
+                    resource.Name,
+                    $"${resource.StartAddress:X4}-${resource.EndAddress:X4}",
+                    resource.Kind.ToString().ToUpperInvariant(),
+                    resource.Access.ToString())).ToArray()))
+            .ToArray();
+    }
 
     public void NewDisk(string path) => _machine.MountNewDisk(path, Path.GetFileNameWithoutExtension(path).ToUpperInvariant());
 
@@ -193,6 +268,7 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
         if (_machine.PollDiskActivity())
             _diskActivityUntilUtc = DateTime.UtcNow + DiskActivityLinger;
         DiskBusy = DateTime.UtcNow < _diskActivityUntilUtc;
+        UpdateCartridgeState();
         // TapeName (not HasTape) - a freshly created blank tape has zero pulses but is still "in
         // the deck", same reasoning as Vic20DatasetteStatus's own switch.
         TapeLoaded = _machine.Datasette.TapeName is not null;

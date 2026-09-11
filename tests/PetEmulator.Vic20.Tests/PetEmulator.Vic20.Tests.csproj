@@ -12,6 +12,13 @@
     <PackageReference Include="NUnit3TestAdapter" />
     <PackageReference Include="FluentAssertions" />
     <ProjectReference Include="../../src/PetEmulator.Vic20/PetEmulator.Vic20.csproj" />
+    <ProjectReference Include="../../lib/PetEmulator.Vic20.Cartridge.Abstractions/PetEmulator.Vic20.Cartridge.Abstractions.csproj" />
+    <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Sample/PetEmulator.Vic20.Cartridge.Sample.csproj" />
+    <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Ram/PetEmulator.Vic20.Cartridge.Ram.csproj" />
+    <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Ram.8K/PetEmulator.Vic20.Cartridge.Ram.8K.csproj" />
+    <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Ram.16K/PetEmulator.Vic20.Cartridge.Ram.16K.csproj" />
+    <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Ram.24K/PetEmulator.Vic20.Cartridge.Ram.24K.csproj" />
+    <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Ram.35K/PetEmulator.Vic20.Cartridge.Ram.35K.csproj" />
     <ProjectReference Include="../../lib/PetEmulator.Debugger/PetEmulator.Debugger.csproj" />
   </ItemGroup>
 </Project>

@@ -22,6 +22,8 @@ public static class Vic20MemoryMap
     public const int Block3Size = 0x2000;
     public const ushort CartridgeStart = 0xA000;
     public const int CartridgeSize = 0x2000;
+    public const ushort Io2Start = 0x9800;
+    public const ushort Io3End = 0x9FFF;
 
     public const ushort CharRomStart = 0x8000;
 

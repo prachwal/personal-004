@@ -39,6 +39,9 @@ public sealed class Vic20DebuggerSession
                 "eject" => EjectTape(),
                 "disk" => LoadDisk(parts),
                 "new-disk" => NewDisk(parts),
+                "cartridge" => LoadCartridge(parts[1]),
+                "cartridge-plugin" => LoadCartridgePlugin(parts[1], parts[2]),
+                "eject-cartridge" => EjectCartridge(),
                 "key" => Key(parts),
                 "type" => Type(commandLine[(parts[0].Length + 1)..]),
                 "devices" => Devices(),
@@ -125,6 +128,24 @@ public sealed class Vic20DebuggerSession
         var device = parts.Length > 3 ? int.Parse(parts[3], CultureInfo.InvariantCulture) : 8;
         machine.MountNewDisk(path, diskName, deviceNumber: device);
         return $"new disk created and mounted: {Path.GetFileName(path)} ({diskName}) on device {device}";
+    }
+
+    private string LoadCartridge(string path)
+    {
+        EnsureMachine().MountCartridge(path);
+        return $"cartridge mounted: {Path.GetFileName(path)}";
+    }
+
+    private string LoadCartridgePlugin(string pluginPath, string imagePath)
+    {
+        EnsureMachine().MountCartridgePlugin(pluginPath, imagePath);
+        return $"cartridge plugin mounted: {Path.GetFileName(pluginPath)} / {Path.GetFileName(imagePath)}";
+    }
+
+    private string EjectCartridge()
+    {
+        EnsureMachine().EjectCartridge();
+        return "cartridge ejected";
     }
 
     private string Devices()

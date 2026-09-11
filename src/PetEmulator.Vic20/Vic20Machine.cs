@@ -9,8 +9,11 @@ using PetEmulator.Vic20.Keyboard;
 using PetEmulator.Vic20.Roms;
 using PetEmulator.Vic20.Serial;
 using PetEmulator.Vic20.Tape;
+using PetEmulator.Vic20.Cartridge.Abstractions;
 
 namespace PetEmulator.Vic20;
+
+public sealed record Vic20MountedCartridge(string Path, Vic20Cartridge Cartridge);
 
 /// <summary>
 /// Orchestrates a complete unexpanded VIC-20: a stock NMOS 6502 (<see cref="Cpu6502Classic"/>),
@@ -38,6 +41,7 @@ public sealed class Vic20Machine : IMachine
     private readonly Vic20SerialBusBinding _serialBusBinding;
     private readonly List<PetIeeeDriveStatus> _mountedDrives = [];
     private bool _diskActivityPending;
+    private readonly List<Vic20MountedCartridge> _mountedCartridges = [];
 
     // The real KERNAL's IRQ vector ($0314/$0315, "CINV") while idle - both LOAD and SAVE
     // temporarily redirect it to their own tape ISR for the duration of the operation, then
@@ -52,9 +56,11 @@ public sealed class Vic20Machine : IMachine
     public Vic20Machine(
         string romsRoot,
         Vic20DisplayConfig? displayConfig = null,
-        Vic20ExpansionPreset expansionPreset = Vic20ExpansionPreset.Unexpanded)
+        Vic20ExpansionPreset expansionPreset = Vic20ExpansionPreset.Unexpanded,
+        Vic20Cartridge? cartridge = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
+        ExpansionProfile = Vic20ExpansionPresetCatalog.Get(expansionPreset);
 
         DisplayConfig = displayConfig ?? Vic20DisplayConfig.Ntsc;
         var roms = Vic20RomLoader.Load(romsRoot, Vic20RomManifest.Ntsc);
@@ -73,7 +79,8 @@ public sealed class Vic20Machine : IMachine
             _userPort.Direction = _via1.DDRB;
         };
 
-        _memoryBus = new Vic20MemoryBus(roms, _vic, _via1, _via2, _colorRam, expansionPreset);
+        _memoryBus = new Vic20MemoryBus(roms, _vic, _via1, _via2, _colorRam,
+            expansionPreset, cartridge);
         _cpu = new Cpu6502Classic(_memoryBus);
         _datasette = new Vic20Datasette(_via1, _via2);
         _serialBus = new Vic20SerialBus();
@@ -113,6 +120,9 @@ public sealed class Vic20Machine : IMachine
 
     public MOS6560 Vic => _vic;
 
+    /// <summary>Concrete hardware profile selected for this machine instance.</summary>
+    public Vic20ExpansionProfile ExpansionProfile { get; }
+
     public MOS6522 Via1 => _via1;
 
     public MOS6522 Via2 => _via2;
@@ -122,6 +132,54 @@ public sealed class Vic20Machine : IMachine
 
     /// <summary>Eight-bit external User Port connected to VIA1 Port B.</summary>
     public Vic20UserPort UserPort => _userPort;
+
+    public Vic20Cartridge? Cartridge => _memoryBus.Cartridge;
+
+    public IReadOnlyList<Vic20MountedCartridge> MountedCartridges => _mountedCartridges;
+
+    public string? CartridgePath => _mountedCartridges.FirstOrDefault()?.Path;
+
+    public bool HasCartridge => ExpansionProfile.Resources.Count > 0 || _mountedCartridges.Count > 0;
+
+    public IReadOnlyList<Vic20CartridgeResource> CartridgeResources =>
+        [
+            .. ExpansionProfile.Resources,
+            .. _mountedCartridges.SelectMany(item => item.Cartridge.Resources),
+        ];
+
+    public void MountCartridge(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        var cartridge = Vic20Cartridge.Load(path);
+        _memoryBus.InsertCartridge(cartridge);
+        _mountedCartridges.Add(new Vic20MountedCartridge(path, cartridge));
+    }
+
+    public void MountCartridgePlugin(string pluginPath, string imagePath)
+    {
+        var plugin = Vic20CartridgePluginLoader.Load(pluginPath);
+        var image = File.ReadAllBytes(imagePath);
+        var cartridge = Vic20Cartridge.FromPlugin(plugin.Create(image));
+        _memoryBus.InsertCartridge(cartridge);
+        _mountedCartridges.Add(new Vic20MountedCartridge(imagePath, cartridge));
+    }
+
+    public void EjectCartridge()
+    {
+        _memoryBus.EjectCartridge();
+        _mountedCartridges.Clear();
+    }
+
+    public void EjectCartridge(string path)
+    {
+        var mounted = _mountedCartridges.FirstOrDefault(item =>
+            string.Equals(item.Path, path, StringComparison.OrdinalIgnoreCase));
+        if (mounted is null)
+            return;
+
+        _memoryBus.EjectCartridge(mounted.Cartridge);
+        _mountedCartridges.Remove(mounted);
+    }
 
     /// <summary>The cassette datasette - a caller (GUI menu, debugger script) loads a tape
     /// through this directly.</summary>
@@ -192,6 +250,7 @@ public sealed class Vic20Machine : IMachine
         // Real hardware powers up with indeterminate RAM; this zeroes it instead for
         // deterministic, reproducible boots/tests.
         _memoryBus.ClearRam();
+        _memoryBus.ResetCartridges();
         _vic.Reset();
         _via1.Reset();
         _via2.Reset();
@@ -212,6 +271,7 @@ public sealed class Vic20Machine : IMachine
         _cpu.StepInstruction();
         var cycles = _cpu.CycleCount - cyclesBefore;
 
+        _memoryBus.TickCartridges(cycles);
         _vic.Tick(cycles);
         _via1.Tick(cycles);
         _via2.Tick(cycles);

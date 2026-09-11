@@ -1,6 +1,7 @@
 using PetEmulator.Core;
 using PetEmulator.Chips;
 using PetEmulator.Vic20.Roms;
+using PetEmulator.Vic20.Cartridge.Abstractions;
 
 namespace PetEmulator.Vic20;
 
@@ -33,6 +34,8 @@ public sealed class Vic20MemoryBus : IMemoryBus
     private readonly MOS6522 _via1;
     private readonly MOS6522 _via2;
     private readonly MOS2114 _colorRam;
+    private readonly IReadOnlyList<Vic20CartridgeResource> _expansionResources;
+    private readonly Vic20ExpansionDeviceRegistry _expansions;
 
     public Vic20MemoryBus(
         IReadOnlyList<Vic20RomImage> roms,
@@ -40,7 +43,8 @@ public sealed class Vic20MemoryBus : IMemoryBus
         MOS6522 via1,
         MOS6522 via2,
         MOS2114 colorRam,
-        Vic20ExpansionPreset expansionPreset = Vic20ExpansionPreset.Unexpanded)
+        Vic20ExpansionPreset expansionPreset = Vic20ExpansionPreset.Unexpanded,
+        Vic20Cartridge? cartridge = null)
     {
         ArgumentNullException.ThrowIfNull(roms);
         _vic = vic ?? throw new ArgumentNullException(nameof(vic));
@@ -57,7 +61,35 @@ public sealed class Vic20MemoryBus : IMemoryBus
         _block2 = IsEnabled(expansionPreset, 2) ? new byte[Vic20MemoryMap.Block2Size] : null;
         _block3 = IsEnabled(expansionPreset, 3) ? new byte[Vic20MemoryMap.Block3Size] : null;
         _cartridgeRam = IsEnabled(expansionPreset, 5) ? new byte[Vic20MemoryMap.CartridgeSize] : null;
+        _expansionResources = Vic20ExpansionResources.For(expansionPreset);
+        _expansions = new Vic20ExpansionDeviceRegistry(_expansionResources);
+        if (cartridge is not null)
+            _expansions.Insert(cartridge);
     }
+
+    public Vic20Cartridge? Cartridge => _expansions.Devices.FirstOrDefault();
+
+    public IReadOnlyList<Vic20Cartridge> Cartridges => _expansions.Devices;
+
+    public void InsertCartridge(Vic20Cartridge cartridge)
+    {
+        ArgumentNullException.ThrowIfNull(cartridge);
+        _expansions.Insert(cartridge);
+    }
+
+    public void ResetCartridges()
+    {
+        _expansions.Reset();
+    }
+
+    public void TickCartridges(ulong cycles)
+    {
+        _expansions.Tick(cycles);
+    }
+
+    public void EjectCartridge() => _expansions.EjectAll();
+
+    public void EjectCartridge(Vic20Cartridge cartridge) => _expansions.Eject(cartridge);
 
     public byte Read(ushort address)
     {
@@ -68,6 +100,8 @@ public sealed class Vic20MemoryBus : IMemoryBus
 
     private byte ReadCore(ushort address)
     {
+        if (_expansions.TryRead(address, out var cartridgeValue))
+            return cartridgeValue;
         if (address < Vic20MemoryMap.ZeroPageRamSize)
             return _zeroPageRam[address];
         if (_block0 is not null && InRange(address, Vic20MemoryMap.Block0Start, (uint)_block0.Length))
@@ -108,6 +142,8 @@ public sealed class Vic20MemoryBus : IMemoryBus
 
     private void WriteCore(ushort address, byte value)
     {
+        if (_expansions.TryWrite(address, value))
+            return;
         if (address < Vic20MemoryMap.ZeroPageRamSize)
         {
             _zeroPageRam[address] = value;
@@ -158,8 +194,7 @@ public sealed class Vic20MemoryBus : IMemoryBus
             _via2.Write(address, value);
         else if (InRange(address, Vic20MemoryMap.ColorRamStart, _colorRam.Length))
             _colorRam.Write(address, value);
-        // else: unmapped - write has no effect (open bus), including the $A000-$BFFF cartridge
-        // window and unexpanded blocks $2000-$7FFF/$A000-$BFFF - no cartridge support in v1.
+        // else: unmapped - write has no effect (open bus).
     }
 
     /// <summary>Zeroes both RAM regions.</summary>
