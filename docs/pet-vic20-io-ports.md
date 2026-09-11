@@ -430,7 +430,7 @@ osiągnięcie liczby procentowej, lecz jednoczesne pokrycie:
 - [x] Uruchomić po etapie MOS2114:
       `dotnet test tests/PetEmulator.Chips.Tests/PetEmulator.Chips.Tests.csproj --no-restore --collect:"XPlat Code Coverage"`.
 - [x] Raportować osobno line, branch i method coverage dla każdego pliku układu.
-- [ ] Wymagać 100% line, 100% branch i 100% method coverage dla każdego układu.
+- [x] Wymagać 100% line, 100% branch i 100% method coverage dla każdego układu.
 - [ ] Dodać testy mutacyjne lub ręczne usunięcie każdej gałęzi jako kontrolę,
       że pokrycie nie jest tylko formalne.
 - [ ] Nie oznaczać etapu jako ukończonego, jeśli kod jest pokryty, ale nie ma testu

@@ -188,6 +188,7 @@ public sealed class MC146818Tests
         Write(rtc, MC146818.RegisterA, 0x00); // divider stopped
         rtc.Tick(100);
         Read(rtc, MC146818.Seconds).Should().Be(0x01);
+        (Read(rtc, MC146818.RegisterA) & MC146818.UpdateInProgress).Should().Be(0);
     }
 
     [Test]
@@ -222,6 +223,19 @@ public sealed class MC146818Tests
 
         (Read(rtc, MC146818.RegisterC) & (MC146818.AlarmFlag | MC146818.InterruptRequestFlag))
             .Should().Be(MC146818.AlarmFlag | MC146818.InterruptRequestFlag);
+    }
+
+    [Test]
+    public void AlarmRegisters_CanBeReadBackIndependently()
+    {
+        var rtc = new MC146818();
+        Write(rtc, MC146818.AlarmSeconds, 0x12);
+        Write(rtc, MC146818.AlarmMinutes, 0x34);
+        Write(rtc, MC146818.AlarmHours, 0x56);
+
+        Read(rtc, MC146818.AlarmSeconds).Should().Be(0x12);
+        Read(rtc, MC146818.AlarmMinutes).Should().Be(0x34);
+        Read(rtc, MC146818.AlarmHours).Should().Be(0x56);
     }
 
     [Test]
