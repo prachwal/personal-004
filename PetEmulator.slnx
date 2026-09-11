@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/lib/">
     <Project Path="lib/PetEmulator.Core/PetEmulator.Core.csproj" />
+    <Project Path="lib/PetEmulator.Vic20.Cartridge.Abstractions/PetEmulator.Vic20.Cartridge.Abstractions.csproj" />
     <Project Path="lib/PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
     <Project Path="lib/PetEmulator.Chips/PetEmulator.Chips.csproj" />
     <Project Path="lib/PetEmulator.Debugger/PetEmulator.Debugger.csproj" />
@@ -14,6 +15,15 @@
     <Project Path="src/PetEmulator.Desktop/PetEmulator.Desktop.csproj" />
     <Project Path="src/PetEmulator.Cli/PetEmulator.Cli.csproj" />
   </Folder>
+  <Folder Name="/plugins/">
+    <Project Path="plugins/PetEmulator.Vic20.Cartridge.Sample/PetEmulator.Vic20.Cartridge.Sample.csproj" />
+    <Project Path="plugins/PetEmulator.Vic20.Cartridge.Ram/PetEmulator.Vic20.Cartridge.Ram.csproj" />
+    <Project Path="plugins/PetEmulator.Vic20.Cartridge.Ram.8K/PetEmulator.Vic20.Cartridge.Ram.8K.csproj" />
+    <Project Path="plugins/PetEmulator.Vic20.Cartridge.Ram.16K/PetEmulator.Vic20.Cartridge.Ram.16K.csproj" />
+    <Project Path="plugins/PetEmulator.Vic20.Cartridge.Ram.24K/PetEmulator.Vic20.Cartridge.Ram.24K.csproj" />
+    <Project Path="plugins/PetEmulator.Vic20.Cartridge.Ram.35K/PetEmulator.Vic20.Cartridge.Ram.35K.csproj" />
+    <Project Path="plugins/PetEmulator.Vic20.Cartridge.Rtc/PetEmulator.Vic20.Cartridge.Rtc.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/PetEmulator.Core.Tests/PetEmulator.Core.Tests.csproj" />
     <Project Path="tests/PetEmulator.Cpu6502.Tests/PetEmulator.Cpu6502.Tests.csproj" />
@@ -24,5 +34,6 @@
     <Project Path="tests/PetEmulator.Cli.Tests/PetEmulator.Cli.Tests.csproj" />
     <Project Path="tests/PetEmulator.Chips.Tests/PetEmulator.Chips.Tests.csproj" />
     <Project Path="tests/PetEmulator.Audio.Tests/PetEmulator.Audio.Tests.csproj" />
+    <Project Path="tests/PetEmulator.Desktop.Tests/PetEmulator.Desktop.Tests.csproj" />
   </Folder>
 </Solution>

@@ -43,6 +43,20 @@ public sealed class PetMemoryBusTests
         bus.Read(0x3000).Should().Be(0xFF);
     }
 
+    [TestCase(0xE800)]
+    [TestCase(0xE830)]
+    [TestCase(0xE850)]
+    [TestCase(0xE890)]
+    public void UnmappedPeripheralAddress_ReadsAsOpenBus(ushort address)
+    {
+        var bus = CreateBus(PetProfileCatalog.Pet2001_8, out _, out _, out _, out _);
+
+        bus.Read(address).Should().Be(0xFF);
+
+        bus.Write(address, 0x42);
+        bus.Read(address).Should().Be(0xFF, "unmapped writes must have no effect");
+    }
+
     [Test]
     public void Rom_ReadsLoadedBytes_AndIsReadOnly()
     {

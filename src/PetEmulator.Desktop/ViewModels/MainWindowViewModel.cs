@@ -38,9 +38,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         [
              .. PetProfileCatalog.All.Select(profile =>
                  new ModuleMenuEntry(profile.Name, () => new PetMachineViewModel(profile, Path.Combine(_romsRoot, "pet")))),
-               .. Vic20ExpansionPresetCatalog.All.Select(preset =>
-                   new ModuleMenuEntry(preset.Label, () => new Vic20MachineViewModel(
-                       Path.Combine(_romsRoot, "vic20"), preset.Preset))),
+              new ModuleMenuEntry("VIC-20", CreateVic20),
               new ModuleMenuEntry("Chip Tester", () => new ChipTesterViewModel(_romsRoot)),
               new ModuleMenuEntry("Media Tester", () => new MediaTesterViewModel(_filePicker)),
               new ModuleMenuEntry("Font / Glyph Viewer", () => new FontViewerViewModel(_romsRoot)),
@@ -61,6 +59,38 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     /// <summary>Every selectable machine configuration, for the Machine menu.</summary>
     public IReadOnlyList<ModuleMenuEntry> ModuleChoices { get; }
+
+    private Vic20MachineViewModel CreateVic20()
+    {
+        var machine = new Vic20MachineViewModel(Path.Combine(_romsRoot, "vic20"));
+        machine.ProgramProfileSelector.ProfileSelected += (_, profile) =>
+            LoadVic20ProgramProfile(machine, profile);
+        return machine;
+    }
+
+    private void LoadVic20ProgramProfile(Vic20MachineViewModel current, Vic20ProgramProfile profile)
+    {
+        if (!ReferenceEquals(CurrentModule, current))
+            return;
+
+        try
+        {
+            if (profile.IsEmpty)
+            {
+                current.EjectAllCartridges();
+                current.ProgramProfileSelector.ErrorMessage = null;
+                return;
+            }
+
+            current.LoadProgramProfile(profile);
+            current.ProgramProfileSelector.ErrorMessage = null;
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidDataException or IOException or InvalidOperationException)
+        {
+            current.ProgramProfileSelector.ErrorMessage = ex.Message;
+        }
+    }
+
 
     /// <summary>Raised by <see cref="ExitCommand"/> - the View closes the window.</summary>
     public event EventHandler? CloseRequested;

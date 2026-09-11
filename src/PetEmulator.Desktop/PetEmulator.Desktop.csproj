@@ -20,5 +20,11 @@
          to this project's own output even though a plain `dotnet build` resolves it fine - seen as a
          FileNotFoundException on PetEmulator.Audio at Vic20MachineViewModel construction. -->
     <ProjectReference Include="../../lib/PetEmulator.Audio/PetEmulator.Audio.csproj" />
+    <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Ram.24K/PetEmulator.Vic20.Cartridge.Ram.24K.csproj" />
+    <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Ram/PetEmulator.Vic20.Cartridge.Ram.csproj" />
+    <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Ram.8K/PetEmulator.Vic20.Cartridge.Ram.8K.csproj" />
+    <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Ram.16K/PetEmulator.Vic20.Cartridge.Ram.16K.csproj" />
+    <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Ram.35K/PetEmulator.Vic20.Cartridge.Ram.35K.csproj" />
+    <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Rtc/PetEmulator.Vic20.Cartridge.Rtc.csproj" />
   </ItemGroup>
 </Project>

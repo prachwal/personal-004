@@ -4,6 +4,7 @@ using PetEmulator.Core;
 using PetEmulator.Debugger;
 using PetEmulator.Pet.CbmDos;
 using PetEmulator.Vic20.Tests.Roms;
+using PetEmulator.Vic20.Cartridge.Abstractions;
 
 namespace PetEmulator.Vic20.Tests;
 
@@ -23,6 +24,45 @@ public sealed class Vic20MachineTests
         machine.Via2.Write(0x9120, unchecked((byte)~(1 << 2))); // select row 2 only
 
         machine.Via2.Read(0x9121).Should().Be(unchecked((byte)~1), "row 2 col 0 is pressed");
+    }
+
+    [Test]
+    public void Joystick_DirectionsAndFireAreActiveLowOnTheRealVias()
+    {
+        var machine = CreateMachine();
+        machine.Via1.Write(0x9113, 0x00); // PA2-PA5 as inputs
+        machine.Via2.Write(0x9122, 0x00); // PB7 as input
+
+        machine.Joystick.Set(Vic20JoystickInput.Up, true);
+        machine.Joystick.Set(Vic20JoystickInput.Left, true);
+        machine.Joystick.Set(Vic20JoystickInput.Right, true);
+        machine.Joystick.Set(Vic20JoystickInput.Fire, true);
+
+        var via1PortA = machine.Via1.Read(0x9111);
+        var via2PortB = machine.Via2.Read(0x9120);
+
+        (via1PortA & 0x34).Should().Be(0, "UP, LEFT and FIRE are pulled low on VIA1 PA2/PA4/PA5");
+        (via1PortA & 0x08).Should().Be(0x08, "DOWN remains released");
+        (via2PortB & 0x80).Should().Be(0, "RIGHT is pulled low on VIA2 PB7");
+
+        machine.Joystick.Set(Vic20JoystickInput.Up, false);
+        (machine.Via1.Read(0x9111) & 0x04).Should().Be(0x04, "releasing UP restores the pull-up");
+    }
+
+    [Test]
+    public void UserPort_ExposesVIA1PortBInputDirectionAndOutput()
+    {
+        var machine = CreateMachine();
+        machine.UserPort.Input = 0xA5;
+        machine.Via1.Write(0x9112, 0x00); // all User Port pins as inputs
+
+        machine.Via1.Read(0x9110).Should().Be(0xA5);
+
+        machine.Via1.Write(0x9112, 0xF0);
+        machine.Via1.Write(0x9110, 0x5A);
+
+        machine.UserPort.Direction.Should().Be(0xF0);
+        machine.UserPort.Output.Should().Be(0x50);
     }
 
     [Test]

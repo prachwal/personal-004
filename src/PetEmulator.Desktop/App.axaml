@@ -8,6 +8,7 @@
         <SolidColorBrush x:Key="StatusTextBrush" Color="#FF8DFF72" />
         <SolidColorBrush x:Key="DeviceBarBackgroundBrush" Color="#FF161616" />
         <SolidColorBrush x:Key="DeviceStatusTextBrush" Color="#FFAAAAAA" />
+        <SolidColorBrush x:Key="ErrorTextBrush" Color="#FFFF7070" />
     </Application.Resources>
     <Application.Styles>
         <FluentTheme />

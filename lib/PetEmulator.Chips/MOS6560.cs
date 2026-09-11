@@ -52,6 +52,32 @@ public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
 
     public byte Volume => (byte)(_registers[0x0E] & 0x0F);
 
+    /// <summary>Latched light-pen X coordinate supplied by the external control port.</summary>
+    public byte LightPenX { get; private set; }
+
+    /// <summary>Latched light-pen Y coordinate supplied by the external control port.</summary>
+    public byte LightPenY { get; private set; }
+
+    /// <summary>Digitized paddle X value supplied by the external control port.</summary>
+    public byte PaddleX { get; private set; }
+
+    /// <summary>Digitized paddle Y value supplied by the external control port.</summary>
+    public byte PaddleY { get; private set; }
+
+    /// <summary>Supplies the two VIC-20 paddle positions read through $9008/$9009.</summary>
+    public void SetPaddlePosition(byte x, byte y)
+    {
+        PaddleX = x;
+        PaddleY = y;
+    }
+
+    /// <summary>Latches a light-pen position as if the external light-pen strobe occurred.</summary>
+    public void StrobeLightPen(byte x, byte y)
+    {
+        LightPenX = x;
+        LightPenY = y;
+    }
+
     /// <summary>14-bit VIC-internal address translated to a CPU-bus address: A15 = NOT A13
     /// (real VIC-I address-line inversion quirk - matches how the chip's own screen/char-matrix
     /// base registers must be interpreted to find real RAM/ROM content).</summary>
@@ -106,6 +132,10 @@ public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
         {
             0x04 => (byte)(_rasterCounter & 0xFF),
             0x03 => (byte)((_registers[0x03] & 0x7F) | ((_rasterCounter >> 1) & 0x80)),
+            0x06 => LightPenX,
+            0x07 => LightPenY,
+            0x08 => PaddleX,
+            0x09 => PaddleY,
             _ => _registers[offset],
         };
     }
@@ -113,6 +143,9 @@ public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
     public void Write(ushort address, byte value)
     {
         var offset = (address - _baseAddress) & 0x0F;
+        if (offset is 0x06 or 0x07 or 0x08 or 0x09)
+            return; // light-pen and paddle registers are external-input readbacks
+
         _registers[offset] = value;
     }
 
@@ -123,6 +156,7 @@ public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
         _lineCycles = 0;
         Array.Clear(_audioPhases);
         _noiseLfsr = 0xFFFF;
+        LightPenX = LightPenY = PaddleX = PaddleY = 0;
     }
 
     public int Render(Span<AudioFrame> destination)
@@ -146,7 +180,10 @@ public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
     }
 
     private static double CalculateFrequency(byte register, int divider) =>
-        Phi2Ntsc / divider / (255 - (register & 0x7F) + 1);
+        // VIC frequency registers use the complete 8-bit value while enabled.
+        // Bit 7 is the enable bit, but it also participates in the divider; masking
+        // it out turns values such as $F0 into a ~28 Hz rumble instead of ~266 Hz.
+        Phi2Ntsc / divider / (255 - register + 1);
 
     private double RenderSquare(bool enabled, double frequency, int phaseIndex, double dt, ref int generators)
     {

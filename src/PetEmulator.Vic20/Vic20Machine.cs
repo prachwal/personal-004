@@ -9,8 +9,11 @@ using PetEmulator.Vic20.Keyboard;
 using PetEmulator.Vic20.Roms;
 using PetEmulator.Vic20.Serial;
 using PetEmulator.Vic20.Tape;
+using PetEmulator.Vic20.Cartridge.Abstractions;
 
 namespace PetEmulator.Vic20;
+
+public sealed record Vic20MountedCartridge(string Path, Vic20Cartridge Cartridge);
 
 /// <summary>
 /// Orchestrates a complete unexpanded VIC-20: a stock NMOS 6502 (<see cref="Cpu6502Classic"/>),
@@ -31,11 +34,14 @@ public sealed class Vic20Machine : IMachine
     private readonly MOS6522 _via2;
     private readonly MOS2114 _colorRam;
     private readonly Vic20KeyboardMatrix _keyboard = new();
+    private readonly Vic20Joystick _joystick = new();
+    private readonly Vic20UserPort _userPort = new();
     private readonly Vic20Datasette _datasette;
     private readonly Vic20SerialBus _serialBus;
     private readonly Vic20SerialBusBinding _serialBusBinding;
     private readonly List<PetIeeeDriveStatus> _mountedDrives = [];
     private bool _diskActivityPending;
+    private readonly List<Vic20MountedCartridge> _mountedCartridges = [];
 
     // The real KERNAL's IRQ vector ($0314/$0315, "CINV") while idle - both LOAD and SAVE
     // temporarily redirect it to their own tape ISR for the duration of the operation, then
@@ -50,10 +56,9 @@ public sealed class Vic20Machine : IMachine
     public Vic20Machine(
         string romsRoot,
         Vic20DisplayConfig? displayConfig = null,
-        Vic20ExpansionPreset expansionPreset = Vic20ExpansionPreset.Unexpanded)
+        Vic20Cartridge? cartridge = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
-
         DisplayConfig = displayConfig ?? Vic20DisplayConfig.Ntsc;
         var roms = Vic20RomLoader.Load(romsRoot, Vic20RomManifest.Ntsc);
 
@@ -62,7 +67,16 @@ public sealed class Vic20Machine : IMachine
         _via2 = new MOS6522("VIA2", Vic20MemoryMap.Via2BaseAddress);
         _colorRam = new MOS2114("Color RAM", Vic20MemoryMap.ColorRamStart, Vic20MemoryMap.ColorRamSize);
 
-        _memoryBus = new Vic20MemoryBus(roms, _vic, _via1, _via2, _colorRam, expansionPreset);
+        _joystick.StateChanged += SyncGamePortInputs;
+        _userPort.InputChanged += SyncUserPortInput;
+        _via1.PortBInput = _userPort.Input;
+        _via1.PortBWritten = output =>
+        {
+            _userPort.Output = output;
+            _userPort.Direction = _via1.DDRB;
+        };
+
+        _memoryBus = new Vic20MemoryBus(roms, _vic, _via1, _via2, _colorRam, cartridge);
         _cpu = new Cpu6502Classic(_memoryBus);
         _datasette = new Vic20Datasette(_via1, _via2);
         _serialBus = new Vic20SerialBus();
@@ -105,6 +119,73 @@ public sealed class Vic20Machine : IMachine
     public MOS6522 Via1 => _via1;
 
     public MOS6522 Via2 => _via2;
+
+    /// <summary>Digital control-port joystick, wired to VIA1 PA2-PA5 and VIA2 PB7.</summary>
+    public Vic20Joystick Joystick => _joystick;
+
+    /// <summary>Eight-bit external User Port connected to VIA1 Port B.</summary>
+    public Vic20UserPort UserPort => _userPort;
+
+    public Vic20Cartridge? Cartridge => _memoryBus.Cartridge;
+
+    public IReadOnlyList<IVic20ExpansionDevice> ExpansionDevices => _memoryBus.ExpansionDevices;
+
+    public IReadOnlyList<Vic20MountedCartridge> MountedCartridges => _mountedCartridges;
+
+    public string? CartridgePath => _mountedCartridges.FirstOrDefault()?.Path;
+
+    public bool HasCartridge => _mountedCartridges.Count > 0;
+
+    public IReadOnlyList<Vic20CartridgeResource> CartridgeResources =>
+        [
+            .. _memoryBus.ExpansionDevices.SelectMany(item => item.Resources),
+        ];
+
+    public void MountCartridge(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        var cartridge = Vic20Cartridge.Load(path);
+        _memoryBus.InsertCartridge(cartridge);
+        _mountedCartridges.Add(new Vic20MountedCartridge(path, cartridge));
+    }
+
+    public void MountCartridgePlugin(string pluginPath, string imagePath)
+    {
+        var plugin = Vic20CartridgePluginLoader.Load(pluginPath);
+        var image = File.ReadAllBytes(imagePath);
+        var cartridge = Vic20Cartridge.FromPlugin(plugin.Create(image));
+        _memoryBus.InsertCartridge(cartridge);
+        _mountedCartridges.Add(new Vic20MountedCartridge(imagePath, cartridge));
+    }
+
+    public void AttachExpansionDevice(IVic20ExpansionDevice device)
+    {
+        ArgumentNullException.ThrowIfNull(device);
+        _memoryBus.InsertExpansionDevice(device);
+    }
+
+    public void DetachExpansionDevice(IVic20ExpansionDevice device)
+    {
+        ArgumentNullException.ThrowIfNull(device);
+        _memoryBus.EjectExpansionDevice(device);
+    }
+
+    public void EjectCartridge()
+    {
+        _memoryBus.EjectCartridge();
+        _mountedCartridges.Clear();
+    }
+
+    public void EjectCartridge(string path)
+    {
+        var mounted = _mountedCartridges.FirstOrDefault(item =>
+            string.Equals(item.Path, path, StringComparison.OrdinalIgnoreCase));
+        if (mounted is null)
+            return;
+
+        _memoryBus.EjectCartridge(mounted.Cartridge);
+        _mountedCartridges.Remove(mounted);
+    }
 
     /// <summary>The cassette datasette - a caller (GUI menu, debugger script) loads a tape
     /// through this directly.</summary>
@@ -175,6 +256,7 @@ public sealed class Vic20Machine : IMachine
         // Real hardware powers up with indeterminate RAM; this zeroes it instead for
         // deterministic, reproducible boots/tests.
         _memoryBus.ClearRam();
+        _memoryBus.ResetCartridges();
         _vic.Reset();
         _via1.Reset();
         _via2.Reset();
@@ -182,6 +264,8 @@ public sealed class Vic20Machine : IMachine
         _keyboard.Reset();
         _datasette.Reset();
         _serialBusBinding.Reset();
+        SyncUserPortState();
+        SyncGamePortInputs();
         _diskActivityPending = false;
         _lastIrqVector = 0; // RAM is cleared too - matches $0314/5 reading 0 until the KERNAL re-inits it
         _cpu.Reset();
@@ -193,6 +277,7 @@ public sealed class Vic20Machine : IMachine
         _cpu.StepInstruction();
         var cycles = _cpu.CycleCount - cyclesBefore;
 
+        _memoryBus.TickCartridges(cycles);
         _vic.Tick(cycles);
         _via1.Tick(cycles);
         _via2.Tick(cycles);
@@ -201,11 +286,12 @@ public sealed class Vic20Machine : IMachine
         {
             _datasette.Tick();
             _serialBusBinding.Tick();
+            SyncGamePortInputs();
         }
 
         CaptureSaveIfDispatched();
 
-        _cpu.SetIRQ(_via1.IRQ || _via2.IRQ);
+        _cpu.SetIRQ(_via1.IRQ || _via2.IRQ || _memoryBus.ExpansionIrq);
     }
 
     /// <summary>
@@ -264,5 +350,22 @@ public sealed class Vic20Machine : IMachine
     {
         for (var i = 0UL; i < instructionCount; i++)
             StepInstruction();
+    }
+
+    private void SyncUserPortInput() => _via1.PortBInput = _userPort.Input;
+
+    private void SyncUserPortState()
+    {
+        SyncUserPortInput();
+        _userPort.Output = _via1.PortBOutput;
+        _userPort.Direction = _via1.DDRB;
+    }
+
+    private void SyncGamePortInputs()
+    {
+        // Preserve IEC (PA0/PA1/PA7) and cassette sense (PA6) supplied by their existing
+        // bindings; only the joystick-owned PA2-PA5 bits are replaced here.
+        _via1.PortAInput = (byte)((_via1.PortAInput & 0xC3) | _joystick.Via1PortAInput);
+        _via2.PortBInput = (byte)((_via2.PortBInput & 0x7F) | _joystick.Via2PortBInput);
     }
 }

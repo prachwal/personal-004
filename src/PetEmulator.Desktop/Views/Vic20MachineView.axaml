@@ -18,6 +18,8 @@
             <StackPanel Orientation="Horizontal" Spacing="16">
                 <controls:DatasetteControl />
                 <controls:DiskDriveControl />
+                <controls:CartridgeControl />
+                <controls:Vic20ProgramProfileSelectorControl DataContext="{Binding ProgramProfileSelector}" />
 
                 <ItemsControl ItemsSource="{Binding Devices}">
                     <ItemsControl.ItemsPanel>
@@ -37,6 +39,11 @@
             </StackPanel>
         </Border>
 
-        <controls:PetScreenControl Name="Screen" Focusable="True" />
+        <Grid ColumnDefinitions="*,Auto">
+            <controls:PetScreenControl Name="Screen" Grid.Column="0" Focusable="True" />
+            <controls:Vic20JoystickControl Grid.Column="1"
+                                           DataContext="{Binding}"
+                                           Margin="8,0,12,0" />
+        </Grid>
     </DockPanel>
 </UserControl>
