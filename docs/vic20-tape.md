@@ -74,7 +74,11 @@ byte of the real payload (`HELLO VIC`) exactly, not just that the KERNAL reached
 
 ## Write (SAVE): closed - a virtual save, not a literal analog capture
 
-First attempt: `Vic20Datasette.BeginRecording`/`RecordedPulseCycles` watched VIA2 PB3 directly and
+The current implementation exposes an optional `Vic20Datasette.WriteRecorder` diagnostic sampler
+which watches VIA2 PB3 directly and records complete transition intervals. It is deliberately
+not connected to the logical SAVE/LOAD path until a real-ROM round-trip proves that the captured
+stream is decodable. The earlier implementation attempt (`BeginRecording`/`RecordedPulseCycles`)
+watched VIA2 PB3 directly and
 recorded every falling edge's cycle gap. The wiring behind it was real and confirmed (SAVE
 genuinely toggles PB3 through a real, found-in-disassembly routine, `TPTOGLE`: it tests the LSB of
 the tape write byte and sets VIA2 Timer2 to `$60` (96 cycles) for a 0 bit or `$B0` (176) for a 1,
@@ -83,6 +87,8 @@ three-symbol scheme PET/LOAD use). It never reliably round-tripped: the recorded
 histogram had real clusters well outside the ~192/~352-cycle periods that math predicts (interrupt
 -dispatch jitter on literally every single bit-toggle interrupt was enough to blur it), and no
 noise-filtering heuristic tried got a captured recording to decode cleanly back through `LoadTape`.
+The sampler is therefore useful for tracing and future decoder work, but it does not change the
+currently proven logical SAVE implementation.
 
 **The fix: don't capture the analog signal at all - snapshot the logical content instead.** The
 real KERNAL's `TAPE` dispatcher redirects the IRQ vector (`$0314`/`$0315`, `CINV`) to its own

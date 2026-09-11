@@ -61,4 +61,35 @@ public sealed class Vic20CassetteLinesTests
         via2.Write(MOS6522.Ddrb, 0x00);
         lines.WriteLevel.Should().BeFalse();
     }
+
+    [Test]
+    public void Write_recorder_captures_complete_pb3_transition_intervals()
+    {
+        var via2 = new MOS6522();
+        var lines = new Vic20CassetteLines(new MOS6522(), via2);
+        var recorder = new Vic20CassetteWriteRecorder(() => lines.WriteLevel);
+
+        via2.Write(MOS6522.Ddrb, 0x08);
+        recorder.Begin();
+        for (var i = 0; i < 3; i++) recorder.Tick();
+        via2.Write(MOS6522.Orb, 0x08);
+        recorder.Tick();
+        for (var i = 0; i < 4; i++) recorder.Tick();
+        via2.Write(MOS6522.Orb, 0x00);
+        recorder.Tick();
+        recorder.End();
+
+        recorder.PulseCycles.Should().Equal([4, 5]);
+    }
+
+    [Test]
+    public void Write_recorder_is_not_advanced_when_not_recording()
+    {
+        var recorder = new Vic20CassetteWriteRecorder(() => true);
+
+        recorder.Tick();
+
+        recorder.IsRecording.Should().BeFalse();
+        recorder.PulseCycles.Should().BeEmpty();
+    }
 }

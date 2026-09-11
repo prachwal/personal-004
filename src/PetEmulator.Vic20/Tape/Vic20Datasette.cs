@@ -35,6 +35,7 @@ public sealed class Vic20Datasette
     private readonly MOS6522 _via1;
     private readonly MOS6522 _via2;
     private readonly Vic20CassetteLines _lines;
+    private readonly Vic20CassetteWriteRecorder _writeRecorder;
     private IReadOnlyList<int> _pulseCycles = [];
     private int _pulseIndex;
     private int _cyclesUntilNextEdge;
@@ -44,11 +45,15 @@ public sealed class Vic20Datasette
         _via1 = via1 ?? throw new ArgumentNullException(nameof(via1));
         _via2 = via2 ?? throw new ArgumentNullException(nameof(via2));
         _lines = new Vic20CassetteLines(_via1, _via2);
+        _writeRecorder = new Vic20CassetteWriteRecorder(() => _lines.WriteLevel);
     }
 
     /// <summary>Physical cassette lines used by this deck. Pulse decoding remains in this class;
     /// callers that need to inspect pin-level state should use this object.</summary>
     public Vic20CassetteLines Lines => _lines;
+
+    /// <summary>Optional PB3 diagnostic recorder. Its output is not used by logical SAVE/LOAD.</summary>
+    public Vic20CassetteWriteRecorder WriteRecorder => _writeRecorder;
 
     /// <summary>CA2 configured as a manual-output line (PCR bits 1-3 select an output mode,
     /// $08-$0E) and held low - active-low motor-on, same convention as PET's PIA1 CB2.</summary>
@@ -149,7 +154,12 @@ public sealed class Vic20Datasette
         // state below (a real switch closes the moment PLAY is pressed, tape moving or not).
         _lines.SetPlaySense(PlayPressed);
 
-        if (!MotorOn || !PlayPressed || IsAtEnd)
+        if (!MotorOn || !PlayPressed)
+            return;
+
+        _writeRecorder.Tick();
+
+        if (IsAtEnd)
             return;
 
         if (--_cyclesUntilNextEdge > 0)
