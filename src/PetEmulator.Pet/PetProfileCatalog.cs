@@ -81,7 +81,8 @@ public static class PetProfileCatalog
     public static PetProfile SuperPet { get; } = new("superpet", "SuperPET / Waterloo 6809 / 80x25 / placeholder", "BASIC 4", 80, 25, 0x8000, 0x8000, 0x0800, true, "characters.901640-01.bin", PetRomManifest.Cbm8032, PetProfileStatus.Placeholder, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm8032)
     {
         RomDirectoryOverride = Cbm8032.RomDirectory,
-        ExpansionRomManifest = PetRomManifest.SuperPetWaterloo50Hz
+        ExpansionRomManifest = PetRomManifest.SuperPetWaterloo50Hz,
+        AciaBaseAddress = 0xEFF0
     };
 
     public static IReadOnlyList<PetProfile> Planned { get; } = [Cbm8096French, Cbm8296, SuperPet];

@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Core;
+using PetEmulator.Core.Serial;
 using PetEmulator.Chips;
 using PetEmulator.Pet.Keyboard;
 using PetEmulator.Pet.Tape;
@@ -174,6 +175,29 @@ public sealed class PetMachineTests
             profile.Id);
         machine.UserPort.Should().NotBeNull(profile.Id);
         (machine.Crtc is not null).Should().Be(profile.VideoHardware == PetVideoHardware.Crtc, profile.Id);
+    }
+
+    [Test]
+    public void SuperPet_Acia_IsMappedAtEff0_AndUsesTheSerialTransport()
+    {
+        using var transport = new BufferedSerialTransport();
+        var profileDirectory = RomLocator.Directory(PetProfileCatalog.SuperPet.RomDirectory, PetProfileCatalog.SuperPet.RomManifest[0].Path);
+        var machine = new PetMachine(
+            PetProfileCatalog.SuperPet,
+            Directory.GetParent(profileDirectory)!.FullName,
+            serialTransport: transport);
+
+        machine.Memory.Write(0xEFF0, 0xA5);
+        transport.TryReadTransmitted(out var transmitted).Should().BeTrue();
+        transmitted.Should().Be(0xA5);
+
+        machine.Memory.Write(0xEFF2, 0x00);
+        transport.ReceiveFromHost(0x5A);
+        machine.StepInstruction();
+
+        machine.Acia.Should().NotBeNull();
+        machine.Acia!.Irq.Should().BeTrue();
+        machine.Memory.Read(0xEFF0).Should().Be(0x5A);
     }
 
     [Test]

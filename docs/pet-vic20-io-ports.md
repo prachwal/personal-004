@@ -48,7 +48,7 @@ walidacji.
 | PET/CBM 3000 i wczesne 4000 / 3032 | klawiatura, IEEE-488, dwie kasety, User Port, rozszerzenie | j.w. | ◐ najbliżej profilu 40-kolumnowego | druga kaseta, User Port i rozszerzenie |
 | CBM 4032 / 40 kolumn | klawiatura, IEEE-488, kasety, User Port, rozszerzenie; wariant CRTC zależny od rewizji | j.w.; CRTC `$E880-$E881` w rewizjach z CRTC | ◐ profil `cbm-4032`, 40×25, CRTC, klawiatura, IEEE-488, kaseta #1 | druga kaseta, User Port, rozszerzenie; profil upraszcza różnice rewizji |
 | CBM 8032 / seria 8000 | klawiatura, IEEE-488, kasety, User Port, rozszerzenie, CRTC; 80×25 | j.w. + CRTC `$E880-$E881` | ◐ profil `cbm-8032`, 80×25, CRTC, klawiatura, IEEE-488, kaseta #1 | druga kaseta, User Port, rozszerzenie 8096/8296 |
-| 8096 / 8296 / SuperPET / SP9000 | porty PET/CBM oraz — zależnie od modelu — bankowane RAM, dodatkowy procesor, ACIA/RS-232 lub inne rozszerzenia | PET I/O j.w.; sterowanie pamięcią rozszerzoną m.in. `$FFF0` w 8096/8296 | ◐ profile `Placeholder` i manifesty ROM dla 8096/8296/SuperPET; bez bankowania i 6809 | cały dodatkowy sprzęt i bankowanie |
+| 8096 / 8296 / SuperPET / SP9000 | porty PET/CBM oraz — zależnie od modelu — bankowane RAM, dodatkowy procesor, ACIA/RS-232 lub inne rozszerzenia | PET I/O j.w.; SuperPET ACIA `$EFF0-$EFF3`, bankowanie rozszerzenia m.in. `$EEFC` | ◐ profile `Placeholder`, manifesty ROM i MOS6551 podłączony do transportu bajtowego; bez bankowania i 6809 | cały dodatkowy sprzęt i bankowanie |
 | VIC-20 bez rozszerzenia | VIC-I, dwa VIA, joystick/paddle, User Port, kaseta, IEC serial, cartridge/expansion | `$9000-$900F`, `$9110-$911F`, `$9120-$912F`, `$9400-$97FF` | ◐ VIC-I, VIA1/VIA2, klawiatura, joystick, User Port, kaseta, IEC, Color RAM, CRT i pluginy cartridge | fizyczne źródło paddle/light-pen, adapter RS-232 |
 | VIC-20 +3K / +8K / +16K / +24K / All | te same porty zewnętrzne; dodatkowo odpowiedni blok RAM | jak wyżej; pamięć bloków `$0400`, `$2000`, `$4000`, `$6000`, `$A000` | ◐ profile pamięci i pluginy DLL mają jawne zasoby oraz walidację konfliktów | bardziej złożone multi-cartridge i pełne warianty sprzętowe |
 
@@ -428,8 +428,13 @@ wieloukładowe i bankowane nadal wymagają osobnego urządzenia przełączające
         `$C000-$DFFF` i `$E000-$FFFF`; loader tylko weryfikuje obrazy na tym etapie.
 - [ ] Zaimplementować bankowanie pamięci oraz rejestr sterujący rozszerzeniem.
   - [ ] Dodać test przełączania banku i ochrony obszarów ROM/I/O.
-- [ ] Dopiero potem dodać dodatkowy procesor, ACIA/RS-232 i pozostałe urządzenia
+- [x] Podłączyć MOS6551 ACIA do mapy `$EFF0-$EFF3` profilu SuperPET i do
+      transportu bajtowego używanego przez terminal/RS-232.
+  - [x] Dodać test integracyjny z istniejącym 6502: zapis/odczyt danych oraz
+        propagacja IRQ odbioru.
+- [ ] Dopiero potem dodać dodatkowy procesor 6809 i pozostałe urządzenia
       SuperPET/SP9000.
+  - [ ] Zweryfikować testem rzeczywisty firmware Waterloo uruchomiony na rdzeniu 6809.
   - [ ] Każdy dodatkowy układ powinien mieć własną mapę adresów i test boot/diagnostic.
 - [ ] Rozszerzyć Desktop/CLI o wybór tych profili po przejściu testów ROM i magistrali.
 
@@ -627,7 +632,20 @@ Plik: `lib/PetEmulator.Chips/MC146818.cs`.
 - [x] Dodać testy wszystkich częstotliwości periodic interrupt wynikających z Register A.
 - [x] Dodać integracyjny test kartridża: mapowanie I/O, IRQ 6502 i aktualizacja HH:MM.
 
-### 8.8 Kolejność realizacji i kryteria ukończenia
+### 8.8 `MOS6551` — ACIA SuperPET
+
+Plik: `lib/PetEmulator.Chips/MOS6551.cs`.
+
+- [x] Zaimportować model MOS6551 z wcześniejszych repozytoriów do kontraktu
+      `PetEmulator.Core.IMemoryMappedDevice`.
+- [x] Pokryć mapę czterech rejestrów: data, status, command i control.
+- [x] Podłączyć transport bajtowy bez zależności układu od socketu lub UI.
+- [x] Pokryć RDRF, TDRE, IRQ odbioru, reset, granice adresowe i transmisję.
+- [x] Dodać 9 testów jednostkowych w `tests/PetEmulator.Chips.Tests/MOS6551Tests.cs`.
+- [x] Dodać mapowanie SuperPET `$EFF0-$EFF3` i test z istniejącym 6502.
+- [ ] Dodać rzeczywisty transport TCP/terminal oraz test firmware Waterloo na 6809.
+
+### 8.9 Kolejność realizacji i kryteria ukończenia
 
 1. [x] Infrastruktura coverage i wspólne testy adresowania/resetu.
 2. [ ] `MOS2114` — najprostszy model, zamknięcie kontraktu pamięci.
@@ -636,7 +654,9 @@ Plik: `lib/PetEmulator.Chips/MC146818.cs`.
 5. [ ] `MT6545` — CRTC PET.
 6. [ ] `MOS6560` — VIC-I, timing PAL/NTSC i audio.
 7. [ ] `MC146818` — pełny kontrakt RTC albo formalnie ograniczony kontrakt kartridża.
-8. [ ] Testy integracyjne PET/VIC-20 i testy ROM/diagnostic.
+8. [x] `MOS6551` — model ACIA, transport bajtowy, mapowanie SuperPET i test IRQ;
+   integracja z 6809/firmware pozostaje otwarta.
+9. [ ] Testy integracyjne PET/VIC-20 i testy ROM/diagnostic.
 
 Każdy punkt kończy się osobnym commitem zawierającym kod i testy. Etap jest
 ukończony dopiero wtedy, gdy raport pokazuje dla danego układu 100% line, branch

@@ -1,5 +1,6 @@
 using PetEmulator.Cpu6502.Variants;
 using PetEmulator.Core;
+using PetEmulator.Core.Serial;
 using PetEmulator.Pet.CbmDos;
 using PetEmulator.Chips;
 using PetEmulator.Pet.Devices;
@@ -24,6 +25,7 @@ public sealed class PetMachine : IMachine
     private readonly MT6520 _pia2;
     private readonly MOS6522 _via;
     private readonly MT6545? _crtc;
+    private readonly MOS6551? _acia;
     private readonly PetDatasette _datasette;
     private readonly PetDatasette2 _datasette2;
     private readonly PetIeeeBus _ieeeBus;
@@ -41,7 +43,7 @@ public sealed class PetMachine : IMachine
     private const int Pia1Cb1PulsePeriodCycles = 16_667; // ~1MHz PET clock / 60Hz
     private int _pia1Cb1Phase;
 
-    public PetMachine(PetProfile profile, string romsRoot, PetKeyboardMatrix? keyboard = null)
+    public PetMachine(PetProfile profile, string romsRoot, PetKeyboardMatrix? keyboard = null, ISerialTransport? serialTransport = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
@@ -53,8 +55,14 @@ public sealed class PetMachine : IMachine
         _pia2 = new MT6520("PIA2", PetMemoryBus.Pia2Base);
         _via = new MOS6522("VIA", PetMemoryBus.ViaBase);
         _crtc = profile.RequiresCrtc ? new MT6545("CRTC", PetMemoryBus.CrtcBase) : null;
+        var aciaTransport = profile.AciaBaseAddress is null
+            ? null
+            : serialTransport ?? new BufferedSerialTransport();
+        _acia = profile.AciaBaseAddress is { } aciaBase
+            ? new MOS6551(aciaTransport!, baseAddress: aciaBase)
+            : null;
 
-        _memoryBus = new PetMemoryBus(profile, roms, _pia1, _pia2, _via, _crtc);
+        _memoryBus = new PetMemoryBus(profile, roms, _pia1, _pia2, _via, _crtc, _acia, profile.AciaBaseAddress);
         _cpu = new Cpu6502Classic(_memoryBus);
 
         _datasette = new PetDatasette(_pia1);
@@ -118,6 +126,9 @@ public sealed class PetMachine : IMachine
 
     /// <summary>The VIA - exposed for debug tooling (timer/IRQ state).</summary>
     public MOS6522 Via => _via;
+
+    /// <summary>The SuperPET MOS 6551 ACIA, when the profile declares one.</summary>
+    public MOS6551? Acia => _acia;
 
     /// <summary>The PET User Port wired to VIA Port A and CA2.</summary>
     public PetUserPort UserPort { get; } = new();
@@ -217,6 +228,7 @@ public sealed class PetMachine : IMachine
         _pia2.Reset();
         _via.Reset();
         _crtc?.Reset();
+        _acia?.Reset();
         _datasette.Reset();
         _datasette2.Reset();
         _ieeeBusBinding.Reset();
@@ -252,6 +264,7 @@ public sealed class PetMachine : IMachine
         _pia2.Tick(cycles);
         _crtc?.Tick(cycles);
         _via.Tick(cycles);
+        _acia?.Tick(cycles);
 
         for (ulong i = 0; i < cycles; i++)
         {
@@ -260,7 +273,7 @@ public sealed class PetMachine : IMachine
             _ieeeBusBinding.Tick();
         }
 
-        _cpu.SetIRQ(_pia1.IRQ || _pia2.IRQ || _via.IRQ);
+        _cpu.SetIRQ(_pia1.IRQ || _pia2.IRQ || _via.IRQ || (_acia?.Irq ?? false));
     }
 
     public void Run(ulong instructionCount)

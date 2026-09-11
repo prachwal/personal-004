@@ -39,8 +39,10 @@ public sealed class PetMemoryBus : IMemoryBus
     private readonly MT6520 _pia2;
     private readonly MOS6522 _via;
     private readonly MT6545? _crtc;
+    private readonly MOS6551? _acia;
+    private readonly ushort? _aciaBaseAddress;
 
-    public PetMemoryBus(PetProfile profile, IReadOnlyList<PetRomImage> roms, MT6520 pia1, MT6520 pia2, MOS6522 via, MT6545? crtc)
+    public PetMemoryBus(PetProfile profile, IReadOnlyList<PetRomImage> roms, MT6520 pia1, MT6520 pia2, MOS6522 via, MT6545? crtc, MOS6551? acia = null, ushort? aciaBaseAddress = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
         _roms = roms ?? throw new ArgumentNullException(nameof(roms));
@@ -48,6 +50,10 @@ public sealed class PetMemoryBus : IMemoryBus
         _pia2 = pia2 ?? throw new ArgumentNullException(nameof(pia2));
         _via = via ?? throw new ArgumentNullException(nameof(via));
         _crtc = crtc;
+        _acia = acia;
+        _aciaBaseAddress = aciaBaseAddress;
+        if (_acia is not null && _aciaBaseAddress is null)
+            throw new ArgumentException("An ACIA mapping requires a base address.", nameof(aciaBaseAddress));
 
         _ramSize = profile.RamSize;
         _videoRamStart = profile.VideoRamStart;
@@ -69,6 +75,9 @@ public sealed class PetMemoryBus : IMemoryBus
     {
         if (IsRam(address))
             return _ram[address];
+
+        if (_acia is not null && InRange(address, _aciaBaseAddress!.Value, _acia.Length))
+            return _acia.Read(address);
 
         if (TryFindRom(address, out var rom))
             return rom.Data[address - rom.Requirement.Address];
@@ -100,6 +109,12 @@ public sealed class PetMemoryBus : IMemoryBus
         }
 
         // ROM is read-only: writes are silently dropped, matching real hardware.
+        if (_acia is not null && InRange(address, _aciaBaseAddress!.Value, _acia.Length))
+        {
+            _acia.Write(address, value);
+            return;
+        }
+
         if (TryFindRom(address, out _))
             return;
 
