@@ -227,8 +227,9 @@ Kolejność minimalizuje ryzyko zmian w krytycznych klasach `Vic20Machine`,
 - [x] Dodać `IJoystickSource` jako źródło stanu, bez zależności od Avalonia.
 - [x] Dodać adapter klawiatury Desktop.
 - [ ] Dodać adapter testowy/Windows.
-- [ ] Dodać osobny transport TCP dla WSL; protokół nie może zależeć od pamięci VIC-20.
-- [ ] Dodać test bitowego mapowania active-low i utraty połączenia.
+- [x] Dodać osobny transport TCP dla WSL; protokół nie może zależeć od pamięci VIC-20.
+  - [x] Protokół liniowy `UP|DOWN|LEFT|RIGHT|FIRE 0|1` oraz `RESET`; rozłączenie zwalnia wszystkie linie.
+- [x] Dodać test bitowego mapowania active-low i utraty połączenia.
 - [ ] Dodać opcjonalny adapter RS-232 User Portu poza ViewModelem.
 
 ### Etap 5 — audio VIC-I
