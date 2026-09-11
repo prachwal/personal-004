@@ -579,12 +579,12 @@ Plik: `lib/PetEmulator.Chips/MC146818.cs`.
   - [x] BCD i binary mode;
   - [x] 12/24-hour mode;
   - [x] sekundy, minuty, godziny, dzień tygodnia, dzień, miesiąc i rok;
-  - [ ] przejście sekunda→minuta→godzina→dzień→miesiąc→rok;
-  - [ ] rok przestępny i koniec miesiąca.
+  - [x] przejście sekunda→minuta→godzina→dzień→miesiąc→rok;
+  - [x] rok przestępny i koniec miesiąca.
 - [ ] Tryb SET:
   - [x] zatrzymanie zegara;
   - [x] zapis wszystkich pól czasu;
-  - [ ] wznowienie i zachowanie części ułamkowej cykli.
+  - [x] wznowienie i zachowanie części ułamkowej cykli.
 - [ ] Rejestry A/B/C/D:
   - [ ] UIP/divider;
   - [x] rate selection;

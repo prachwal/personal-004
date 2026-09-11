@@ -220,6 +220,32 @@ public sealed class MC146818Tests
     }
 
     [Test]
+    public void Tick_AdvancesAcrossMonthAndLeapYearBoundaries()
+    {
+        var leapDay = new MC146818(clock: () => new DateTime(2024, 2, 28, 23, 59, 59), cyclesPerSecond: 1);
+        leapDay.Tick(1);
+        leapDay.CurrentTime.Should().Be(new DateTime(2024, 2, 29));
+
+        var newYear = new MC146818(clock: () => new DateTime(2023, 12, 31, 23, 59, 59), cyclesPerSecond: 1);
+        newYear.Tick(1);
+        newYear.CurrentTime.Should().Be(new DateTime(2024, 1, 1));
+    }
+
+    [Test]
+    public void SetBit_PreservesFractionalCyclesWhileClockIsStopped()
+    {
+        var rtc = new MC146818(clock: () => new DateTime(2026, 9, 11, 12, 0, 0), cyclesPerSecond: 100);
+        rtc.Tick(40);
+        Write(rtc, MC146818.RegisterB, MC146818.SetTime | MC146818.Hour24Mode);
+        rtc.Tick(100);
+        Read(rtc, MC146818.Seconds).Should().Be(0);
+
+        Write(rtc, MC146818.RegisterB, MC146818.Hour24Mode);
+        rtc.Tick(60);
+        Read(rtc, MC146818.Seconds).Should().Be(1);
+    }
+
+    [Test]
     public void Constructor_RejectsZeroCyclesPerSecond()
     {
         var action = () => new MC146818(cyclesPerSecond: 0);
