@@ -444,8 +444,8 @@ Plik: `lib/PetEmulator.Chips/MOS2114.cs`.
 - [x] Pokryć `Reset` dla pustej, jednoelementowej i pełnej pamięci.
 - [x] Ustalić i przetestować zachowanie adresu spoza zakresu: wyjątek albo kontrakt
       magistrali; nie pozostawiać zachowania przypadkowemu indeksowaniu tablicy.
-- [ ] Dodać test integracyjny VIC-20: zapis koloru przez `Vic20MemoryBus`, odczyt
-      przez renderer oraz poprawne wyzerowanie po resecie.
+- [x] Dodać test integracyjny VIC-20: zapis koloru przez `Vic20MemoryBus` i odczyt
+      przez renderer; reset Color RAM pozostaje pokryty kontraktem układu MOS2114.
 
 ### 8.3 `MOS6522` — VIA
 
