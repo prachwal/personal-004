@@ -1,0 +1,87 @@
+using NUnit.Framework;
+using PetEmulator.Pet.Keyboard;
+
+namespace PetEmulator.Pet.Tests.Keyboard;
+
+[TestFixture]
+public sealed class Pet2001GraphicsKeyboardMapTests
+{
+    [Test]
+    public void Ordinary_key_press_and_release_produce_a_single_matrix_action()
+    {
+        var map = new Pet2001GraphicsKeyboardMap();
+
+        Assert.That(map.Translate("KeyA", HostKeyEventKind.Press), Is.EqualTo(new[] { new MatrixAction(4, 0, true) }));
+        Assert.That(map.Translate("KeyA", HostKeyEventKind.Release), Is.EqualTo(new[] { new MatrixAction(4, 0, false) }));
+        Assert.That(map.Translate("ShiftLeft", HostKeyEventKind.Press), Is.EqualTo(new[] { new MatrixAction(8, 0, true) }));
+        Assert.That(map.Translate("ShiftRight", HostKeyEventKind.Press), Is.EqualTo(new[] { new MatrixAction(8, 5, true) }));
+        Assert.That(map.Translate("Digit7", HostKeyEventKind.Press), Is.EqualTo(new[] { new MatrixAction(2, 6, true) }));
+    }
+
+    [Test]
+    public void Unknown_host_key_produces_no_actions()
+    {
+        var map = new Pet2001GraphicsKeyboardMap();
+
+        Assert.That(map.Translate("F13", HostKeyEventKind.Press), Is.Empty);
+    }
+
+    // The centerpiece of the task: pressing '+' doesn't just press one cell, it also
+    // force-releases both Shift matrix cells - proving one host key event yields a SEQUENCE.
+    [TestCase("Equal")]
+    [TestCase("OemPlus")]
+    [TestCase("NumPadAdd")]
+    public void Plus_family_press_presses_target_and_force_releases_both_shift_cells(string hostKey)
+    {
+        var map = new Pet2001GraphicsKeyboardMap();
+
+        var actions = map.Translate(hostKey, HostKeyEventKind.Press);
+
+        Assert.That(actions, Is.EqualTo(new[]
+        {
+            new MatrixAction(7, 7, true),
+            new MatrixAction(8, 0, false),
+            new MatrixAction(8, 5, false)
+        }));
+    }
+
+    [Test]
+    public void Plus_family_release_also_force_releases_both_shift_cells()
+    {
+        var map = new Pet2001GraphicsKeyboardMap();
+
+        var actions = map.Translate("Equal", HostKeyEventKind.Release);
+
+        Assert.That(actions, Is.EqualTo(new[]
+        {
+            new MatrixAction(7, 7, false),
+            new MatrixAction(8, 0, false),
+            new MatrixAction(8, 5, false)
+        }));
+    }
+
+    [Test]
+    public void Plus_key_sequence_drives_a_real_matrix_correctly()
+    {
+        var map = new Pet2001GraphicsKeyboardMap();
+        var matrix = new PetKeyboardMatrix();
+
+        // Simulate holding host Shift (asserts (8,0)) then pressing '+'.
+        Apply(matrix, map.Translate("ShiftLeft", HostKeyEventKind.Press));
+        Apply(matrix, map.Translate("Equal", HostKeyEventKind.Press));
+
+        // (8,0) must have been force-released despite ShiftLeft still being physically held.
+        Assert.That(matrix.ReadColumns(8), Is.EqualTo(0xFF));
+        // (7,7) must be pressed (active-low: bit 7 clear, all other bits high).
+        Assert.That(matrix.ReadColumns(7), Is.EqualTo(0x7F));
+    }
+
+    private static void Apply(PetKeyboardMatrix matrix, IReadOnlyList<MatrixAction> actions)
+    {
+        foreach (var action in actions)
+        {
+            if (action.Pressed) matrix.Press(action.Row, action.Column);
+            else matrix.Release(action.Row, action.Column);
+        }
+    }
+}

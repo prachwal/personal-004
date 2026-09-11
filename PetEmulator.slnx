@@ -1,15 +1,26 @@
 <Solution>
+  <Folder Name="/lib/">
+    <Project Path="lib/PetEmulator.Core/PetEmulator.Core.csproj" />
+    <Project Path="lib/PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
+    <Project Path="lib/PetEmulator.Chips/PetEmulator.Chips.csproj" />
+    <Project Path="lib/PetEmulator.Debugger/PetEmulator.Debugger.csproj" />
+    <Project Path="lib/PetEmulator.DebugApi/PetEmulator.DebugApi.csproj" />
+    <Project Path="lib/PetEmulator.Screenshot/PetEmulator.Screenshot.csproj" />
+  </Folder>
   <Folder Name="/src/">
-    <Project Path="src/PetEmulator.Core/PetEmulator.Core.csproj" />
-    <Project Path="src/PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
     <Project Path="src/PetEmulator.Pet/PetEmulator.Pet.csproj" />
+    <Project Path="src/PetEmulator.Vic20/PetEmulator.Vic20.csproj" />
     <Project Path="src/PetEmulator.Desktop/PetEmulator.Desktop.csproj" />
     <Project Path="src/PetEmulator.Cli/PetEmulator.Cli.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/PetEmulator.Core.Tests/PetEmulator.Core.Tests.csproj" />
     <Project Path="tests/PetEmulator.Cpu6502.Tests/PetEmulator.Cpu6502.Tests.csproj" />
+    <Project Path="tests/PetEmulator.DebugApi.Tests/PetEmulator.DebugApi.Tests.csproj" />
+    <Project Path="tests/PetEmulator.Debugger.Tests/PetEmulator.Debugger.Tests.csproj" />
     <Project Path="tests/PetEmulator.Pet.Tests/PetEmulator.Pet.Tests.csproj" />
+    <Project Path="tests/PetEmulator.Vic20.Tests/PetEmulator.Vic20.Tests.csproj" />
     <Project Path="tests/PetEmulator.Cli.Tests/PetEmulator.Cli.Tests.csproj" />
+    <Project Path="tests/PetEmulator.Chips.Tests/PetEmulator.Chips.Tests.csproj" />
   </Folder>
 </Solution>

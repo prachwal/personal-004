@@ -1,0 +1,10 @@
+# PET tape-loading smoke test - real Commodore Datasette tape (see
+# roms/pet/test-tapes/README.md for provenance), driven through PetDebuggerSession the same way
+# personal-003's Retro.Debugger .dbg scripts drive a tape-attach + boot check.
+profile pet-2001-32
+roms roms/pet
+devices
+tape roms/pet/test-tapes/tower-and-dragon-town.tap
+devices
+trace 50
+status

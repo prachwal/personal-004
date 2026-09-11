@@ -5,9 +5,13 @@ TestResults/
 *.user
 *.suo
 
+## Script output
+build/
+
 ## IDE
 .vs/
 .idea/
 
 ## Local tooling
 .gitnexus/
+/.codex/config.toml

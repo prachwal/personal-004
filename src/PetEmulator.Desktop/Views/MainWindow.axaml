@@ -1,0 +1,52 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:PetEmulator.Desktop.Views"
+        xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+        xmlns:models="clr-namespace:PetEmulator.Desktop.Models"
+        x:Class="PetEmulator.Desktop.Views.MainWindow"
+        x:Name="RootWindow"
+        x:DataType="viewModels:MainWindowViewModel"
+        Title="{Binding CurrentMachine.WindowTitle}"
+        Width="960" Height="640"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        KeyDown="OnKeyDown"
+        KeyUp="OnKeyUp">
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Reset" Command="{Binding ResetCommand}" />
+                <Separator />
+                <MenuItem Header="_New Tape" Command="{Binding NewTapeCommand}" />
+                <MenuItem Header="Load _Tape…" Command="{Binding LoadTapeCommand}" />
+                <MenuItem Header="New _Disk…" Command="{Binding NewDiskCommand}" />
+                <MenuItem Header="Load _Disk…" Command="{Binding LoadDiskCommand}" />
+                <Separator />
+                <MenuItem Header="E_xit" Command="{Binding ExitCommand}" />
+            </MenuItem>
+            <!-- One flat list across every machine kind (PET profiles + VIC-20) - see
+                 MachineMenuEntry's doc comment. Picking an entry swaps CurrentMachine wholesale;
+                 the ContentControl below picks which View to show purely from the new instance's
+                 concrete type. -->
+            <MenuItem Header="_Machine" ItemsSource="{Binding MachineChoices}">
+                <MenuItem.ItemTemplate>
+                    <DataTemplate x:DataType="models:MachineMenuEntry">
+                        <MenuItem Header="{Binding Label}"
+                                  Command="{Binding #RootWindow.((viewModels:MainWindowViewModel)DataContext).SwitchMachineCommand}"
+                                  CommandParameter="{Binding}" />
+                    </DataTemplate>
+                </MenuItem.ItemTemplate>
+            </MenuItem>
+        </Menu>
+
+        <ContentControl Name="MachineHost" Focusable="True" Content="{Binding CurrentMachine}">
+            <ContentControl.DataTemplates>
+                <DataTemplate DataType="viewModels:PetMachineViewModel">
+                    <views:PetMachineView />
+                </DataTemplate>
+                <DataTemplate DataType="viewModels:Vic20MachineViewModel">
+                    <views:Vic20MachineView />
+                </DataTemplate>
+            </ContentControl.DataTemplates>
+        </ContentControl>
+    </DockPanel>
+</Window>

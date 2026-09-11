@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             x:Class="PetEmulator.Desktop.Views.Controls.DatasetteControl"
+             x:DataType="viewModels:IDatasetteViewModel">
+    <StackPanel Orientation="Horizontal" Spacing="4" ToolTip.Tip="Datasette">
+        <TextBlock Text="📼" FontSize="14" Foreground="{Binding TapeIconBrush}" />
+        <Button Content="▶" Padding="4,0" Command="{Binding PlayTapeCommand}" ToolTip.Tip="Press play" />
+        <Button Content="⏹" Padding="4,0" Command="{Binding StopTapeCommand}" ToolTip.Tip="Stop" />
+        <Button Content="⏏" Padding="4,0" Command="{Binding EjectTapeCommand}" ToolTip.Tip="Eject" />
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,41 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:PetEmulator.Desktop.Views"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
+             xmlns:core="clr-namespace:PetEmulator.Core;assembly=PetEmulator.Core"
+             x:Class="PetEmulator.Desktop.Views.Vic20MachineView"
+             x:DataType="viewModels:Vic20MachineViewModel">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBackgroundBrush}" Padding="8,4">
+            <TextBlock FontFamily="monospace" Foreground="{DynamicResource StatusTextBrush}" Text="{Binding StatusText}" />
+        </Border>
+
+        <!-- Datasette gets its own dedicated icon+buttons (see PetMachineView's identical block
+             and Vic20MachineViewModel's doc comment); any other future device (cartridge, ...)
+             shows up in the generic ItemsControl below with no XAML change needed here. -->
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <controls:DatasetteControl />
+
+                <ItemsControl ItemsSource="{Binding Devices}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="16" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="core:IDeviceStatus">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="{Binding Icon}" FontSize="14" />
+                                <TextBlock FontFamily="monospace" Foreground="{DynamicResource DeviceStatusTextBrush}" Text="{Binding StatusText}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <controls:PetScreenControl Name="Screen" Focusable="True" />
+    </DockPanel>
+</UserControl>

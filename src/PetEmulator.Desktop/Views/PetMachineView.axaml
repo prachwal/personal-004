@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:PetEmulator.Desktop.Views"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
+             xmlns:core="clr-namespace:PetEmulator.Core;assembly=PetEmulator.Core"
+             x:Class="PetEmulator.Desktop.Views.PetMachineView"
+             x:DataType="viewModels:PetMachineViewModel">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBackgroundBrush}" Padding="8,4">
+            <TextBlock FontFamily="monospace" Foreground="{DynamicResource StatusTextBrush}" Text="{Binding StatusText}" />
+        </Border>
+
+        <!-- Where the keyboard-test input box used to live. The datasette and the primary disk
+             drive each get their own dedicated icon (real PET hardware needs a physical PLAY
+             press before LOAD can proceed past "PRESS PLAY ON TAPE #1"; a disk drive's LED blinks
+             red on real bus traffic, not just "mounted"); every other attached peripheral gets a
+             plain icon+status chip, dynamic so a profile with more/fewer/different devices needs
+             no XAML change here. -->
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <controls:DatasetteControl />
+                <controls:DiskDriveControl />
+
+                <ItemsControl ItemsSource="{Binding Devices}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="16" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="core:IDeviceStatus">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="{Binding Icon}" FontSize="14" />
+                                <TextBlock FontFamily="monospace" Foreground="{DynamicResource DeviceStatusTextBrush}" Text="{Binding StatusText}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <controls:PetScreenControl Name="Screen" Focusable="True" />
+    </DockPanel>
+</UserControl>

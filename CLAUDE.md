@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **personal-004** (178 symbols, 274 relationships, 4 execution flows).
+This project is indexed by GitNexus as **personal-004** (1939 symbols, 3613 relationships, 16 execution flows).
 
 > Index stale? Run `node .gitnexus/run.cjs analyze --index-only` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? Bootstrap with `npx`, `bunx`, or `pnpm dlx` — e.g. `bunx gitnexus@latest analyze` (npm 11 npx crash; #1939).
 
@@ -43,3 +43,14 @@ This project is indexed by GitNexus as **personal-004** (178 symbols, 274 relati
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
+
+## Subagents
+
+Work touching `lib/PetEmulator.Cpu6502/` goes through dedicated subagents instead of ad-hoc edits — they carry the file map and known debt so you don't re-derive it each session:
+
+| Task | Agent |
+| --- | --- |
+| Implement/fix an opcode, migrate a family off the legacy big-switch, add a variant (65C02, 6510), touch flags/BCD/interrupts | `cpu6502-worker` (`.claude/agents/cpu6502-worker.md`) |
+| Review a CPU-core diff against `docs/architecture.md` before commit | `cpu6502-reviewer` (`.claude/agents/cpu6502-reviewer.md`) |
+
+Both still obey the gitnexus gates above (impact before edit, detect_changes before commit, `UNKNOWN` risk = unresolved).
