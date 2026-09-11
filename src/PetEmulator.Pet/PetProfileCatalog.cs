@@ -36,9 +36,39 @@ public static class PetProfileCatalog
         RomDirectoryOverride = Cbm4032.RomDirectory
     };
 
+    public static PetProfile Cbm4032Crtc40N50 { get; } = new("cbm-4032-crtc-40n50", "CBM 4032 / CRTC 40n50 / BASIC 4 / 40x25", "BASIC 4", 40, 25, 0x8000, 0x8000, 0x0400, true, "characters-2.901447-10.bin", PetRomManifest.Cbm4032_40N50, PetProfileStatus.Implemented, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm4032)
+    {
+        RomDirectoryOverride = Cbm4032.RomDirectory
+    };
+
+    public static PetProfile Cbm4032Crtc40B50 { get; } = new("cbm-4032-crtc-40b50", "CBM 4032 / CRTC 40b50 / BASIC 4 / 40x25", "BASIC 4", 40, 25, 0x8000, 0x8000, 0x0400, true, "characters-2.901447-10.bin", PetRomManifest.Cbm4032_40B50, PetProfileStatus.Implemented, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm4032)
+    {
+        RomDirectoryOverride = Cbm4032.RomDirectory
+    };
+
+    public static PetProfile Cbm4032Crtc40B60 { get; } = new("cbm-4032-crtc-40b60", "CBM 4032 / CRTC 40b60 / BASIC 4 / 40x25", "BASIC 4", 40, 25, 0x8000, 0x8000, 0x0400, true, "characters-2.901447-10.bin", PetRomManifest.Cbm4032_40B60, PetProfileStatus.Implemented, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm4032)
+    {
+        RomDirectoryOverride = Cbm4032.RomDirectory
+    };
+
     public static PetProfile Cbm8032 { get; } = new("cbm-8032", "CBM 8032 / BASIC 4 / 80x25", "BASIC 4", 80, 25, 0x8000, 0x8000, 0x0800, true, "characters-2.901447-10.bin", PetRomManifest.Cbm8032, PetProfileStatus.Implemented, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm8032);
 
-    public static IReadOnlyList<PetProfile> All { get; } = [Pet2001_8, Pet2001_32, Cbm3008, Cbm3016, Cbm3032, Cbm4008Crtc40N60, Cbm4016Crtc40N60, Cbm4032, Cbm8032];
+    public static PetProfile Cbm8032Crtc80B50 { get; } = new("cbm-8032-crtc-80b50", "CBM 8032 / CRTC 80b50 / BASIC 4 / 80x25", "BASIC 4", 80, 25, 0x8000, 0x8000, 0x0800, true, "characters-2.901447-10.bin", PetRomManifest.Cbm8032_80B50, PetProfileStatus.Implemented, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm8032)
+    {
+        RomDirectoryOverride = Cbm8032.RomDirectory
+    };
+
+    public static PetProfile Cbm8016Converted80N50 { get; } = new("cbm-8016-converted-80n50", "CBM 8016 / converted 80n50 editor / BASIC 4 / 80x25", "BASIC 4", 80, 25, 0x4000, 0x8000, 0x0800, true, "characters-2.901447-10.bin", PetRomManifest.Cbm8016Converted80N50, PetProfileStatus.Implemented, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm4032)
+    {
+        RomDirectoryOverride = Cbm8032.RomDirectory
+    };
+
+    public static PetProfile Converted80NUnknown { get; } = new("pet-converted-80n-unknown", "PET / converted unknown 80n editor / BASIC 4 / 80x25", "BASIC 4", 80, 25, 0x8000, 0x8000, 0x0800, true, "characters-2.901447-10.bin", PetRomManifest.Converted80NUnknown, PetProfileStatus.Implemented, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm4032)
+    {
+        RomDirectoryOverride = Cbm8032.RomDirectory
+    };
+
+    public static IReadOnlyList<PetProfile> All { get; } = [Pet2001_8, Pet2001_32, Cbm3008, Cbm3016, Cbm3032, Cbm4008Crtc40N60, Cbm4016Crtc40N60, Cbm4032, Cbm4032Crtc40N50, Cbm4032Crtc40B50, Cbm4032Crtc40B60, Cbm8032, Cbm8032Crtc80B50, Cbm8016Converted80N50, Converted80NUnknown];
 
     /// <summary>Looks up a profile by <see cref="PetProfile.Id"/> (e.g. "pet-2001-32") - the
     /// string form a script/CLI command line points at, as opposed to <see cref="All"/>'s typed

@@ -407,8 +407,16 @@ wieloukładowe i bankowane nadal wymagają osobnego urządzenia przełączające
         z osobnymi pojemnościami RAM i współdzielonym katalogiem ROM.
   - [x] Dodać jawne profile wariantów `cbm-4008-crtc-40n60` i
         `cbm-4016-crtc-40n60`, bez ukrywania wariantu editor ROM.
-  - [ ] Zweryfikować pozostałe rewizje 4000; wymagają osobnych obrazów editor ROM
-        dla wariantów 40/80 kolumn, klawiatury normalnej/business oraz 50/60 Hz.
+  - [x] Zweryfikować dostępne obrazy editor ROM dla wariantów 40/80 kolumn,
+        klawiatury normalnej/business oraz 50/60 Hz; dodano profile `40n50`,
+        `40n60`, `40b50`, `40b60`, `80b50` i `80b60`.
+  - [x] Dodać jawnie oznaczony profil `cbm-8016-converted-80n50` dla dostępnego
+        editor ROM 80n50 opisanego jako konwersja 4016 do 8016; nie traktować go
+        jako standardowego PET 8032.
+  - [x] Dodać jawnie oznaczony profil `pet-converted-80n-unknown` dla 4 KiB
+        editor ROM `edit-4-80-n_unk.bin`; nie przypisywać go do konkretnej rewizji
+        płyty bez dalszego potwierdzenia.
+  - [ ] Pozostają inne rewizje wymagające osobnego potwierdzenia płyty.
   - [x] Nie tworzyć profilu tylko dla różnicy obudowy lub nazwy handlowej.
 
 ### 7. PET 8096/8296 i SuperPET

@@ -50,6 +50,35 @@ public sealed class PetProfileCatalogTests
         PetProfileCatalog.Cbm4016Crtc40N60.RomDirectory.Should().Be(PetProfileCatalog.Cbm4032.RomDirectory);
     }
 
+    [Test]
+    public void Cbm8016ConvertedProfile_IsExplicitlyMarkedAsNonstandard()
+    {
+        var profile = PetProfileCatalog.Cbm8016Converted80N50;
+
+        profile.Id.Should().Contain("converted");
+        profile.Name.Should().Contain("converted");
+        profile.Columns.Should().Be(80);
+        profile.RamSize.Should().Be(0x4000);
+        profile.VideoHardware.Should().Be(PetVideoHardware.Crtc);
+        profile.KeyboardLayout.Should().Be(PetKeyboardLayout.Cbm4032);
+        profile.RomDirectory.Should().Be(PetProfileCatalog.Cbm8032.RomDirectory);
+        profile.RomManifest.Should().ContainSingle(requirement => requirement.Path == "edit-4-80-n-50Hz.4016_to_8016.bin");
+    }
+
+    [Test]
+    public void UnknownConverted80NProfile_IsExplicitlyMarkedAsUnknown()
+    {
+        var profile = PetProfileCatalog.Converted80NUnknown;
+
+        profile.Id.Should().Contain("unknown");
+        profile.Name.Should().Contain("unknown");
+        profile.Columns.Should().Be(80);
+        profile.VideoHardware.Should().Be(PetVideoHardware.Crtc);
+        profile.KeyboardLayout.Should().Be(PetKeyboardLayout.Cbm4032);
+        profile.RomManifest.Should().ContainSingle(requirement => requirement.Path == "edit-4-80-n_unk.bin");
+        profile.RomManifest.Single(requirement => requirement.Path == "edit-4-80-n_unk.bin").Length.Should().Be(0x1000);
+    }
+
     [TestCaseSource(nameof(Profiles))]
     public void RomManifest_LoadsFromProfileSubfolder(PetProfile profile)
     {
