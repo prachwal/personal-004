@@ -574,26 +574,27 @@ Plik: `lib/PetEmulator.Chips/MT6545.cs`.
 
 Plik: `lib/PetEmulator.Chips/MC146818.cs`.
 
-- [ ] Pokryć mapę indeks/dane oraz maskowanie indeksu rejestru.
+- [x] Pokryć mapę indeks/dane oraz maskowanie indeksu rejestru.
 - [ ] Czas i data:
-  - [ ] BCD i binary mode;
-  - [ ] 12/24-hour mode;
-  - [ ] sekundy, minuty, godziny, dzień tygodnia, dzień, miesiąc i rok;
+  - [x] BCD i binary mode;
+  - [x] 12/24-hour mode;
+  - [x] sekundy, minuty, godziny, dzień tygodnia, dzień, miesiąc i rok;
   - [ ] przejście sekunda→minuta→godzina→dzień→miesiąc→rok;
   - [ ] rok przestępny i koniec miesiąca.
 - [ ] Tryb SET:
-  - [ ] zatrzymanie zegara;
-  - [ ] zapis wszystkich pól czasu;
+  - [x] zatrzymanie zegara;
+  - [x] zapis wszystkich pól czasu;
   - [ ] wznowienie i zachowanie części ułamkowej cykli.
 - [ ] Rejestry A/B/C/D:
-  - [ ] UIP/divider/rate;
-  - [ ] UIE/PIE/AIE i IRQ;
-  - [ ] read-to-clear status C;
-  - [ ] valid RAM/time bit D.
+  - [ ] UIP/divider;
+  - [x] rate selection;
+  - [ ] AIE;
+  - [x] UIE/PIE i IRQ;
+  - [x] read-to-clear status C;
+  - [x] valid RAM/time bit D.
 - [ ] Dodać alarmy i testy porównania czasu z alarmem, jeśli kartridż ma zachowywać
-      się jak pełny DS12887; w przeciwnym razie formalnie ograniczyć kontrakt do
-      podzbioru używanego przez program VIC-20.
-- [ ] Dodać testy wszystkich częstotliwości periodic interrupt wynikających z Register A.
+      się jak pełny DS12887; obecny kontrakt RTC świadomie nie obejmuje alarmu/AIE.
+- [x] Dodać testy wszystkich częstotliwości periodic interrupt wynikających z Register A.
 - [ ] Dodać integracyjny test kartridża: mapowanie I/O, IRQ 6502 i aktualizacja HH:MM.
 
 ### 8.8 Kolejność realizacji i kryteria ukończenia

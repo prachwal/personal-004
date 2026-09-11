@@ -30,6 +30,7 @@ public sealed class MC146818 : IMemoryMappedDevice
     public const byte UpdateEndedInterruptEnable = 0x10;
     public const byte PeriodicInterruptEnable = 0x40;
     public const byte DataModeBinary = 0x04;
+    public const byte Hour24Mode = 0x02;
     public const byte SetTime = 0x80;
 
     private readonly ushort _baseAddress;
@@ -42,6 +43,7 @@ public sealed class MC146818 : IMemoryMappedDevice
     private byte _registerA;
     private byte _registerB;
     private byte _registerC;
+    private byte _dayOfWeek;
 
     public MC146818(
         string name = "MC146818 RTC",
@@ -91,6 +93,7 @@ public sealed class MC146818 : IMemoryMappedDevice
     public void Reset()
     {
         _currentTime = _clock();
+        _dayOfWeek = (byte)((byte)_currentTime.DayOfWeek + 1);
         _cycleRemainder = 0;
         _periodicCycleRemainder = 0;
         _selectedRegister = 0;
@@ -109,6 +112,7 @@ public sealed class MC146818 : IMemoryMappedDevice
         {
             _cycleRemainder -= _cyclesPerSecond;
             _currentTime = _currentTime.AddSeconds(1);
+            _dayOfWeek = (byte)((byte)_currentTime.DayOfWeek + 1);
             _registerC |= UpdateEndedFlag;
             if ((_registerB & UpdateEndedInterruptEnable) != 0)
                 _registerC |= InterruptRequestFlag;
@@ -117,7 +121,12 @@ public sealed class MC146818 : IMemoryMappedDevice
         if ((_registerB & PeriodicInterruptEnable) == 0)
             return;
 
-        var periodicPeriod = Math.Max(1UL, _cyclesPerSecond / 16);
+        var periodicRate = (byte)(_registerA & 0x0F);
+        var periodicFrequency = GetPeriodicFrequency(periodicRate);
+        if (periodicFrequency == 0)
+            return;
+
+        var periodicPeriod = Math.Max(1UL, _cyclesPerSecond / (ulong)periodicFrequency);
         _periodicCycleRemainder += cycles;
         while (_periodicCycleRemainder >= periodicPeriod)
         {
@@ -130,8 +139,8 @@ public sealed class MC146818 : IMemoryMappedDevice
     {
         Seconds => Encode(_currentTime.Second),
         Minutes => Encode(_currentTime.Minute),
-        Hours => Encode(_currentTime.Hour),
-        DayOfWeek => Encode((int)_currentTime.DayOfWeek + 1),
+        Hours => EncodeHour(_currentTime.Hour),
+        DayOfWeek => _dayOfWeek,
         DayOfMonth => Encode(_currentTime.Day),
         Month => Encode(_currentTime.Month),
         Year => Encode(_currentTime.Year % 100),
@@ -147,6 +156,29 @@ public sealed class MC146818 : IMemoryMappedDevice
         var value = (byte)(_registerC | (Irq ? InterruptRequestFlag : 0));
         _registerC = 0;
         return value;
+    }
+
+    private byte EncodeHour(int hour)
+    {
+        if ((_registerB & Hour24Mode) != 0)
+            return Encode(hour);
+
+        var hour12 = hour % 12;
+        if (hour12 == 0)
+            hour12 = 12;
+
+        return (byte)(Encode(hour12) | (hour >= 12 ? 0x80 : 0));
+    }
+
+    private int DecodeHour(byte value)
+    {
+        if ((_registerB & Hour24Mode) != 0)
+            return Decode((byte)(value & 0x7F));
+
+        var hour = Decode((byte)(value & 0x7F));
+        if (hour == 12)
+            hour = 0;
+        return hour + ((value & 0x80) != 0 ? 12 : 0);
     }
 
     private void WriteSelectedRegister(byte value)
@@ -172,10 +204,47 @@ public sealed class MC146818 : IMemoryMappedDevice
                 break;
             case Hours:
                 if ((_registerB & SetTime) != 0)
-                    _currentTime = Replace(_currentTime, hours: Decode(value));
+                    _currentTime = Replace(_currentTime, hours: DecodeHour(value));
+                break;
+            case DayOfWeek:
+                if ((_registerB & SetTime) != 0)
+                    _dayOfWeek = Decode(value);
+                break;
+            case DayOfMonth:
+                if ((_registerB & SetTime) != 0)
+                    _currentTime = Replace(_currentTime, day: Decode(value));
+                break;
+            case Month:
+                if ((_registerB & SetTime) != 0)
+                    _currentTime = Replace(_currentTime, month: Decode(value));
+                break;
+            case Year:
+                if ((_registerB & SetTime) != 0)
+                {
+                    var year = (_currentTime.Year / 100) * 100 + Decode(value);
+                    _currentTime = Replace(_currentTime, year: year);
+                }
                 break;
         }
     }
+
+    private static int GetPeriodicFrequency(byte rate) => rate switch
+    {
+        3 => 8192,
+        4 => 4096,
+        5 => 2048,
+        6 => 1024,
+        7 => 512,
+        8 => 256,
+        9 => 128,
+        10 => 64,
+        11 => 32,
+        12 => 16,
+        13 => 8,
+        14 => 4,
+        15 => 2,
+        _ => 0,
+    };
 
     private byte Encode(int value) => (_registerB & DataModeBinary) != 0 ? (byte)value : ToBcd(value);
 
@@ -183,8 +252,9 @@ public sealed class MC146818 : IMemoryMappedDevice
         ? value
         : (byte)((value >> 4) * 10 + (value & 0x0F));
 
-    private static DateTime Replace(DateTime value, int? hours = null, int? minutes = null, int? seconds = null) =>
-        new(value.Year, value.Month, value.Day, hours ?? value.Hour, minutes ?? value.Minute,
+    private static DateTime Replace(DateTime value, int? year = null, int? month = null, int? day = null,
+        int? hours = null, int? minutes = null, int? seconds = null) =>
+        new(year ?? value.Year, month ?? value.Month, day ?? value.Day, hours ?? value.Hour, minutes ?? value.Minute,
             seconds ?? value.Second, value.Kind);
 
     private static byte ToBcd(int value) => (byte)((value / 10 << 4) | (value % 10));
