@@ -254,9 +254,9 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
 
     public void HandleKey(Key key, HostKeyEventKind kind)
     {
-        if (Vic20KeyboardJoystickAdapter.TryMap(key, out var joystickInput))
+        if (Vic20KeyboardJoystickAdapter.TryApply(
+                key, kind == HostKeyEventKind.Press, _machine.Joystick))
         {
-            _machine.Joystick.Set(joystickInput, kind == HostKeyEventKind.Press);
             return;
         }
 

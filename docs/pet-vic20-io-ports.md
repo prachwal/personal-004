@@ -226,7 +226,8 @@ Kolejność minimalizuje ryzyko zmian w krytycznych klasach `Vic20Machine`,
 - [x] Zachować sterowanie klawiaturą numpada `8/2/4/6/0`.
 - [x] Dodać `IJoystickSource` jako źródło stanu, bez zależności od Avalonia.
 - [x] Dodać adapter klawiatury Desktop.
-- [ ] Dodać adapter testowy/Windows.
+- [x] Dodać adapter testowy/Windows.
+  - [x] `IJoystickInputSink` pozwala użyć tego samego adaptera z maszyną i testowym odbiornikiem.
 - [x] Dodać osobny transport TCP dla WSL; protokół nie może zależeć od pamięci VIC-20.
   - [x] Protokół liniowy `UP|DOWN|LEFT|RIGHT|FIRE 0|1` oraz `RESET`; rozłączenie zwalnia wszystkie linie.
 - [x] Dodać test bitowego mapowania active-low i utraty połączenia.

@@ -24,4 +24,27 @@ public sealed class Vic20KeyboardJoystickAdapterTests
     {
         Vic20KeyboardJoystickAdapter.TryMap(Key.A, out _).Should().BeFalse();
     }
+
+    [Test]
+    public void AppliesMappedKeyToAnInputSink()
+    {
+        var sink = new RecordingSink();
+
+        Vic20KeyboardJoystickAdapter.TryApply(Key.NumPad0, true, sink).Should().BeTrue();
+
+        sink.Input.Should().Be(Vic20JoystickInput.Fire);
+        sink.Pressed.Should().BeTrue();
+    }
+
+    private sealed class RecordingSink : IJoystickInputSink
+    {
+        public Vic20JoystickInput Input { get; private set; }
+        public bool Pressed { get; private set; }
+
+        public void Set(Vic20JoystickInput input, bool pressed)
+        {
+            Input = input;
+            Pressed = pressed;
+        }
+    }
 }

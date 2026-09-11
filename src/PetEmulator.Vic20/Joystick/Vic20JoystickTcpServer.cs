@@ -19,18 +19,18 @@ public sealed class Vic20JoystickTcpServer : IAsyncDisposable
         ("FIRE", Vic20JoystickInput.Fire),
     ];
 
-    private readonly Action<Vic20JoystickInput, bool> _setInput;
+    private readonly IJoystickInputSink _inputSink;
     private readonly TcpListener _listener;
     private CancellationTokenSource? _cancellation;
     private Task? _acceptTask;
 
-    public Vic20JoystickTcpServer(Action<Vic20JoystickInput, bool> setInput, int port = 0)
+    public Vic20JoystickTcpServer(IJoystickInputSink inputSink, int port = 0)
     {
-        ArgumentNullException.ThrowIfNull(setInput);
+        ArgumentNullException.ThrowIfNull(inputSink);
         if (port is < 0 or > 65535)
             throw new ArgumentOutOfRangeException(nameof(port));
 
-        _setInput = setInput;
+        _inputSink = inputSink;
         _listener = new TcpListener(IPAddress.Loopback, port);
     }
 
@@ -133,12 +133,12 @@ public sealed class Vic20JoystickTcpServer : IAsyncDisposable
 
         var input = Inputs.FirstOrDefault(item => item.Name.Equals(parts[0], StringComparison.OrdinalIgnoreCase));
         if (input.Name is not null)
-            _setInput(input.Input, parts[1] == "1");
+            _inputSink.Set(input.Input, parts[1] == "1");
     }
 
     private void ResetInputs()
     {
         foreach (var (_, input) in Inputs)
-            _setInput(input, false);
+            _inputSink.Set(input, false);
     }
 }

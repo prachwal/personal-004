@@ -12,7 +12,7 @@ public sealed class Vic20JoystickTcpServerTests
     public async Task AppliesCommandsAndResetsInputsWhenClientDisconnects()
     {
         var joystick = new Vic20Joystick();
-        await using var server = new Vic20JoystickTcpServer(joystick.Set);
+        await using var server = new Vic20JoystickTcpServer(joystick);
         server.Start();
 
         using (var client = new TcpClient())
@@ -30,7 +30,7 @@ public sealed class Vic20JoystickTcpServerTests
     public async Task IgnoresMalformedCommandsAndSupportsReset()
     {
         var joystick = new Vic20Joystick();
-        await using var server = new Vic20JoystickTcpServer(joystick.Set);
+        await using var server = new Vic20JoystickTcpServer(joystick);
         server.Start();
 
         using var client = new TcpClient();

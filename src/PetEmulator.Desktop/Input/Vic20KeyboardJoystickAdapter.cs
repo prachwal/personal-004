@@ -6,6 +6,16 @@ namespace PetEmulator.Desktop.Input;
 /// <summary>Maps Desktop keyboard keys to the VIC-20 joystick input vocabulary.</summary>
 public static class Vic20KeyboardJoystickAdapter
 {
+    public static bool TryApply(Key key, bool pressed, IJoystickInputSink sink)
+    {
+        ArgumentNullException.ThrowIfNull(sink);
+        if (!TryMap(key, out var input))
+            return false;
+
+        sink.Set(input, pressed);
+        return true;
+    }
+
     public static bool TryMap(Key key, out Vic20JoystickInput input)
     {
         input = key switch
