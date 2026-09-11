@@ -254,7 +254,7 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
 
     public void HandleKey(Key key, HostKeyEventKind kind)
     {
-        if (TryGetJoystickInput(key, out var joystickInput))
+        if (Vic20KeyboardJoystickAdapter.TryMap(key, out var joystickInput))
         {
             _machine.Joystick.Set(joystickInput, kind == HostKeyEventKind.Press);
             return;
@@ -288,21 +288,6 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
             _machine.Keyboard.Press(action.Row, action.Column);
         else
             _machine.Keyboard.Release(action.Row, action.Column);
-    }
-
-    private static bool TryGetJoystickInput(Key key, out Vic20JoystickInput input)
-    {
-        input = key switch
-        {
-            Key.NumPad8 => Vic20JoystickInput.Up,
-            Key.NumPad2 => Vic20JoystickInput.Down,
-            Key.NumPad4 => Vic20JoystickInput.Left,
-            Key.NumPad6 => Vic20JoystickInput.Right,
-            Key.NumPad0 => Vic20JoystickInput.Fire,
-            _ => default
-        };
-
-        return key is Key.NumPad8 or Key.NumPad2 or Key.NumPad4 or Key.NumPad6 or Key.NumPad0;
     }
 
     public void Tick()
