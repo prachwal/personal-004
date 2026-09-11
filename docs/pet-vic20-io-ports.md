@@ -451,42 +451,42 @@ Plik: `lib/PetEmulator.Chips/MOS2114.cs`.
 
 Plik: `lib/PetEmulator.Chips/MOS6522.cs`.
 
-- [ ] Pokryć pełną mapę 16 rejestrów oraz zachowanie adresów niepoprawnych.
-- [ ] Porty:
-  - [ ] DDR A/B: każdy bit jako wejście i wyjście;
-  - [ ] złożenie latch/input/DDR przy odczycie;
-  - [ ] callbacki zapisu portów po zapisie ORA/ORB i DDR;
-  - [ ] ORA bez handshake;
-  - [ ] latch A/B w trybach `ACR`.
-- [ ] Timer 1:
-  - [ ] załadowanie low/high i latch;
-  - [ ] przepełnienie po dokładnej liczbie cykli;
-  - [ ] one-shot i free-run;
-  - [ ] IFR/IER/IRQ;
-  - [ ] PB7 jako wyjście timera, w tym przełączanie poziomu;
-  - [ ] odczyt low/high i kasowanie flagi.
-- [ ] Timer 2:
-  - [ ] tryb zegara PHI2;
-  - [ ] tryb zliczania impulsów PB6 przez `ClockTimer2`;
-  - [ ] one-shot, przepełnienie, IFR/IRQ i odczyt low/high;
-  - [ ] test braku przypadkowego ponownego ładowania.
-- [ ] Shift register:
-  - [ ] wszystkie obsługiwane tryby wejścia/wyjścia;
-  - [ ] zegar T2 i CB1;
-  - [ ] 8 bitów do ustawienia flagi;
-  - [ ] poprawne źródło bitu CB2 i kolejność przesuwania;
-  - [ ] pełny tryb free-run T2, obecnie jawnie niepełny w implementacji.
-- [ ] Linie CA1/CA2/CB1/CB2:
-  - [ ] zbocze narastające i opadające;
-  - [ ] tryb wejścia niezależnego;
-  - [ ] handshake i pulse output;
-  - [ ] poziomy wyjściowe po PCR;
-  - [ ] kasowanie flag przez odczyt właściwego portu i zapis IFR.
-- [ ] IRQ:
-  - [ ] każda flaga źródłowa osobno;
-  - [ ] maskowanie IER;
-  - [ ] bit `AnyInterrupt` tylko jako wynik, nie jako niezależna flaga;
-  - [ ] przejścia IRQ 0→1 i 1→0.
+- [x] Pokryć pełną mapę 16 rejestrów oraz zachowanie adresów niepoprawnych.
+- [x] Porty:
+  - [x] DDR A/B: każdy bit jako wejście i wyjście;
+  - [x] złożenie latch/input/DDR przy odczycie;
+  - [x] callbacki zapisu portów po zapisie ORA/ORB i DDR;
+  - [x] ORA bez handshake;
+  - [x] latch A/B w trybach `ACR`.
+- [x] Timer 1:
+  - [x] załadowanie low/high i latch;
+  - [x] przepełnienie po dokładnej liczbie cykli;
+  - [x] one-shot i free-run;
+  - [x] IFR/IER/IRQ;
+  - [x] PB7 jako wyjście timera, w tym przełączanie poziomu;
+  - [x] odczyt low/high i kasowanie flagi.
+- [x] Timer 2:
+  - [x] tryb zegara PHI2;
+  - [x] tryb zliczania impulsów PB6 przez `ClockTimer2`;
+  - [x] one-shot, przepełnienie, IFR/IRQ i odczyt low/high;
+  - [x] test braku przypadkowego ponownego ładowania.
+- [x] Shift register:
+  - [x] wszystkie obsługiwane tryby wejścia/wyjścia;
+  - [x] zegar T2 i CB1;
+  - [x] 8 bitów do ustawienia flagi;
+  - [x] poprawne źródło bitu CB2 i kolejność przesuwania;
+  - [x] pełny tryb free-run T2, obecnie jawnie niepełny w implementacji.
+- [x] Linie CA1/CA2/CB1/CB2:
+  - [x] zbocze narastające i opadające;
+  - [x] tryb wejścia niezależnego;
+  - [x] handshake i pulse output;
+  - [x] poziomy wyjściowe po PCR;
+  - [x] kasowanie flag przez odczyt właściwego portu i zapis IFR.
+- [x] IRQ:
+  - [x] każda flaga źródłowa osobno;
+  - [x] maskowanie IER;
+  - [x] bit `AnyInterrupt` tylko jako wynik, nie jako niezależna flaga;
+  - [x] przejścia IRQ 0→1 i 1→0.
 - [ ] Dodać test integracyjny PET i VIC-20 dla klawiatury, datasette, IEC oraz IRQ.
 
 ### 8.4 `MT6520` — PIA

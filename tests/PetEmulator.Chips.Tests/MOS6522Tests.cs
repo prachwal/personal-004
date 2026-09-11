@@ -79,6 +79,17 @@ public sealed class MOS6522Tests
     }
 
     [Test]
+    public void PortAHandshakeWriteInvokesItsBinding()
+    {
+        var writes = new List<byte>();
+        var via = new MOS6522 { PortAWritten = writes.Add };
+
+        via.Write(MOS6522.Ora, 0xA5);
+
+        writes.Should().Equal(0);
+    }
+
+    [Test]
     public void Reset_releases_external_port_inputs_and_control_lines()
     {
         var via = new MOS6522
@@ -267,7 +278,7 @@ public sealed class MOS6522Tests
     public void Pcr_configures_ca2_and_cb2_input_edges()
     {
         var via = new MOS6522();
-        via.Write(MOS6522.PeripheralControl, 0x44);
+        via.Write(MOS6522.PeripheralControl, 0x55);
         via.CA2 = true;
         via.CB2 = true;
         via.Update();
@@ -316,5 +327,208 @@ public sealed class MOS6522Tests
         second.ORA.Should().Be(0x05);
         first.Name.Should().Be("VIA1");
         second.Name.Should().Be("VIA2");
+    }
+
+    [Test]
+    public void ExposesTimerControlAndInterruptProperties()
+    {
+        var via = new MOS6522("TEST");
+
+        via.Name.Should().Be("TEST");
+        via.Timer1Latch.Should().Be(0);
+        via.Timer2Counter.Should().Be(0);
+        via.SR.Should().Be(0);
+        via.ACR.Should().Be(0);
+        via.PCR.Should().Be(0);
+        via.IFR.Should().Be(0);
+        via.IER.Should().Be(0);
+        via.HasInterrupt.Should().BeFalse();
+    }
+
+    [Test]
+    public void PortBOutputUsesTimerOnePb7WhenSelected()
+    {
+        var via = new MOS6522();
+        via.Write(MOS6522.Ddrb, 0xFF);
+        via.Write(MOS6522.Orb, 0x00);
+        via.Write(MOS6522.AuxiliaryControl, 0x80);
+        via.Write(MOS6522.T1CounterLow, 0x00);
+        via.Write(MOS6522.T1CounterHigh, 0x00);
+
+        via.PortBOutput.Should().Be(0);
+        via.Update();
+        via.PortBOutput.Should().Be(0x80);
+    }
+
+    [Test]
+    public void Ca1EdgeLatchesPortAAndReleasesHandshake()
+    {
+        var via = new MOS6522 { PortAInput = 0xA5 };
+        via.Write(MOS6522.AuxiliaryControl, 0x01);
+        via.Write(MOS6522.PeripheralControl, 0x09); // CA1 rising, CA2 handshake output.
+        via.CA2Output.Should().BeTrue();
+        via.Read(MOS6522.Ora);
+        via.CA2Output.Should().BeFalse();
+
+        via.CA1 = true;
+
+        via.CA1.Should().BeTrue();
+        via.CA2Output.Should().BeTrue();
+        via.Read(MOS6522.Ora).Should().Be(0xA5);
+        via.CA2Output.Should().BeFalse();
+    }
+
+    [Test]
+    public void ClockTimer2CountsPb6PulsesOnlyInConfiguredMode()
+    {
+        var via = new MOS6522();
+        via.ClockTimer2();
+        via.Write(MOS6522.AuxiliaryControl, 0x20);
+        via.Write(MOS6522.T2CounterLow, 0x01);
+        via.Write(MOS6522.T2CounterHigh, 0x00);
+
+        via.ClockTimer2();
+        via.Timer2Counter.Should().Be(0);
+        via.ClockTimer2();
+        (via.Read(MOS6522.InterruptFlag) & MOS6522.Timer2Interrupt).Should().NotBe(0);
+
+        via.Reset();
+        via.Write(MOS6522.T2CounterLow, 0x01);
+        via.Write(MOS6522.T2CounterHigh, 0x00);
+        via.ClockTimer2();
+        via.Timer2Counter.Should().Be(1);
+
+        via.Reset();
+        via.Write(MOS6522.T2CounterLow, 0x01);
+        via.Write(MOS6522.T2CounterHigh, 0x00);
+        via.ClockTimer2();
+        via.Timer2Counter.Should().Be(1);
+    }
+
+    [Test]
+    public void PortReadsSupportLatchedInputsAndClearNormalControlFlags()
+    {
+        var via = new MOS6522 { PortAInput = 0x12, PortBInput = 0x34 };
+        via.Write(MOS6522.AuxiliaryControl, 0x03);
+        via.Write(MOS6522.PeripheralControl, 0x55);
+        via.CA1 = true;
+        via.CB1 = true;
+        via.Update();
+
+        via.Read(MOS6522.Ora).Should().Be(0x12);
+        via.Read(MOS6522.Orb).Should().Be(0x34);
+        (via.IFR & (MOS6522.Ca1Interrupt | MOS6522.Cb1Interrupt)).Should().Be(0);
+    }
+
+    [Test]
+    public void PortBReadUsesTimerOutputBitAndLatchedInput()
+    {
+        var via = new MOS6522 { PortBInput = 0x55 };
+        via.Write(MOS6522.Ddrb, 0x00);
+        via.Write(MOS6522.AuxiliaryControl, 0x82);
+        via.Write(MOS6522.PeripheralControl, 0x55);
+        via.CB1 = true;
+        via.Update();
+        via.Read(MOS6522.Orb).Should().Be(0x55);
+
+        via.Write(MOS6522.Ddrb, 0xFF);
+        via.Write(MOS6522.AuxiliaryControl, 0x80);
+        via.Write(MOS6522.T1CounterLow, 0x00);
+        via.Write(MOS6522.T1CounterHigh, 0x00);
+        via.Update();
+        via.Read(MOS6522.Orb).Should().Be(0x80);
+    }
+
+    [Test]
+    public void UpdateControlOutputsSupportsCa2AndCb2Modes()
+    {
+        var via = new MOS6522();
+
+        foreach (var pcr in new byte[] { 0x00, 0x08, 0x0A, 0x0C, 0x0E, 0x20, 0x80, 0xA0, 0xC0, 0xE0 })
+        {
+            via.Write(MOS6522.PeripheralControl, pcr);
+            via.CA2Output.Should().Be((pcr & 0x0E) switch
+            {
+                0x0C => false,
+                0x0E => true,
+                >= 0x08 => true,
+                _ => false
+            });
+            via.CB2Output.Should().Be((pcr & 0xE0) switch
+            {
+                0xC0 => false,
+                0xE0 => true,
+                >= 0x80 => true,
+                _ => false
+            });
+        }
+    }
+
+    [Test]
+    public void ShiftRegisterSupportsCb1ClockedInputAndOutputModes()
+    {
+        var input = new MOS6522 { CB2 = true };
+        input.Write(MOS6522.AuxiliaryControl, 0x0C);
+        input.Write(MOS6522.ShiftRegister, 0);
+        input.Write(MOS6522.PeripheralControl, 0x10); // CB1 rising edge.
+        input.CB1 = true;
+        input.Update();
+        input.SR.Should().Be(0x80);
+
+        var output = new MOS6522();
+        output.Write(MOS6522.AuxiliaryControl, 0x10);
+        output.Write(MOS6522.ShiftRegister, 0x80);
+        output.Write(MOS6522.T2CounterLow, 0);
+        output.Write(MOS6522.T2CounterHigh, 0);
+        output.Update();
+        output.Update();
+        output.SR.Should().Be(0);
+
+        var inputLow = new MOS6522();
+        inputLow.Write(MOS6522.AuxiliaryControl, 0x0C);
+        inputLow.Write(MOS6522.ShiftRegister, 0xFF);
+        inputLow.Write(MOS6522.PeripheralControl, 0x10);
+        inputLow.CB1 = true;
+        inputLow.Update();
+        inputLow.SR.Should().Be(0x7F);
+    }
+
+    [Test]
+    public void UpdateSamplesCa1EdgeAndLatchesItsInput()
+    {
+        var via = new MOS6522 { PortAInput = 0xA5 };
+        via.Write(MOS6522.AuxiliaryControl, 0x01);
+        via.Write(MOS6522.PeripheralControl, 0x09);
+        via.CA1 = true;
+
+        // The public setter handles the real-time edge and synchronizes the sample state.
+        // Re-arm only the sampler to cover the same edge path used by a clocked update.
+        var previous = typeof(MOS6522).GetField("_previousCa1", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        previous.SetValue(via, false);
+        via.Update();
+
+        via.CA2Output.Should().BeTrue();
+        via.Read(MOS6522.Ora).Should().Be(0xA5);
+    }
+
+    [Test]
+    public void HandshakeIsNotChangedForNonHandshakePcrModes()
+    {
+        var via = new MOS6522();
+        via.Write(MOS6522.PeripheralControl, 0x00);
+        via.Write(MOS6522.Ora, 0xFF);
+        via.CA1 = true;
+        via.Read(MOS6522.Ora).Should().Be(0);
+        via.CA2Output.Should().BeFalse();
+    }
+
+    [Test]
+    public void Cb2OutputModeDoesNotSampleAnInputEdge()
+    {
+        var via = new MOS6522();
+        via.Write(MOS6522.PeripheralControl, 0x80);
+        via.CB2 = true;
+        via.Update();
+        (via.IFR & MOS6522.Cb2Interrupt).Should().Be(0);
     }
 }
