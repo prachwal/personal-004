@@ -201,7 +201,7 @@ Kolejność minimalizuje ryzyko zmian w krytycznych klasach `Vic20Machine`,
 - [x] Dodać test izolowanego przykładowego pluginu DLL.
   - [x] Loader: `Vic20CartridgePluginTests.Loader_LoadsOnePluginFromDll`.
   - [x] Montowanie i mapowanie: `Vic20CartridgePluginTests.Machine_MountsPluginImageAndRoutesRomAndIo`.
-- [ ] Nie ładować pluginów w CPU, ViewModelu ani kodzie-behind.
+- [x] Nie ładować pluginów w CPU, ViewModelu ani kodzie-behind.
 
 ### Etap 3a — interfejsy uruchomieniowe
 
@@ -581,17 +581,17 @@ Plik: `lib/PetEmulator.Chips/MT6545.cs`.
 Plik: `lib/PetEmulator.Chips/MC146818.cs`.
 
 - [x] Pokryć mapę indeks/dane oraz maskowanie indeksu rejestru.
-- [ ] Czas i data:
+- [x] Czas i data:
   - [x] BCD i binary mode;
   - [x] 12/24-hour mode;
   - [x] sekundy, minuty, godziny, dzień tygodnia, dzień, miesiąc i rok;
   - [x] przejście sekunda→minuta→godzina→dzień→miesiąc→rok;
   - [x] rok przestępny i koniec miesiąca.
-- [ ] Tryb SET:
+- [x] Tryb SET:
   - [x] zatrzymanie zegara;
   - [x] zapis wszystkich pól czasu;
   - [x] wznowienie i zachowanie części ułamkowej cykli.
-- [ ] Rejestry A/B/C/D:
+- [x] Rejestry A/B/C/D:
   - [x] UIP/divider;
   - [x] rate selection;
   - [x] AIE;
