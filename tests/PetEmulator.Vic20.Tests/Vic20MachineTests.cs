@@ -91,6 +91,10 @@ public sealed class Vic20MachineTests
     public void UserPort_ExposesVIA1PortBInputDirectionAndOutput()
     {
         var machine = CreateMachine();
+        var outputChanges = 0;
+        var directionChanges = 0;
+        machine.UserPort.OutputChanged += () => outputChanges++;
+        machine.UserPort.DirectionChanged += () => directionChanges++;
         machine.UserPort.Input = 0xA5;
         machine.Via1.Write(0x9112, 0x00); // all User Port pins as inputs
 
@@ -101,6 +105,8 @@ public sealed class Vic20MachineTests
 
         machine.UserPort.Direction.Should().Be(0xF0);
         machine.UserPort.Output.Should().Be(0x50);
+        outputChanges.Should().Be(1);
+        directionChanges.Should().Be(1);
     }
 
     [Test]

@@ -331,6 +331,7 @@ adresie i rozmiarze. Runtime testy zostały potwierdzone po uruchomieniu VSTest 
 - [x] Dodać urządzenie User Portu VIC-20.
   - [x] Udostępnić VIA1 Port B jako osiem linii wejścia/wyjścia z kierunkiem DDRB.
   - [ ] Dodać opcjonalny adapter RS-232 bez wiązania go bezpośrednio z ViewModelem.
+    - [x] Przygotować zdarzenia `OutputChanged` i `DirectionChanged` dla zewnętrznego adaptera.
   - [x] Dodać test kierunku linii, odczytu wejść i zapisu wyjść.
 
 ### 3. VIC-20 — cartridge i I/O2/I/O3
