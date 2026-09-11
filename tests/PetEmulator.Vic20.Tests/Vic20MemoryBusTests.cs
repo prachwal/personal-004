@@ -55,6 +55,20 @@ public sealed class Vic20MemoryBusTests
         bus.Read(0xA000).Should().Be(0xFF, "the cartridge window is unmapped in v1 - see plan step 5");
     }
 
+    [Test]
+    public void Io2AndIo3_ReadAsOpenBus_AndIgnoreWrites()
+    {
+        var bus = CreateBus();
+
+        foreach (var address in new ushort[] { 0x9800, 0x9FFF })
+        {
+            bus.Read(address).Should().Be(0xFF);
+
+            bus.Write(address, 0x42);
+            bus.Read(address).Should().Be(0xFF, $"I/O2/I/O3 address ${address:X4} is not mapped");
+        }
+    }
+
     [TestCase(Vic20ExpansionPreset.ThreeK, 0x0400, 0x2000)]
     [TestCase(Vic20ExpansionPreset.EightK, 0x2000, 0x0400)]
     [TestCase(Vic20ExpansionPreset.SixteenK, 0x4000, 0x6000)]

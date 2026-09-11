@@ -59,6 +59,49 @@ public sealed class MOS6522Tests
     }
 
     [Test]
+    public void Port_write_bindings_receive_only_the_output_bits()
+    {
+        var portAWrites = new List<byte>();
+        var portBWrites = new List<byte>();
+        var via = new MOS6522
+        {
+            PortAWritten = portAWrites.Add,
+            PortBWritten = portBWrites.Add
+        };
+
+        via.Write(MOS6522.Ddra, 0xF0);
+        via.Write(MOS6522.Ddrb, 0x0F);
+        via.Write(MOS6522.OraWithoutHandshake, 0xA5);
+        via.Write(MOS6522.Orb, 0x5A);
+
+        portAWrites.Should().Equal(0x00, 0xA0);
+        portBWrites.Should().Equal(0x00, 0x0A);
+    }
+
+    [Test]
+    public void Reset_releases_external_port_inputs_and_control_lines()
+    {
+        var via = new MOS6522
+        {
+            PortAInput = 0xFF,
+            PortBInput = 0xFF,
+            CA1 = true,
+            CA2 = true,
+            CB1 = true,
+            CB2 = true
+        };
+
+        via.Reset();
+
+        via.PortAInput.Should().Be(0);
+        via.PortBInput.Should().Be(0);
+        via.CA1.Should().BeFalse();
+        via.CA2.Should().BeFalse();
+        via.CB1.Should().BeFalse();
+        via.CB2.Should().BeFalse();
+    }
+
+    [Test]
     public void Interrupt_flags_enable_register_and_irq_are_aggregated()
     {
         var via = new MOS6522();
