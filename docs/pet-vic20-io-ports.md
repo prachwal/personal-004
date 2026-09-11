@@ -431,6 +431,8 @@ osiągnięcie liczby procentowej, lecz jednoczesne pokrycie:
       `dotnet test tests/PetEmulator.Chips.Tests/PetEmulator.Chips.Tests.csproj --no-restore --collect:"XPlat Code Coverage"`.
 - [x] Raportować osobno line, branch i method coverage dla każdego pliku układu.
 - [x] Wymagać 100% line, 100% branch i 100% method coverage dla każdego układu.
+- [x] Dodać `scripts/test-chips-coverage.sh`, który uruchamia testy i kończy się
+      błędem, gdy którykolwiek układ lub jego metoda ma niepełne pokrycie.
 - [ ] Dodać testy mutacyjne lub ręczne usunięcie każdej gałęzi jako kontrolę,
       że pokrycie nie jest tylko formalne.
 - [ ] Nie oznaczać etapu jako ukończonego, jeśli kod jest pokryty, ale nie ma testu
@@ -605,7 +607,7 @@ Plik: `lib/PetEmulator.Chips/MC146818.cs`.
 
 ### 8.8 Kolejność realizacji i kryteria ukończenia
 
-1. [ ] Infrastruktura coverage i wspólne testy adresowania/resetu.
+1. [x] Infrastruktura coverage i wspólne testy adresowania/resetu.
 2. [ ] `MOS2114` — najprostszy model, zamknięcie kontraktu pamięci.
 3. [ ] `MT6520` — PIA używane przez PET.
 4. [ ] `MOS6522` — VIA używane przez PET i VIC-20.
