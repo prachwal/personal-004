@@ -406,3 +406,208 @@ wieloukładowe i bankowane nadal wymagają osobnego urządzenia przełączające
       SuperPET/SP9000.
   - [ ] Każdy dodatkowy układ powinien mieć własną mapę adresów i test boot/diagnostic.
 - [ ] Rozszerzyć Desktop/CLI o wybór tych profili po przejściu testów ROM i magistrali.
+
+## 8. `PetEmulator.Chips` — plan doprowadzenia modeli do 100% pokrycia
+
+Ten etap dotyczy wyłącznie układów z `lib/PetEmulator.Chips`. Celem nie jest samo
+osiągnięcie liczby procentowej, lecz jednoczesne pokrycie:
+
+1. każdego wiersza i każdej gałęzi kodu produkcyjnego;
+2. każdego rejestru, bitu sterującego, trybu pracy i przejścia stanu;
+3. każdej ścieżki błędu oraz zachowania po `Reset`;
+4. użycia układu przez PET/VIC-20 w teście integracyjnym z magistralą.
+
+### 8.1 Wspólny kontrakt jakości
+
+- [x] Dodać `coverlet.collector` jako `PackageReference` do
+      `tests/PetEmulator.Chips.Tests/PetEmulator.Chips.Tests.csproj`.
+- [x] Dodać deterministyczny plik `tests/coverage.runsettings` wykluczający kod testów,
+      wygenerowany kod i infrastrukturę testową.
+- [x] Uruchomić po etapie MOS2114:
+      `dotnet test tests/PetEmulator.Chips.Tests/PetEmulator.Chips.Tests.csproj --no-restore --collect:"XPlat Code Coverage"`.
+- [x] Raportować osobno line, branch i method coverage dla każdego pliku układu.
+- [ ] Wymagać 100% line, 100% branch i 100% method coverage dla każdego układu.
+- [ ] Dodać testy mutacyjne lub ręczne usunięcie każdej gałęzi jako kontrolę,
+      że pokrycie nie jest tylko formalne.
+- [ ] Nie oznaczać etapu jako ukończonego, jeśli kod jest pokryty, ale nie ma testu
+      zachowania na poziomie magistrali lub maszyny.
+
+### 8.2 `MOS2114` — Color RAM
+
+Plik: `lib/PetEmulator.Chips/MOS2114.cs`.
+
+- [x] Zweryfikować konstruktor: nazwa, adres bazowy, rozmiar i długość urządzenia.
+- [x] Pokryć zapis wszystkich kombinacji wysokiego i niskiego nibble.
+  - [x] Test potwierdza maskowanie zapisu do 4 bitów.
+  - [x] Test odczytu potwierdza maskowanie wysokiego nibble.
+- [x] Pokryć adres bazowy, pierwszy adres, ostatni adres i każdy offset poza bazą.
+- [x] Pokryć `Reset` dla pustej, jednoelementowej i pełnej pamięci.
+- [x] Ustalić i przetestować zachowanie adresu spoza zakresu: wyjątek albo kontrakt
+      magistrali; nie pozostawiać zachowania przypadkowemu indeksowaniu tablicy.
+- [ ] Dodać test integracyjny VIC-20: zapis koloru przez `Vic20MemoryBus`, odczyt
+      przez renderer oraz poprawne wyzerowanie po resecie.
+
+### 8.3 `MOS6522` — VIA
+
+Plik: `lib/PetEmulator.Chips/MOS6522.cs`.
+
+- [ ] Pokryć pełną mapę 16 rejestrów oraz zachowanie adresów niepoprawnych.
+- [ ] Porty:
+  - [ ] DDR A/B: każdy bit jako wejście i wyjście;
+  - [ ] złożenie latch/input/DDR przy odczycie;
+  - [ ] callbacki zapisu portów po zapisie ORA/ORB i DDR;
+  - [ ] ORA bez handshake;
+  - [ ] latch A/B w trybach `ACR`.
+- [ ] Timer 1:
+  - [ ] załadowanie low/high i latch;
+  - [ ] przepełnienie po dokładnej liczbie cykli;
+  - [ ] one-shot i free-run;
+  - [ ] IFR/IER/IRQ;
+  - [ ] PB7 jako wyjście timera, w tym przełączanie poziomu;
+  - [ ] odczyt low/high i kasowanie flagi.
+- [ ] Timer 2:
+  - [ ] tryb zegara PHI2;
+  - [ ] tryb zliczania impulsów PB6 przez `ClockTimer2`;
+  - [ ] one-shot, przepełnienie, IFR/IRQ i odczyt low/high;
+  - [ ] test braku przypadkowego ponownego ładowania.
+- [ ] Shift register:
+  - [ ] wszystkie obsługiwane tryby wejścia/wyjścia;
+  - [ ] zegar T2 i CB1;
+  - [ ] 8 bitów do ustawienia flagi;
+  - [ ] poprawne źródło bitu CB2 i kolejność przesuwania;
+  - [ ] pełny tryb free-run T2, obecnie jawnie niepełny w implementacji.
+- [ ] Linie CA1/CA2/CB1/CB2:
+  - [ ] zbocze narastające i opadające;
+  - [ ] tryb wejścia niezależnego;
+  - [ ] handshake i pulse output;
+  - [ ] poziomy wyjściowe po PCR;
+  - [ ] kasowanie flag przez odczyt właściwego portu i zapis IFR.
+- [ ] IRQ:
+  - [ ] każda flaga źródłowa osobno;
+  - [ ] maskowanie IER;
+  - [ ] bit `AnyInterrupt` tylko jako wynik, nie jako niezależna flaga;
+  - [ ] przejścia IRQ 0→1 i 1→0.
+- [ ] Dodać test integracyjny PET i VIC-20 dla klawiatury, datasette, IEC oraz IRQ.
+
+### 8.4 `MT6520` — PIA
+
+Plik: `lib/PetEmulator.Chips/MT6520.cs`.
+
+- [ ] Pokryć cztery adresy lokalne i oba warianty wyboru DATA/DDR.
+- [ ] Port A/B:
+  - [ ] kierunek każdego bitu;
+  - [ ] mieszanie latcha z wejściem zewnętrznym;
+  - [ ] callbacki zapisu danych i odczytu;
+  - [ ] niestandardowe predykaty `SelectPortADataRegister` i `SelectPortBDataRegister`.
+- [ ] CA1/CB1:
+  - [ ] oba kierunki zbocza;
+  - [ ] ustawianie flagi;
+  - [ ] maskowanie przez CRA/CRB;
+  - [ ] kasowanie po odczycie portu.
+- [ ] CA2/CB2:
+  - [ ] wejście z przerwaniem;
+  - [ ] manual output;
+  - [ ] handshake output;
+  - [ ] pulse output i dokładnie jeden cykl `Tick`;
+  - [ ] callback zmiany poziomu.
+- [ ] Pokryć maskowanie zapisu rejestrów sterujących i stan po `Reset`.
+- [ ] Ustalić zachowanie adresów poza mapą i pokryć je testami.
+- [ ] Dodać testy integracyjne PET dla klawiatury, datasette, IEEE-488 i portu
+      użytkownika, z osobnym testem aktywnego poziomu każdego używanego sygnału.
+
+### 8.5 `MOS6560`/`MOS6561` — VIC-I
+
+Plik: `lib/PetEmulator.Chips/MOS6560.cs`.
+
+- [ ] Rozdzielić konfigurację timingów NTSC (`6560`) i PAL (`6561`); obecny model
+      jest jawnie NTSC-only.
+- [ ] Pokryć wszystkie 16 rejestrów:
+  - [ ] maskowanie bitów zapisywalnych;
+  - [ ] rejestry wejściowe light pen/paddle jako read-only;
+  - [ ] raster low/high;
+  - [ ] kolumny, wiersze, wysokość znaków i bazy pamięci;
+  - [ ] kolory, reverse mode i volume.
+- [ ] Pokryć `ToCpuAddress` dla każdej kombinacji bitu A13 oraz granic 14-bitowego adresu.
+- [ ] Raster:
+  - [ ] dokładnie jeden wzrost po `CyclesPerLine`;
+  - [ ] brak wzrostu przed granicą;
+  - [ ] zawinięcie po `TotalScanlines`;
+  - [ ] odczyt bieżącego rastera przez oba rejestry.
+- [ ] Audio:
+  - [ ] częstotliwość każdego z trzech oscylatorów;
+  - [ ] generator noise i deterministyczny reset LFSR;
+  - [ ] enable/disable każdego generatora;
+  - [ ] miksowanie kilku generatorów;
+  - [ ] volume 0..15;
+  - [ ] `SampleRate` i format audio;
+  - [ ] brak próbek niezerowych przy wyłączonych generatorach.
+- [ ] Dodać testy tolerancji częstotliwości na pełnym buforze próbek, a nie tylko
+      test „nie jest ciszą”.
+- [ ] Dodać osobny test PAL i test zgodności konfiguracji z `Vic20DisplayConfig`.
+- [ ] Dodać integracyjny test VIC-20: ekran, Color RAM, raster i dźwięk z ROM-em.
+
+### 8.6 `MT6545` — CRTC
+
+Plik: `lib/PetEmulator.Chips/MT6545.cs`.
+
+- [ ] Pokryć wszystkie 18 rejestrów i wszystkie maski zapisu.
+- [ ] Pokryć wybór rejestru, odczyt statusu i odczyt rejestrów light pen.
+- [ ] Timing poziomy:
+  - [ ] długość linii;
+  - [ ] pozycja i szerokość HSync;
+  - [ ] wartość szerokości 0 oznaczająca 16;
+  - [ ] granice końca linii.
+- [ ] Timing pionowy:
+  - [ ] liczba wierszy;
+  - [ ] raster per character row;
+  - [ ] VSync i vertical adjust;
+  - [ ] początek nowej ramki.
+- [ ] Pokryć MA/R display start, cursor address, cursor raster i tryby migania kursora.
+- [ ] Pokryć oba skews pipeline: display-enable i cursor.
+- [ ] Pokryć interlace sync/video oraz przełączanie pola.
+- [ ] Pokryć light-pen latch, status i kasowanie statusu po odczycie.
+- [ ] Jawnie zdecydować, czy implementowane są tryby `Update`/`Transparent`; jeżeli
+      pozostają poza zakresem, dodać test dokumentujący ich bezpieczne zachowanie.
+- [ ] Dodać test integracyjny PET dla każdego profilu z CRTC oraz test renderer/CRTC.
+
+### 8.7 `MC146818` — RTC
+
+Plik: `lib/PetEmulator.Chips/MC146818.cs`.
+
+- [ ] Pokryć mapę indeks/dane oraz maskowanie indeksu rejestru.
+- [ ] Czas i data:
+  - [ ] BCD i binary mode;
+  - [ ] 12/24-hour mode;
+  - [ ] sekundy, minuty, godziny, dzień tygodnia, dzień, miesiąc i rok;
+  - [ ] przejście sekunda→minuta→godzina→dzień→miesiąc→rok;
+  - [ ] rok przestępny i koniec miesiąca.
+- [ ] Tryb SET:
+  - [ ] zatrzymanie zegara;
+  - [ ] zapis wszystkich pól czasu;
+  - [ ] wznowienie i zachowanie części ułamkowej cykli.
+- [ ] Rejestry A/B/C/D:
+  - [ ] UIP/divider/rate;
+  - [ ] UIE/PIE/AIE i IRQ;
+  - [ ] read-to-clear status C;
+  - [ ] valid RAM/time bit D.
+- [ ] Dodać alarmy i testy porównania czasu z alarmem, jeśli kartridż ma zachowywać
+      się jak pełny DS12887; w przeciwnym razie formalnie ograniczyć kontrakt do
+      podzbioru używanego przez program VIC-20.
+- [ ] Dodać testy wszystkich częstotliwości periodic interrupt wynikających z Register A.
+- [ ] Dodać integracyjny test kartridża: mapowanie I/O, IRQ 6502 i aktualizacja HH:MM.
+
+### 8.8 Kolejność realizacji i kryteria ukończenia
+
+1. [ ] Infrastruktura coverage i wspólne testy adresowania/resetu.
+2. [ ] `MOS2114` — najprostszy model, zamknięcie kontraktu pamięci.
+3. [ ] `MT6520` — PIA używane przez PET.
+4. [ ] `MOS6522` — VIA używane przez PET i VIC-20.
+5. [ ] `MT6545` — CRTC PET.
+6. [ ] `MOS6560` — VIC-I, timing PAL/NTSC i audio.
+7. [ ] `MC146818` — pełny kontrakt RTC albo formalnie ograniczony kontrakt kartridża.
+8. [ ] Testy integracyjne PET/VIC-20 i testy ROM/diagnostic.
+
+Każdy punkt kończy się osobnym commitem zawierającym kod i testy. Etap jest
+ukończony dopiero wtedy, gdy raport pokazuje dla danego układu 100% line, branch
+i method coverage, wszystkie testy jednostkowe i integracyjne przechodzą, a
+`dotnet build PetEmulator.slnx --no-restore` kończy się bez ostrzeżeń i błędów.

@@ -16,20 +16,32 @@ public sealed class MOS2114 : IMemoryMappedDevice
 
     public MOS2114(string name = "Color RAM", ushort baseAddress = 0, uint size = 0x0400)
     {
+        if (size == 0 || size > int.MaxValue || (ulong)baseAddress + size > 0x1_0000)
+            throw new ArgumentOutOfRangeException(nameof(size), "The memory-mapped RAM must fit in the 16-bit address space.");
+
         Name = name;
         _baseAddress = baseAddress;
-        _data = new byte[size];
+        _data = new byte[(int)size];
     }
 
     public string Name { get; }
 
     public uint Length => (uint)_data.Length;
 
-    public byte Read(ushort address) => (byte)(_data[address - _baseAddress] & 0x0F);
+    public byte Read(ushort address) => (byte)(_data[GetOffset(address)] & 0x0F);
 
-    public void Write(ushort address, byte value) => _data[address - _baseAddress] = (byte)(value & 0x0F);
+    public void Write(ushort address, byte value) => _data[GetOffset(address)] = (byte)(value & 0x0F);
 
     public void Reset() => Array.Clear(_data);
 
     public void Tick(ulong cycles) { }
+
+    private int GetOffset(ushort address)
+    {
+        var offset = address - _baseAddress;
+        if (address < _baseAddress || offset >= _data.Length)
+            throw new ArgumentOutOfRangeException(nameof(address), address, "Address is outside the mapped RAM range.");
+
+        return offset;
+    }
 }
