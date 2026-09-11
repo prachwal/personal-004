@@ -165,10 +165,12 @@ Kolejność minimalizuje ryzyko zmian w krytycznych klasach `Vic20Machine`,
 
 - [x] Dodać kontrakt DLL w osobnym projekcie `PetEmulator.Vic20.Cartridge.Abstractions`.
   - [x] Zdefiniować descriptor, zasoby, odczyt/zapis, `Reset` i `Tick`.
-- [ ] Zaprojektować `IVic20ExpansionDevice` dla urządzeń niebędących cartridge.
-  - [ ] Urządzenie udostępnia listę `Vic20CartridgeResource`.
-  - [ ] Odczyt i zapis są opcjonalne zależnie od uprawnień zasobu.
-  - [ ] Nie dublować `AddressRange`, `BusAccess` ani walidatora konfliktów.
+- [x] Zaprojektować `IVic20ExpansionDevice` dla urządzeń niebędących cartridge.
+  - [x] Urządzenie udostępnia listę `Vic20CartridgeResource`.
+  - [x] Odczyt i zapis są opcjonalne zależnie od uprawnień zasobu.
+  - [x] Nie dublować `AddressRange`, `BusAccess` ani walidatora konfliktów.
+  - [x] Zintegrować urządzenie ze wspólnym rejestrem rozszerzeń oraz cyklem `Reset`/`Tick`.
+  - [x] Pokryć mapowanie, dostęp kierunkowy i konflikt zasobów testami `Vic20ExpansionDeviceTests`.
 - [x] Dodać adapter istniejącego `Vic20Cartridge` do nowego kontraktu bez zmiany publicznego API.
 - [x] Dodać test ROM, RAM, I/O2/I/O3 i konfliktów z profilem RAM.
   - [x] ROM: `Vic20MemoryBusTests.Cartridge_ReadsRomBytes`.
@@ -282,6 +284,7 @@ odpowiedniego testu. Punkty `[ ]` są planem i nie są raportowane jako gotowe.
 | Zasoby i konflikty | `dotnet test tests/PetEmulator.Vic20.Tests/PetEmulator.Vic20.Tests.csproj --no-restore --filter FullyQualifiedName~Vic20MemoryBusTests` | ✅ 20 testów |
 | Kontrakt i loader DLL | `dotnet test tests/PetEmulator.Vic20.Tests/PetEmulator.Vic20.Tests.csproj --no-restore --filter FullyQualifiedName~Vic20CartridgePluginTests` | ✅ 6 testów |
 | CLI pluginu | `dotnet test tests/PetEmulator.Cli.Tests/PetEmulator.Cli.Tests.csproj --no-restore --disable-build-servers --filter FullyQualifiedName~Vic20DebuggerSessionTests` | ✅ 9 testów |
+| `IVic20ExpansionDevice` | `dotnet build tests/PetEmulator.Vic20.Tests/PetEmulator.Vic20.Tests.csproj --no-restore -m:1` | ✅ kompilacja; test runtime `Vic20ExpansionDeviceTests` ⚠️ VSTest blokowany przez `TcpListener: Permission denied` |
 | Desktop pluginu | `dotnet test tests/PetEmulator.Desktop.Tests/PetEmulator.Desktop.Tests.csproj --no-restore --disable-build-servers` | ✅ 2 testy |
 | Kartridż testu audio | `dotnet test tests/PetEmulator.Vic20.Tests/PetEmulator.Vic20.Tests.csproj --no-restore --filter FullyQualifiedName~SoundTestCartridge` | ✅ 1 test |
 | MOS6560 audio | `dotnet test tests/PetEmulator.Chips.Tests/PetEmulator.Chips.Tests.csproj --no-restore --filter FullyQualifiedName~MOS6560Tests` | ✅ 14 testów |
@@ -359,6 +362,11 @@ wieloukładowe i bankowane nadal wymagają osobnego urządzenia przełączające
   - [x] Dodać testy konfliktu ROM/RAM, I/O/I/O oraz niezależnych zakresów.
 - [ ] Wydzielić publiczny obiekt `MultiCartridge`, jeśli kolejne typy urządzeń będą wymagały
   niezależnego zarządzania grupą cartridge poza `Vic20MemoryBus`.
+- [x] Dodać kartridż RTC zgodny z MC146818/DS12887.
+  - [x] Zaimplementować rejestry czasu BCD, tryb SET, status C i update-ended IRQ.
+  - [x] Podłączyć indeks/dane RTC pod `$9C00/$9C01` jako memory-mapped I/O3.
+  - [x] Dodać program 6502 z procedurą IRQ zapisującą `HH:MM:SS` w prawym górnym rogu.
+  - [x] Dodać testy układu, mapowania IRQ i uruchomienia programu z obrazu kartridża.
 
 ### 4. VIC-20 — pełniejszy model kasety
 

@@ -104,7 +104,7 @@ public sealed class Vic20CartridgePluginTests
     }
 
     [Test]
-    public void Machine_DoesNotMountPluginWhenResourcesConflictWithProfile()
+    public void Machine_DoesNotMountPluginWhenResourcesConflictWithMountedRamCartridge()
     {
         var romsRoot = RomLocator.Directory("kernal.bin");
         var pluginPath = typeof(SampleCartridgePlugin).Assembly.Location;
@@ -114,16 +114,40 @@ public sealed class Vic20CartridgePluginTests
         try
         {
             File.WriteAllBytes(imagePath, [0x42]);
-            var machine = new Vic20Machine(romsRoot, expansionPreset: Vic20ExpansionPreset.All);
+            var machine = new Vic20Machine(romsRoot);
+            machine.MountCartridgePlugin(
+                FindRamPlugin("vic20-ram-35k"),
+                Path.Combine(romsRoot, "cartridges", "vic20-ram-35k.bin"));
 
             Action action = () => machine.MountCartridgePlugin(pluginPath, imagePath);
 
             action.Should().Throw<InvalidOperationException>().WithMessage("*overlap*$A000*");
-            machine.MountedCartridges.Should().BeEmpty();
+            machine.MountedCartridges.Should().ContainSingle();
         }
         finally
         {
             temporaryDirectory.Delete(true);
         }
+    }
+
+    private static string FindRamPlugin(string id)
+    {
+        var assemblyName = id switch
+        {
+            "vic20-ram-35k" => "PetEmulator.Vic20.Cartridge.Ram.35K.dll",
+            _ => throw new ArgumentOutOfRangeException(nameof(id), id, null),
+        };
+
+        for (var directory = new DirectoryInfo(TestContext.CurrentContext.TestDirectory);
+             directory is not null;
+             directory = directory.Parent)
+        {
+            var candidate = Path.Combine(directory.FullName, "plugins", "PetEmulator.Vic20.Cartridge.Ram.35K",
+                "bin", "Debug", "net10.0", assemblyName);
+            if (File.Exists(candidate))
+                return candidate;
+        }
+
+        throw new FileNotFoundException($"Could not locate {assemblyName}.");
     }
 }

@@ -87,6 +87,8 @@ internal sealed class RamExpansionInstance : IVic20CartridgeInstance
 
     public Vic20CartridgeDescriptor Descriptor { get; }
 
+    public IReadOnlyList<Vic20CartridgeResource> Resources => _resources;
+
     public bool TryRead(ushort address, out byte value)
     {
         if (TryGetOffset(address, out var offset))

@@ -19,7 +19,6 @@
                 <controls:DatasetteControl />
                 <controls:DiskDriveControl />
                 <controls:CartridgeControl />
-                <controls:Vic20ProfileSelectorControl DataContext="{Binding ProfileSelector}" />
                 <controls:Vic20ProgramProfileSelectorControl DataContext="{Binding ProgramProfileSelector}" />
 
                 <ItemsControl ItemsSource="{Binding Devices}">

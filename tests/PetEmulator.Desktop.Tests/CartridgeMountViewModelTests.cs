@@ -43,9 +43,10 @@ public sealed class CartridgeMountViewModelTests
         try
         {
             File.WriteAllBytes(imagePath, [0x42]);
-            var machine = new Vic20MachineViewModel(
-                RomsRoot(),
-                Vic20ExpansionPreset.All);
+            var machine = new Vic20MachineViewModel(RomsRoot());
+            machine.LoadCartridgePlugin(
+                Path.Combine(AppContext.BaseDirectory, "PetEmulator.Vic20.Cartridge.Ram.35K.dll"),
+                Path.Combine(RomsRoot(), "cartridges", "vic20-ram-35k.bin"));
             var viewModel = new CartridgeMountViewModel(machine, new StubFilePickerService());
             viewModel.SelectedPluginPath = typeof(SampleCartridgePlugin).Assembly.Location;
             viewModel.SelectedImagePath = imagePath;
@@ -53,7 +54,7 @@ public sealed class CartridgeMountViewModelTests
             viewModel.LoadPluginCommand.Execute(null);
 
             viewModel.ErrorMessage.Should().Contain("overlap");
-            viewModel.LoadedCartridges.Should().BeEmpty();
+            viewModel.LoadedCartridges.Should().ContainSingle(row => row.Name == "vic20-ram-35k.bin");
         }
         finally
         {

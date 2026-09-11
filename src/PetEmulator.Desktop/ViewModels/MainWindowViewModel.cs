@@ -38,10 +38,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         [
              .. PetProfileCatalog.All.Select(profile =>
                  new ModuleMenuEntry(profile.Name, () => new PetMachineViewModel(profile, Path.Combine(_romsRoot, "pet")))),
-               .. Vic20ExpansionPresetCatalog.All
-                   .Where(preset => preset.Preset == Vic20ExpansionPreset.Unexpanded)
-                   .Select(preset =>
-                   new ModuleMenuEntry(preset.Label, () => CreateVic20(preset.Preset))),
+              new ModuleMenuEntry("VIC-20", CreateVic20),
               new ModuleMenuEntry("Chip Tester", () => new ChipTesterViewModel(_romsRoot)),
               new ModuleMenuEntry("Media Tester", () => new MediaTesterViewModel(_filePicker)),
               new ModuleMenuEntry("Font / Glyph Viewer", () => new FontViewerViewModel(_romsRoot)),
@@ -63,14 +60,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <summary>Every selectable machine configuration, for the Machine menu.</summary>
     public IReadOnlyList<ModuleMenuEntry> ModuleChoices { get; }
 
-    private Vic20MachineViewModel CreateVic20(Vic20ExpansionPreset preset)
+    private Vic20MachineViewModel CreateVic20()
     {
-        var machine = new Vic20MachineViewModel(Path.Combine(_romsRoot, "vic20"), preset);
-        machine.ProfileSelector.ProfileSelected += (_, profile) =>
-        {
-            if (ReferenceEquals(CurrentModule, machine))
-                SwitchVic20Profile(machine, profile.Preset);
-        };
+        var machine = new Vic20MachineViewModel(Path.Combine(_romsRoot, "vic20"));
         machine.ProgramProfileSelector.ProfileSelected += (_, profile) =>
             LoadVic20ProgramProfile(machine, profile);
         return machine;
@@ -90,16 +82,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            if (current.ProfileSelector.SelectedProfile.Preset != Vic20ExpansionPreset.Unexpanded)
-            {
-                var replacement = CreateVic20(Vic20ExpansionPreset.Unexpanded);
-                replacement.ProgramProfileSelector.SetSelectedProfile(profile);
-                replacement.LoadProgramProfile(profile);
-                CurrentModule = replacement;
-                current.Dispose();
-                return;
-            }
-
             current.LoadProgramProfile(profile);
             current.ProgramProfileSelector.ErrorMessage = null;
         }
@@ -109,12 +91,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void SwitchVic20Profile(Vic20MachineViewModel current, Vic20ExpansionPreset preset)
-    {
-        var replacement = CreateVic20(preset);
-        CurrentModule = replacement;
-        current.Dispose();
-    }
 
     /// <summary>Raised by <see cref="ExitCommand"/> - the View closes the window.</summary>
     public event EventHandler? CloseRequested;

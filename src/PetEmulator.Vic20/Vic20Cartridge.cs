@@ -17,7 +17,7 @@ public interface IVic20CartridgeIoDevice
 }
 
 /// <summary>A VIC-20 cartridge with a raw binary ROM and optional I/O2/I/O3 devices.</summary>
-public sealed class Vic20Cartridge
+public sealed class Vic20Cartridge : IVic20ExpansionDevice
 {
     private readonly byte[] _rom;
     private readonly IVic20CartridgeInstance? _pluginInstance;

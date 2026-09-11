@@ -26,12 +26,12 @@ public sealed class Vic20AutostartCartridgeTests
         chip.Data.Skip(0x43).Take(source.Length - 2).Should().Equal(source.Skip(2));
     }
 
-    [TestCase("Alphoids-autostart.crt", "Alphoids.prg")]
-    [TestCase("Alien-Blitz-NTSC-autostart.crt", "Alien-Blitz.NTSC.prg")]
-    [TestCase("Alien-Blitz-PAL-autostart.crt", "Alien-Blitz.PAL.prg")]
+    [TestCase("Alphoids-autostart.crt", "Alphoids.prg", 22)]
+    [TestCase("Alien-Blitz-NTSC-autostart.crt", "Alien-Blitz.NTSC.prg", 21)]
+    [TestCase("Alien-Blitz-PAL-autostart.crt", "Alien-Blitz.PAL.prg", 21)]
     [CancelAfter(30_000)]
     public void MachineLanguageAutostartCartridge_CopiesPrgAndJumpsToItsSysTarget(
-        string cartridgeName, string sourceName)
+        string cartridgeName, string sourceName, int expectedColumns)
     {
         var machine = new Vic20Machine(RomLocator.Directory("kernal.bin"));
         machine.MountCartridge(Cartridge(cartridgeName));
@@ -45,7 +45,7 @@ public sealed class Vic20AutostartCartridgeTests
         machine.Memory.Read(0x100E).Should().Be(source[2 + 13]);
         machine.Run(250_000);
 
-        machine.Vic.Columns.Should().Be(22);
+        machine.Vic.Columns.Should().Be(expectedColumns);
         machine.Vic.Rows.Should().Be(23);
         machine.Vic.ScreenAddr.Should().Be(0x1E00);
         machine.Memory.Read(0x00C6).Should().Be(0, "the bootstrap SYS command must be consumed");

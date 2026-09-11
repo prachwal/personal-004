@@ -9,14 +9,26 @@ public sealed class Vic20ProgramProfileTests
     [Test]
     public void CatalogContainsTheThreeDownloadedProgramsWithNonOverlappingRam()
     {
-        Vic20ProgramProfileCatalog.All.Should().HaveCount(5);
-        Vic20ProgramProfileCatalog.All.Skip(2).Take(2).Should().OnlyContain(profile =>
-            profile.RamImageFileName == "vic20-ram-24k.bin"
-            && profile.RamRange == "$2000-$7FFF");
-        Vic20ProgramProfileCatalog.All[1].RamImageFileName.Should().BeNull();
-        Vic20ProgramProfileCatalog.All[1].RamRange.Should().BeNull();
-        Vic20ProgramProfileCatalog.All[4].RamImageFileName.Should().BeNull();
-        Vic20ProgramProfileCatalog.All[4].RamRange.Should().BeNull();
+        Vic20ProgramProfileCatalog.All.Should().HaveCount(11);
+        Vic20ProgramProfileCatalog.All.Where(profile => profile.Id is "alien-blitz-ntsc" or "alien-blitz-pal")
+            .Should().OnlyContain(profile =>
+            profile.Cartridges.Count == 2
+            && profile.Cartridges[0] == new Vic20ProgramCartridge("vic20-ram-24k.bin", "vic20-ram-24k"));
+        Vic20ProgramProfileCatalog.All.Single(profile => profile.Id == "alphoids").Cartridges.Should().ContainSingle();
+        Vic20ProgramProfileCatalog.All.Single(profile => profile.Id == "sound-test").Cartridges.Should().ContainSingle();
+        Vic20ProgramProfileCatalog.All.Where(profile => profile.Id.StartsWith("ram-"))
+            .SelectMany(profile => profile.Cartridges)
+            .Should().OnlyContain(cartridge => cartridge.PluginId != null);
+    }
+
+    [Test]
+    public void CatalogContainsTheRtcCartridgePluginProfile()
+    {
+        var profile = Vic20ProgramProfileCatalog.All.Single(profile => profile.Id == "rtc");
+
+        profile.Name.Should().Be("MC146818 RTC");
+        profile.Cartridges.Should().ContainSingle()
+            .Which.Should().Be(new Vic20ProgramCartridge("vic20-mc146818-rtc.bin", "vic20-mc146818-rtc"));
     }
 
     [Test]
@@ -33,7 +45,7 @@ public sealed class Vic20ProgramProfileTests
         Vic20ProgramProfile? selected = null;
         selector.ProfileSelected += (_, profile) => selected = profile;
 
-        selector.SelectedProfile = Vic20ProgramProfileCatalog.All[2];
+        selector.SelectedProfile = Vic20ProgramProfileCatalog.All.Single(profile => profile.Id == "alien-blitz-ntsc");
 
         selected.Should().NotBeNull();
         selected!.Id.Should().Be("alien-blitz-ntsc");

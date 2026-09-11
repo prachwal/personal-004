@@ -56,12 +56,9 @@ public sealed class Vic20Machine : IMachine
     public Vic20Machine(
         string romsRoot,
         Vic20DisplayConfig? displayConfig = null,
-        Vic20ExpansionPreset expansionPreset = Vic20ExpansionPreset.Unexpanded,
         Vic20Cartridge? cartridge = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
-        ExpansionProfile = Vic20ExpansionPresetCatalog.Get(expansionPreset);
-
         DisplayConfig = displayConfig ?? Vic20DisplayConfig.Ntsc;
         var roms = Vic20RomLoader.Load(romsRoot, Vic20RomManifest.Ntsc);
 
@@ -79,8 +76,7 @@ public sealed class Vic20Machine : IMachine
             _userPort.Direction = _via1.DDRB;
         };
 
-        _memoryBus = new Vic20MemoryBus(roms, _vic, _via1, _via2, _colorRam,
-            expansionPreset, cartridge);
+        _memoryBus = new Vic20MemoryBus(roms, _vic, _via1, _via2, _colorRam, cartridge);
         _cpu = new Cpu6502Classic(_memoryBus);
         _datasette = new Vic20Datasette(_via1, _via2);
         _serialBus = new Vic20SerialBus();
@@ -120,9 +116,6 @@ public sealed class Vic20Machine : IMachine
 
     public MOS6560 Vic => _vic;
 
-    /// <summary>Concrete hardware profile selected for this machine instance.</summary>
-    public Vic20ExpansionProfile ExpansionProfile { get; }
-
     public MOS6522 Via1 => _via1;
 
     public MOS6522 Via2 => _via2;
@@ -135,16 +128,17 @@ public sealed class Vic20Machine : IMachine
 
     public Vic20Cartridge? Cartridge => _memoryBus.Cartridge;
 
+    public IReadOnlyList<IVic20ExpansionDevice> ExpansionDevices => _memoryBus.ExpansionDevices;
+
     public IReadOnlyList<Vic20MountedCartridge> MountedCartridges => _mountedCartridges;
 
     public string? CartridgePath => _mountedCartridges.FirstOrDefault()?.Path;
 
-    public bool HasCartridge => ExpansionProfile.Resources.Count > 0 || _mountedCartridges.Count > 0;
+    public bool HasCartridge => _mountedCartridges.Count > 0;
 
     public IReadOnlyList<Vic20CartridgeResource> CartridgeResources =>
         [
-            .. ExpansionProfile.Resources,
-            .. _mountedCartridges.SelectMany(item => item.Cartridge.Resources),
+            .. _memoryBus.ExpansionDevices.SelectMany(item => item.Resources),
         ];
 
     public void MountCartridge(string path)
@@ -162,6 +156,18 @@ public sealed class Vic20Machine : IMachine
         var cartridge = Vic20Cartridge.FromPlugin(plugin.Create(image));
         _memoryBus.InsertCartridge(cartridge);
         _mountedCartridges.Add(new Vic20MountedCartridge(imagePath, cartridge));
+    }
+
+    public void AttachExpansionDevice(IVic20ExpansionDevice device)
+    {
+        ArgumentNullException.ThrowIfNull(device);
+        _memoryBus.InsertExpansionDevice(device);
+    }
+
+    public void DetachExpansionDevice(IVic20ExpansionDevice device)
+    {
+        ArgumentNullException.ThrowIfNull(device);
+        _memoryBus.EjectExpansionDevice(device);
     }
 
     public void EjectCartridge()
@@ -285,7 +291,7 @@ public sealed class Vic20Machine : IMachine
 
         CaptureSaveIfDispatched();
 
-        _cpu.SetIRQ(_via1.IRQ || _via2.IRQ);
+        _cpu.SetIRQ(_via1.IRQ || _via2.IRQ || _memoryBus.ExpansionIrq);
     }
 
     /// <summary>

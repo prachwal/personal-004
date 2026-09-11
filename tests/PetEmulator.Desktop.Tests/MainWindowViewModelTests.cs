@@ -15,7 +15,7 @@ public sealed class MainWindowViewModelTests
         viewModel.ModuleChoices
             .Select(choice => choice.Label)
             .Where(label => label.StartsWith("VIC-20", StringComparison.Ordinal))
-            .Should().Equal("VIC-20 (unexpanded)");
+            .Should().Equal("VIC-20");
     }
 
     private sealed class StubFilePickerService : IFilePickerService

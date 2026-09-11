@@ -34,3 +34,11 @@ python3 tools/generate-vic20-crt-fixtures.py
   through VIC oscillator 1 and requires no RAM expansion. Build the PRG first
   with `python3 tools/build-vic20-sound-test.py`, then regenerate the wrapper
   with `python3 tools/generate-vic20-autostart-basic-cartridges.py`.
+- `vic20-mc146818-rtc.bin` — raw 8 KB A000 native autostart image for the
+  MC146818 RTC plugin. It contains the VIC-20 KERNAL autostart vector and
+  signature, then uses the same two-stage `$BF00`/`SYS $BF40` bootstrap as the
+  working VIC-20 program cartridges. The RTC stage returns to normal BASIC
+  and keeps the clock updated through IRQ. The plugin maps the RTC index/data registers at
+  `$9C00/$9C01` and asserts CPU IRQ on update-ended.
+  It can coexist with the `+24K` RAM plugin, but not with `+35K` because the
+  image consumes `$A000-$BFFF`.

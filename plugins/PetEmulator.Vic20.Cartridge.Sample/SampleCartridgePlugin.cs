@@ -37,6 +37,8 @@ internal sealed class SampleCartridgeInstance : IVic20CartridgeInstance
 
     public Vic20CartridgeDescriptor Descriptor { get; }
 
+    public IReadOnlyList<Vic20CartridgeResource> Resources => Descriptor.Resources;
+
     public bool TryRead(ushort address, out byte value)
     {
         if (address == 0x9800)

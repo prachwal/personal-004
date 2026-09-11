@@ -51,10 +51,18 @@ public sealed record Vic20CartridgeDescriptor(
     IReadOnlyList<Vic20CartridgeResource> Resources,
     IReadOnlyList<string> ImageExtensions);
 
-/// <summary>Executable state of one mounted cartridge plugin.</summary>
-public interface IVic20CartridgeInstance
+/// <summary>
+/// Executable state of any mounted VIC-20 expansion. A device may implement only the operations
+/// represented by its resources: <see cref="TryRead"/> and <see cref="TryWrite"/> return false
+/// for addresses or access directions it does not provide. Resource ownership and conflicts are
+/// still validated centrally by the VIC-20 expansion registry.
+/// </summary>
+public interface IVic20ExpansionDevice
 {
-    Vic20CartridgeDescriptor Descriptor { get; }
+    IReadOnlyList<Vic20CartridgeResource> Resources { get; }
+
+    /// <summary>Whether the device currently asserts the active-low CPU IRQ line.</summary>
+    bool Irq => false;
 
     bool TryRead(ushort address, out byte value);
 
@@ -63,6 +71,12 @@ public interface IVic20CartridgeInstance
     void Reset();
 
     void Tick(ulong cycles);
+}
+
+/// <summary>Executable state of one mounted cartridge plugin.</summary>
+public interface IVic20CartridgeInstance : IVic20ExpansionDevice
+{
+    Vic20CartridgeDescriptor Descriptor { get; }
 }
 
 /// <summary>Entry point exported by a cartridge DLL.</summary>

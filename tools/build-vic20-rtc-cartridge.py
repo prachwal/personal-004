@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Build the raw A000 VIC-20 cartridge containing the MC146818 RTC demo."""
+
+from __future__ import annotations
+
+import subprocess
+import tempfile
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ROOT / "roms" / "vic20" / "test-programs" / "vic20-rtc.asm"
+OUTPUT = ROOT / "roms" / "vic20" / "cartridges" / "vic20-mc146818-rtc.bin"
+
+# This is the same tested native A000 BASIC bootstrap used by the program
+# cartridge generator. It initializes KERNAL, queues SYS 48960 ($BF40), and
+# returns to BASIC after that routine finishes.
+AUTOSTART_STUB = bytes([
+    0x09, 0xA0, 0x56, 0xFF, 0x41, 0x30, 0xC3, 0xC2, 0xCD,
+    0x4C, 0x00, 0xBF, 0xBD, 0x81, 0x02, 0x95, 0x08,
+    0xBD, 0x29, 0xA0, 0x9D, 0x81, 0x02, 0xBD, 0x2B,
+    0xA0, 0x9D, 0x77, 0x02, 0xE8, 0xE0, 0x02, 0x90,
+    0xEA, 0xF0, 0xF3, 0x86, 0xC6, 0x4C, 0x32, 0xFD,
+    0x2E, 0xA0, 0x52, 0xD5, 0x0D, 0x00,
+    0x43, 0xA0, 0x00, 0x00, 0x97, 0x34, 0x36, 0x2C,
+    0xC2, 0x28, 0x39, 0x29, 0x3A, 0x9C, 0x3A, 0x99,
+    0x22, 0x93, 0x22, 0x00,
+])
+
+BOOTSTRAP_OFFSET = 0x1F00
+STAGE_OFFSET = 0x1F40
+SYS_BOOTSTRAP = bytes([
+    0x20, 0x8D, 0xFD,
+    0xA9, 0x53, 0x8D, 0x77, 0x02,  # SYS
+    0xA9, 0x59, 0x8D, 0x78, 0x02,
+    0xA9, 0x53, 0x8D, 0x79, 0x02,
+    0xA9, 0x20, 0x8D, 0x7A, 0x02,
+    0xA9, 0x34, 0x8D, 0x7B, 0x02,  # 48960 = $BF40
+    0xA9, 0x38, 0x8D, 0x7C, 0x02,
+    0xA9, 0x39, 0x8D, 0x7D, 0x02,
+    0xA9, 0x36, 0x8D, 0x7E, 0x02,
+    0xA9, 0x30, 0x8D, 0x7F, 0x02,
+    0xA9, 0x0D, 0x8D, 0x80, 0x02,
+    0xA9, 0x0A, 0x85, 0xC6,
+    0x4C, 0x32, 0xFD,
+])
+
+
+def main() -> None:
+    with tempfile.TemporaryDirectory(prefix="vic20-rtc-") as directory:
+        work = Path(directory)
+        obj = work / "rtc.o"
+        binary = work / "rtc.bin"
+        config = work / "rtc.cfg"
+        config.write_text(
+            "MEMORY { ROM: start = $BF40, size = $00C0, file = %O; }\n"
+            "SEGMENTS { CODE: load = ROM, type = ro; }\n",
+            encoding="ascii",
+        )
+        subprocess.run(["ca65", str(SOURCE), "-o", str(obj)], check=True)
+        subprocess.run(["ld65", str(obj), "-C", str(config), "-o", str(binary)], check=True)
+        stage = binary.read_bytes()
+
+    image = bytearray(0x2000)
+    image[:len(AUTOSTART_STUB)] = AUTOSTART_STUB
+    image[BOOTSTRAP_OFFSET:BOOTSTRAP_OFFSET + len(SYS_BOOTSTRAP)] = SYS_BOOTSTRAP
+    image[STAGE_OFFSET:STAGE_OFFSET + len(stage)] = stage
+    OUTPUT.write_bytes(image)
+    print(f"wrote {OUTPUT} ({len(image)} bytes)")
+
+
+if __name__ == "__main__":
+    main()

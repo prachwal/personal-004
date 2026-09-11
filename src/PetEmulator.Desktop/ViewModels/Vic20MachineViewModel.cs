@@ -82,15 +82,12 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
 
     public IBrush CartridgeIconBrush => CartridgeLoaded ? Brushes.LimeGreen : Brushes.Gray;
 
-    public Vic20MachineViewModel(
-        string romsRoot,
-        Vic20ExpansionPreset expansionPreset = Vic20ExpansionPreset.Unexpanded)
+    public Vic20MachineViewModel(string romsRoot)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
 
         _romsRoot = romsRoot;
-        _machine = new Vic20Machine(romsRoot, expansionPreset: expansionPreset);
-        ProfileSelector = new Vic20ProfileSelectorViewModel(expansionPreset);
+        _machine = new Vic20Machine(romsRoot);
         ProgramProfileSelector = new Vic20ProgramProfileSelectorViewModel();
         _display = new Vic20RasterDisplay(_machine.Memory, _machine.Vic);
         _audioOutput = AudioOutputFactory.CreateDefault();
@@ -104,8 +101,6 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     }
 
     public int PixelWidth => _display.PixelWidth;
-
-    public Vic20ProfileSelectorViewModel ProfileSelector { get; }
 
     public Vic20ProgramProfileSelectorViewModel ProgramProfileSelector { get; }
 
@@ -153,17 +148,24 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     public void LoadProgramProfile(Vic20ProgramProfile profile)
     {
         ArgumentNullException.ThrowIfNull(profile);
-        var cartridgeDirectory = Path.Combine(_romsRoot, "cartridges");
-        var cartridgeImage = Path.Combine(cartridgeDirectory, profile.CartridgeFileName);
+        _machine.EjectCartridge();
 
-        if (profile.RamImageFileName is { Length: > 0 } ramImageFileName)
+        if (profile.IsEmpty)
         {
-            var ramImage = Path.Combine(cartridgeDirectory, ramImageFileName);
-            var pluginPath = typeof(PetEmulator.Vic20.Cartridge.Ram.RamExpansionCartridgePlugin).Assembly.Location;
-            _machine.MountCartridgePlugin(pluginPath, ramImage);
+            UpdateCartridgeState();
+            return;
         }
 
-        _machine.MountCartridge(cartridgeImage);
+        var cartridgeDirectory = Path.Combine(_romsRoot, "cartridges");
+        foreach (var cartridge in profile.Cartridges)
+        {
+            var imagePath = Path.Combine(cartridgeDirectory, cartridge.FileName);
+            if (cartridge.PluginId is { Length: > 0 } pluginId)
+                _machine.MountCartridgePlugin(ResolvePluginPath(pluginId), imagePath);
+            else
+                _machine.MountCartridge(imagePath);
+        }
+
         _machine.Reset();
         UpdateCartridgeState();
     }
@@ -191,12 +193,10 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
 
     private void UpdateCartridgeState()
     {
-        CartridgeLoaded = _machine.HasCartridge;
+        CartridgeLoaded = _machine.MountedCartridges.Count > 0;
         CartridgeName = _machine.CartridgePath is not null
             ? Path.GetFileName(_machine.CartridgePath)
-            : _machine.ExpansionProfile.Resources.Count > 0
-                ? _machine.ExpansionProfile.Label
-                : "No cartridge";
+            : "No cartridge";
         CanEjectCartridge = _machine.Cartridge is not null;
         CartridgeResources = _machine.CartridgeResources
             .Select(resource => new CartridgeResourceRow(
@@ -215,6 +215,25 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
                     resource.Kind.ToString().ToUpperInvariant(),
                     resource.Access.ToString())).ToArray()))
             .ToArray();
+    }
+
+    private static string ResolvePluginPath(string pluginId) => pluginId switch
+    {
+        "vic20-ram-3k" => PluginAssembly("PetEmulator.Vic20.Cartridge.Ram.3K.dll"),
+        "vic20-ram-8k" => PluginAssembly("PetEmulator.Vic20.Cartridge.Ram.8K.dll"),
+        "vic20-ram-16k" => PluginAssembly("PetEmulator.Vic20.Cartridge.Ram.16K.dll"),
+        "vic20-ram-24k" => PluginAssembly("PetEmulator.Vic20.Cartridge.Ram.24K.dll"),
+        "vic20-ram-35k" => PluginAssembly("PetEmulator.Vic20.Cartridge.Ram.35K.dll"),
+        "vic20-mc146818-rtc" => typeof(PetEmulator.Vic20.Cartridge.Rtc.RtcCartridgePlugin).Assembly.Location,
+        _ => throw new InvalidOperationException($"Unknown VIC-20 cartridge plugin '{pluginId}'.")
+    };
+
+    private static string PluginAssembly(string fileName)
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, fileName);
+        return File.Exists(path)
+            ? path
+            : throw new FileNotFoundException($"VIC-20 cartridge plugin '{fileName}' was not deployed.", path);
     }
 
     public void NewDisk(string path) => _machine.MountNewDisk(path, Path.GetFileNameWithoutExtension(path).ToUpperInvariant());

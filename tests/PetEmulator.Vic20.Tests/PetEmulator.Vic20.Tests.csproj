@@ -19,6 +19,8 @@
     <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Ram.16K/PetEmulator.Vic20.Cartridge.Ram.16K.csproj" />
     <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Ram.24K/PetEmulator.Vic20.Cartridge.Ram.24K.csproj" />
     <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Ram.35K/PetEmulator.Vic20.Cartridge.Ram.35K.csproj" />
+    <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Rtc/PetEmulator.Vic20.Cartridge.Rtc.csproj" />
+    <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Rtc/PetEmulator.Vic20.Cartridge.Rtc.csproj" />
     <ProjectReference Include="../../lib/PetEmulator.Debugger/PetEmulator.Debugger.csproj" />
   </ItemGroup>
 </Project>

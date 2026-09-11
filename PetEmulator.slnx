@@ -22,6 +22,7 @@
     <Project Path="plugins/PetEmulator.Vic20.Cartridge.Ram.16K/PetEmulator.Vic20.Cartridge.Ram.16K.csproj" />
     <Project Path="plugins/PetEmulator.Vic20.Cartridge.Ram.24K/PetEmulator.Vic20.Cartridge.Ram.24K.csproj" />
     <Project Path="plugins/PetEmulator.Vic20.Cartridge.Ram.35K/PetEmulator.Vic20.Cartridge.Ram.35K.csproj" />
+    <Project Path="plugins/PetEmulator.Vic20.Cartridge.Rtc/PetEmulator.Vic20.Cartridge.Rtc.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/PetEmulator.Core.Tests/PetEmulator.Core.Tests.csproj" />

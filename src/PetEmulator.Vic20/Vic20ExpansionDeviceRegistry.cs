@@ -6,16 +6,18 @@ namespace PetEmulator.Vic20;
 internal sealed class Vic20ExpansionDeviceRegistry
 {
     private readonly IReadOnlyList<Vic20CartridgeResource> _reservedResources;
-    private readonly List<Vic20Cartridge> _devices = [];
+    private readonly List<IVic20ExpansionDevice> _devices = [];
 
     public Vic20ExpansionDeviceRegistry(IReadOnlyList<Vic20CartridgeResource> reservedResources)
     {
         _reservedResources = reservedResources;
     }
 
-    public IReadOnlyList<Vic20Cartridge> Devices => _devices;
+    public IReadOnlyList<IVic20ExpansionDevice> Devices => _devices;
 
-    public void Insert(Vic20Cartridge device)
+    public bool Irq => _devices.Any(device => device.Irq);
+
+    public void Insert(IVic20ExpansionDevice device)
     {
         ArgumentNullException.ThrowIfNull(device);
         Vic20CartridgeResourceValidator.ThrowIfConflicting(
@@ -26,7 +28,7 @@ internal sealed class Vic20ExpansionDeviceRegistry
 
     public void EjectAll() => _devices.Clear();
 
-    public void Eject(Vic20Cartridge device) => _devices.Remove(device);
+    public void Eject(IVic20ExpansionDevice device) => _devices.Remove(device);
 
     public bool TryRead(ushort address, out byte value)
     {
