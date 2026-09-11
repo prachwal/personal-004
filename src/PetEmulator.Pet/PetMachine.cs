@@ -25,6 +25,7 @@ public sealed class PetMachine : IMachine
     private readonly MOS6522 _via;
     private readonly MT6545? _crtc;
     private readonly PetDatasette _datasette;
+    private readonly PetDatasette2 _datasette2;
     private readonly PetIeeeBus _ieeeBus;
     private readonly PetIeeeBusBinding _ieeeBusBinding;
     private readonly List<PetIeeeDriveStatus> _mountedDrives = [];
@@ -57,6 +58,7 @@ public sealed class PetMachine : IMachine
         _cpu = new Cpu6502Classic(_memoryBus);
 
         _datasette = new PetDatasette(_pia1);
+        _datasette2 = new PetDatasette2(_pia1, _via);
         _ieeeBus = new PetIeeeBus();
         // Latches true on any real byte transfer (LISTEN/TALK addressing, filename, or file data -
         // all real bus traffic, not just payload) for a GUI's disk-activity LED - see
@@ -83,6 +85,7 @@ public sealed class PetMachine : IMachine
         {
             var value = (byte)(0xF0 | _keyboardSelectedRow);
             if (_datasette.Sense) value &= 0xEF;
+            if (_datasette2.Sense) value &= 0xDF;
             if (_ieeeBus.EOI) value &= 0xBF;
             return value;
         };
@@ -132,12 +135,15 @@ public sealed class PetMachine : IMachine
     /// through this directly.</summary>
     public PetDatasette Datasette => _datasette;
 
+    /// <summary>The independent cassette #2 transport (sense on PIA1 PA5, motor on VIA PB4).</summary>
+    public PetDatasette2 Datasette2 => _datasette2;
+
     /// <summary>Every peripheral currently attached and worth a GUI status icon for - see
     /// <see cref="IDeviceStatus"/>'s doc comment for why this is a dynamic list rather than a
     /// fixed set of properties. Rebuilt on each access (cheap: a handful of entries), so it always
     /// reflects the latest <see cref="MountDisk"/>/<see cref="Datasette"/> state.</summary>
     public IReadOnlyList<IDeviceStatus> Devices =>
-        [new PetDatasetteStatus(_datasette), .. _mountedDrives];
+        [new PetDatasetteStatus(_datasette), new PetDatasette2Status(_datasette2), .. _mountedDrives];
 
     /// <summary>Mounts a D64 disk image on the IEEE-488 bus at <paramref name="deviceNumber"/>
     /// (8 is the PET/CBM DOS convention for the first drive). Replaces whatever was already
@@ -212,6 +218,7 @@ public sealed class PetMachine : IMachine
         _via.Reset();
         _crtc?.Reset();
         _datasette.Reset();
+        _datasette2.Reset();
         _ieeeBusBinding.Reset();
         Keyboard.Reset();
         SyncUserPortState();

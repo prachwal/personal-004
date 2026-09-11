@@ -211,6 +211,37 @@ public sealed class PetMachineTests
     }
 
     [Test]
+    public void SecondDatasette_UsesPia1Pa5AndViaPb4_IndependentlyOfCassetteOne()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+        var pia1Base = PetMemoryBus.Pia1Base;
+        var viaBase = PetMemoryBus.ViaBase;
+
+        machine.Memory.Write((ushort)(pia1Base + 1), 0x04); // select PIA1 ORA
+        machine.Datasette2.PressPlay();
+        var playing = machine.Memory.Read(pia1Base);
+        (playing & 0x20).Should().Be(0, "cassette #2 sense is active-low on PA5");
+        machine.Datasette.Sense.Should().BeFalse("cassette #1 must remain released");
+
+        machine.Memory.Write((ushort)(viaBase + MOS6522.Ddrb), 0x10);
+        machine.Memory.Write((ushort)(viaBase + MOS6522.Orb), 0x00);
+        machine.Datasette2.MotorOn.Should().BeTrue();
+        machine.Datasette.MotorOn.Should().BeFalse("cassette #1 motor is controlled by PIA1 CB2");
+
+        machine.Memory.Write((ushort)(viaBase + MOS6522.Orb), 0x10);
+        machine.Datasette2.MotorOn.Should().BeFalse();
+    }
+
+    [Test]
+    public void Devices_ExposeBothIndependentCassettes()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+
+        machine.Devices.Should().Contain(d => d.Id == "datasette");
+        machine.Devices.Should().Contain(d => d.Id == "datasette2");
+    }
+
+    [Test]
     public void UserPort_MapsViaPortAInputOutputDirectionAndCa2Handshake()
     {
         var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
