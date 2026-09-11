@@ -62,8 +62,13 @@ public sealed class Vic20MachineTapeTests
         machine.Datasette.PressPlay();
         Vic20TextTyper.Type(machine, "10 A=5\n", holdInstructions: 8000, gapInstructions: 8000);
         machine.Run(200_000);
+        machine.Datasette.WriteRecorder.Begin();
         Vic20TextTyper.Type(machine, "SAVE\n", holdInstructions: 8000, gapInstructions: 8000);
         machine.Run(3_000_000);
+        var recordedWritePulses = machine.Datasette.WriteRecorder.End();
+
+        recordedWritePulses.Should().NotBeEmpty("the real SAVE routine must drive VIA2 PB3");
+        recordedWritePulses.Should().OnlyContain(width => width > 0);
 
         const ushort ProgramStart = 0x1000;
         var saved = new byte[8];

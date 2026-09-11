@@ -87,8 +87,9 @@ three-symbol scheme PET/LOAD use). It never reliably round-tripped: the recorded
 histogram had real clusters well outside the ~192/~352-cycle periods that math predicts (interrupt
 -dispatch jitter on literally every single bit-toggle interrupt was enough to blur it), and no
 noise-filtering heuristic tried got a captured recording to decode cleanly back through `LoadTape`.
-The sampler is therefore useful for tracing and future decoder work, but it does not change the
-currently proven logical SAVE implementation.
+The sampler is therefore useful for tracing and future decoder work. The real-ROM SAVE test now
+confirms that PB3 produces a non-empty stream of positive transition intervals, but it does not
+change the currently proven logical SAVE implementation or claim that the raw stream round-trips.
 
 **The fix: don't capture the analog signal at all - snapshot the logical content instead.** The
 real KERNAL's `TAPE` dispatcher redirects the IRQ vector (`$0314`/`$0315`, `CINV`) to its own
