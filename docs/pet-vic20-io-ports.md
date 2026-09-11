@@ -22,7 +22,7 @@ Status `repo` opisuje stan aktualnej implementacji emulatora, a nie tylko fakt,
 | CBM 4032 / 40 kolumn | klawiatura, IEEE-488, kasety, User Port, rozszerzenie; wariant CRTC zależny od rewizji | j.w.; CRTC `$E880-$E881` w rewizjach z CRTC | ◐ profil `cbm-4032`, 40×25, CRTC, klawiatura, IEEE-488, kaseta #1 | druga kaseta, User Port, rozszerzenie; profil upraszcza różnice rewizji |
 | CBM 8032 / seria 8000 | klawiatura, IEEE-488, kasety, User Port, rozszerzenie, CRTC; 80×25 | j.w. + CRTC `$E880-$E881` | ◐ profil `cbm-8032`, 80×25, CRTC, klawiatura, IEEE-488, kaseta #1 | druga kaseta, User Port, rozszerzenie 8096/8296 |
 | 8096 / 8296 / SuperPET / SP9000 | porty PET/CBM oraz — zależnie od modelu — bankowane RAM, dodatkowy procesor, ACIA/RS-232 lub inne rozszerzenia | PET I/O j.w.; sterowanie pamięcią rozszerzoną m.in. `$FFF0` w 8096/8296 | ❌ brak osobnych profili | cały dodatkowy sprzęt i bankowanie |
-| VIC-20 bez rozszerzenia | VIC-I, dwa VIA, joystick/paddle, User Port, kaseta, IEC serial, cartridge/expansion | `$9000-$900F`, `$9110-$911F`, `$9120-$912F`, `$9400-$97FF` | ◐ VIC-I, VIA1/VIA2, klawiatura, kaseta, IEC i Color RAM | joystick/paddle, fizyczny User Port, cartridge oraz I/O2/I/O3 |
+| VIC-20 bez rozszerzenia | VIC-I, dwa VIA, joystick/paddle, User Port, kaseta, IEC serial, cartridge/expansion | `$9000-$900F`, `$9110-$911F`, `$9120-$912F`, `$9400-$97FF` | ◐ VIC-I, VIA1/VIA2, klawiatura, joystick, User Port, kaseta, IEC i Color RAM | fizyczne źródło paddle/light-pen, adapter RS-232, cartridge oraz I/O2/I/O3 |
 | VIC-20 +3K / +8K / +16K / +24K / All | te same porty zewnętrzne; dodatkowo odpowiedni blok RAM | jak wyżej; pamięć bloków `$0400`, `$2000`, `$4000`, `$6000`, `$A000` | ◐ presety RAM są modelowane | brak urządzeń I/O cartridge i pełnej magistrali rozszerzeń |
 
 ## PET/CBM — szczegółowe mapowanie
@@ -56,11 +56,11 @@ szeregową magistralą IEC, której linie są rozdzielone pomiędzy oba VIA.
 
 | Adres | Układ / linie | Funkcja sprzętowa | Stan w repo |
 | --- | --- | --- | --- |
-| `$9000-$900F` | VIC-I 6560/6561 | obraz, kolory, raster, dźwięk, wejścia paddle/light-pen | ◐ układ VIC jest mapowany; brak zewnętrznych wejść paddle/light-pen |
-| `$9110` | VIA1 Port B | User Port / linie pomocnicze interfejsów szeregowych | ◐ rejestr VIA istnieje, brak zewnętrznego User Portu |
-| `$9111` | VIA1 Port A | IEC CLK IN bit 0, DATA IN bit 1, joystick bits 2–5, cassette sense bit 6, IEC ATN OUT bit 7 | ◐ IEC bits 0/1/7 i cassette sense bit 6; brak joysticka |
+| `$9000-$900F` | VIC-I 6560/6561 | obraz, kolory, raster, dźwięk, wejścia paddle/light-pen | ◐ rejestry wejść paddle/light-pen są podłączone do API maszyny; brak fizycznego źródła analogowego w Desktop |
+| `$9110` | VIA1 Port B | User Port / linie pomocnicze interfejsów szeregowych | ✅ osiem linii User Portu z wejściem, wyjściem i DDRB; brak adaptera RS-232 |
+| `$9111` | VIA1 Port A | IEC CLK IN bit 0, DATA IN bit 1, joystick bits 2–5, cassette sense bit 6, IEC ATN OUT bit 7 | ✅ IEC, joystick i cassette sense są scalane na właściwych bitach |
 | `$911C-$911F` | VIA1 PCR/IFR/IER/ORA | sterowanie CA2 kasety oraz obsługa VIA | ◐ CA2 kasety jest podłączone; pozostałe linie bez urządzeń zewnętrznych |
-| `$9120` | VIA2 Port B | skanowanie klawiatury; cassette WRITE bit 3; część wejść joysticka | ◐ klawiatura i rejestr są podłączone; joystick nie |
+| `$9120` | VIA2 Port B | skanowanie klawiatury; cassette WRITE bit 3; prawa joysticka PB7 | ✅ klawiatura, cassette WRITE i joystick PB7 |
 | `$9121` | VIA2 Port A | wybór kolumn/wierszy klawiatury | ✅ |
 | `$912C` | VIA2 PCR/CA1/CA2/CB1/CB2 | cassette READ; IEC CLK OUT, DATA OUT i SRQ | ◐ cassette READ i IEC CLK/DATA; SRQ bez urządzenia |
 | `$9400-$97FF` | Color RAM | pamięć atrybutów koloru | ✅ `MOS2114` |
@@ -88,10 +88,10 @@ VIA1 CA2 jako sterowania silnikiem oraz VIA2 PB3 jako `cassette WRITE`.
 | PET dyski | IEEE-488, urządzenia D64, montowanie i transfer DOS | brak drugiego niezależnego modelu kontrolera/portu; to ograniczenie modelu, nie standardu IEEE |
 | PET kasety | kaseta #1 i jej status | kaseta #2, pełny User Port i zewnętrzne linie VIA |
 | PET obraz | profile 40/80 kolumn, CRTC dla profili CRTC | brak 8096/8296 i ich bankowania |
-| VIC-20 klawiatura | VIA2 skanowanie matrycy | brak joysticka i paddle jako urządzeń wejściowych |
+| VIC-20 klawiatura | VIA2 skanowanie matrycy | brak konfliktu z joystickiem; joystick Desktop używa numpada |
 | VIC-20 dyski | IEC przez VIA1/VIA2, napędy D64 i status w modelu | brak dodatkowych urządzeń pod I/O2/I/O3 i cartridge bus |
 | VIC-20 kaseta | odczyt, zapis logiczny/SAVE-LOAD, motor/sense | brak osobnego zewnętrznego modelu analogowego portu |
-| VIC-20 User Port / RS-232 | rejestry VIA1 | brak widocznego urządzenia i linii zewnętrznych |
+| VIC-20 User Port / RS-232 | User Port VIA1 PB0-PB7 z DDRB; odczyt/zapis dostępny przez `Vic20Machine.UserPort` | brak adaptera RS-232 i obsługi protokołu szeregowego |
 | VIC-20 pamięć | presety 3K/8K/16K/24K/All | nie jest to pełna emulacja cartridge ROM ani urządzeń rozszerzeń |
 
 ## Źródła i kod repozytorium
@@ -122,16 +122,16 @@ integracyjnym właściwego modelu, jeśli infrastruktura na to pozwala.
 
 ### 2. VIC-20 — wejścia i User Port
 
-- [ ] Dodać model joysticka VIC-20.
-  - [ ] Podłączyć kierunki i fire do właściwych bitów VIA1/VIA2.
-  - [ ] Dodać obsługę joysticka w Desktop oraz test odczytu każdego bitu.
-- [ ] Dodać wejścia paddle/light-pen.
-  - [ ] Rozszerzyć model VIC-I o wejścia analogowe lub równoważny mechanizm testowy.
-  - [ ] Zweryfikować wybór kanału i odczyt przez rejestry VIC.
-- [ ] Dodać urządzenie User Portu VIC-20.
-  - [ ] Udostępnić VIA1 Port B jako osiem jawnych linii wejścia/wyjścia.
+- [x] Dodać model joysticka VIC-20.
+  - [x] Podłączyć kierunki i fire do właściwych bitów VIA1/VIA2.
+  - [x] Dodać obsługę joysticka w Desktop przez numpad `8/2/4/6/0` oraz test odczytu linii.
+- [x] Dodać wejścia paddle/light-pen.
+  - [x] Rozszerzyć model VIC-I o wejścia zewnętrzne `SetPaddlePosition` i `StrobeLightPen`.
+  - [x] Zweryfikować odczyt przez rejestry `$9006-$9009`.
+- [x] Dodać urządzenie User Portu VIC-20.
+  - [x] Udostępnić VIA1 Port B jako osiem linii wejścia/wyjścia z kierunkiem DDRB.
   - [ ] Dodać opcjonalny adapter RS-232 bez wiązania go bezpośrednio z ViewModelem.
-  - [ ] Dodać test kierunku linii, odczytu wejść i zapisu wyjść.
+  - [x] Dodać test kierunku linii, odczytu wejść i zapisu wyjść.
 
 ### 3. VIC-20 — cartridge i I/O2/I/O3
 

@@ -31,6 +31,8 @@ public sealed class Vic20Machine : IMachine
     private readonly MOS6522 _via2;
     private readonly MOS2114 _colorRam;
     private readonly Vic20KeyboardMatrix _keyboard = new();
+    private readonly Vic20Joystick _joystick = new();
+    private readonly Vic20UserPort _userPort = new();
     private readonly Vic20Datasette _datasette;
     private readonly Vic20SerialBus _serialBus;
     private readonly Vic20SerialBusBinding _serialBusBinding;
@@ -61,6 +63,15 @@ public sealed class Vic20Machine : IMachine
         _via1 = new MOS6522("VIA1", Vic20MemoryMap.Via1BaseAddress);
         _via2 = new MOS6522("VIA2", Vic20MemoryMap.Via2BaseAddress);
         _colorRam = new MOS2114("Color RAM", Vic20MemoryMap.ColorRamStart, Vic20MemoryMap.ColorRamSize);
+
+        _joystick.StateChanged += SyncGamePortInputs;
+        _userPort.InputChanged += SyncUserPortInput;
+        _via1.PortBInput = _userPort.Input;
+        _via1.PortBWritten = output =>
+        {
+            _userPort.Output = output;
+            _userPort.Direction = _via1.DDRB;
+        };
 
         _memoryBus = new Vic20MemoryBus(roms, _vic, _via1, _via2, _colorRam, expansionPreset);
         _cpu = new Cpu6502Classic(_memoryBus);
@@ -105,6 +116,12 @@ public sealed class Vic20Machine : IMachine
     public MOS6522 Via1 => _via1;
 
     public MOS6522 Via2 => _via2;
+
+    /// <summary>Digital control-port joystick, wired to VIA1 PA2-PA5 and VIA2 PB7.</summary>
+    public Vic20Joystick Joystick => _joystick;
+
+    /// <summary>Eight-bit external User Port connected to VIA1 Port B.</summary>
+    public Vic20UserPort UserPort => _userPort;
 
     /// <summary>The cassette datasette - a caller (GUI menu, debugger script) loads a tape
     /// through this directly.</summary>
@@ -182,6 +199,8 @@ public sealed class Vic20Machine : IMachine
         _keyboard.Reset();
         _datasette.Reset();
         _serialBusBinding.Reset();
+        SyncUserPortState();
+        SyncGamePortInputs();
         _diskActivityPending = false;
         _lastIrqVector = 0; // RAM is cleared too - matches $0314/5 reading 0 until the KERNAL re-inits it
         _cpu.Reset();
@@ -201,6 +220,7 @@ public sealed class Vic20Machine : IMachine
         {
             _datasette.Tick();
             _serialBusBinding.Tick();
+            SyncGamePortInputs();
         }
 
         CaptureSaveIfDispatched();
@@ -264,5 +284,22 @@ public sealed class Vic20Machine : IMachine
     {
         for (var i = 0UL; i < instructionCount; i++)
             StepInstruction();
+    }
+
+    private void SyncUserPortInput() => _via1.PortBInput = _userPort.Input;
+
+    private void SyncUserPortState()
+    {
+        SyncUserPortInput();
+        _userPort.Output = _via1.PortBOutput;
+        _userPort.Direction = _via1.DDRB;
+    }
+
+    private void SyncGamePortInputs()
+    {
+        // Preserve IEC (PA0/PA1/PA7) and cassette sense (PA6) supplied by their existing
+        // bindings; only the joystick-owned PA2-PA5 bits are replaced here.
+        _via1.PortAInput = (byte)((_via1.PortAInput & 0xC3) | _joystick.Via1PortAInput);
+        _via2.PortBInput = (byte)((_via2.PortBInput & 0x7F) | _joystick.Via2PortBInput);
     }
 }

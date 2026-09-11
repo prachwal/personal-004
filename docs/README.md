@@ -16,7 +16,7 @@ Poglebione porownanie komponentow i ryzyk: [deep-analysis.md](deep-analysis.md).
 ## Projekty
 
 | Projekt | Stos / zakres | Najwazniejsze znaleziska |
-|---|---|---|
+| --- | --- | --- |
 | [6502](scan/6502.md) | .NET, 6502, Apple 1 | rdzen cyklowy, Apple 1, Avalonia, ROM testowy |
 | [COSMAC](scan/COSMAC.md) | .NET, RCA 1802 | GUI, TUI, debugger lokalny i zdalny |
 | [cpu-emulator](scan/cpu-emulator.md) | .NET, multi-CPU | 6502, Z80, MC6800, framebuffer |

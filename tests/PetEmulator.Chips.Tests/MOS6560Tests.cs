@@ -68,6 +68,45 @@ public sealed class MOS6560Tests
     }
 
     [Test]
+    public void ControlPortInputs_AreReadThroughLightPenAndPaddleRegisters()
+    {
+        var vic = new MOS6560(baseAddress: 0x9000);
+
+        vic.StrobeLightPen(0x12, 0x34);
+        vic.SetPaddlePosition(0x56, 0x78);
+
+        vic.Read(0x9006).Should().Be(0x12);
+        vic.Read(0x9007).Should().Be(0x34);
+        vic.Read(0x9008).Should().Be(0x56);
+        vic.Read(0x9009).Should().Be(0x78);
+    }
+
+    [Test]
+    public void ControlPortInputRegisters_IgnoreCpuWrites_AndResetToZero()
+    {
+        var vic = new MOS6560(baseAddress: 0x9000);
+        vic.StrobeLightPen(0x12, 0x34);
+        vic.SetPaddlePosition(0x56, 0x78);
+
+        vic.Write(0x9006, 0xFF);
+        vic.Write(0x9007, 0xFF);
+        vic.Write(0x9008, 0xFF);
+        vic.Write(0x9009, 0xFF);
+
+        vic.Read(0x9006).Should().Be(0x12);
+        vic.Read(0x9007).Should().Be(0x34);
+        vic.Read(0x9008).Should().Be(0x56);
+        vic.Read(0x9009).Should().Be(0x78);
+
+        vic.Reset();
+
+        vic.Read(0x9006).Should().Be(0);
+        vic.Read(0x9007).Should().Be(0);
+        vic.Read(0x9008).Should().Be(0);
+        vic.Read(0x9009).Should().Be(0);
+    }
+
+    [Test]
     public void ReverseMode_BitClear_IsReversed()
     {
         // Bit 3's real polarity is inverted from what its name suggests: 1 = normal, 0 = reversed
