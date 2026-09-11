@@ -261,7 +261,7 @@ Kolejność minimalizuje ryzyko zmian w krytycznych klasach `Vic20Machine`,
 - [ ] Rozszerzyć model VIC o pełną separację wariantu PAL/NTSC poza profilami programów.
 - [x] Dodać bank switching jako urządzenie z własnym zasobem sterującym `$9800`.
   - [x] Przełączanie, reset i brak częściowego montowania są pokryte przez `Vic20CrtParserTests`.
-- [ ] Dopiero potem implementować MegaCart i jawny obiekt `MultiCartridge` dla konkurujących banków/zasobów.
+- [x] Dodać jawny obiekt `MultiCartridge` dla niezależnego zarządzania grupą banków/zasobów.
 
 ### Etap 7 — PET i elementy niezależne
 
@@ -363,7 +363,7 @@ wieloukładowe i bankowane nadal wymagają osobnego urządzenia przełączające
   - [x] Montować wiele cartridge tylko po pozytywnej walidacji wszystkich zakresów.
   - [x] Zwracać błąd z nazwami obu konkurujących zasobów i adresem konfliktu.
   - [x] Dodać testy konfliktu ROM/RAM, I/O/I/O oraz niezależnych zakresów.
-- [ ] Wydzielić publiczny obiekt `MultiCartridge`, jeśli kolejne typy urządzeń będą wymagały
+- [x] Wydzielić publiczny obiekt `MultiCartridge`, jeśli kolejne typy urządzeń będą wymagały
   niezależnego zarządzania grupą cartridge poza `Vic20MemoryBus`.
 - [x] Dodać kartridż RTC zgodny z MC146818/DS12887.
   - [x] Zaimplementować rejestry czasu BCD, tryb SET, status C i update-ended IRQ.
