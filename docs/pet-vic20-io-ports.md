@@ -596,7 +596,7 @@ Plik: `lib/PetEmulator.Chips/MC146818.cs`.
 - [ ] Dodać alarmy i testy porównania czasu z alarmem, jeśli kartridż ma zachowywać
       się jak pełny DS12887; obecny kontrakt RTC świadomie nie obejmuje alarmu/AIE.
 - [x] Dodać testy wszystkich częstotliwości periodic interrupt wynikających z Register A.
-- [ ] Dodać integracyjny test kartridża: mapowanie I/O, IRQ 6502 i aktualizacja HH:MM.
+- [x] Dodać integracyjny test kartridża: mapowanie I/O, IRQ 6502 i aktualizacja HH:MM.
 
 ### 8.8 Kolejność realizacji i kryteria ukończenia
 
