@@ -48,7 +48,7 @@ walidacji.
 | PET/CBM 3000 i wczesne 4000 / 3032 | klawiatura, IEEE-488, dwie kasety, User Port, rozszerzenie | j.w. | ◐ najbliżej profilu 40-kolumnowego | druga kaseta, User Port i rozszerzenie |
 | CBM 4032 / 40 kolumn | klawiatura, IEEE-488, kasety, User Port, rozszerzenie; wariant CRTC zależny od rewizji | j.w.; CRTC `$E880-$E881` w rewizjach z CRTC | ◐ profil `cbm-4032`, 40×25, CRTC, klawiatura, IEEE-488, kaseta #1 | druga kaseta, User Port, rozszerzenie; profil upraszcza różnice rewizji |
 | CBM 8032 / seria 8000 | klawiatura, IEEE-488, kasety, User Port, rozszerzenie, CRTC; 80×25 | j.w. + CRTC `$E880-$E881` | ◐ profil `cbm-8032`, 80×25, CRTC, klawiatura, IEEE-488, kaseta #1 | druga kaseta, User Port, rozszerzenie 8096/8296 |
-| 8096 / 8296 / SuperPET / SP9000 | porty PET/CBM oraz — zależnie od modelu — bankowane RAM, dodatkowy procesor, ACIA/RS-232 lub inne rozszerzenia | PET I/O j.w.; sterowanie pamięcią rozszerzoną m.in. `$FFF0` w 8096/8296 | ❌ brak osobnych profili | cały dodatkowy sprzęt i bankowanie |
+| 8096 / 8296 / SuperPET / SP9000 | porty PET/CBM oraz — zależnie od modelu — bankowane RAM, dodatkowy procesor, ACIA/RS-232 lub inne rozszerzenia | PET I/O j.w.; sterowanie pamięcią rozszerzoną m.in. `$FFF0` w 8096/8296 | ◐ profile `Placeholder` i manifesty ROM dla 8096/8296/SuperPET; bez bankowania i 6809 | cały dodatkowy sprzęt i bankowanie |
 | VIC-20 bez rozszerzenia | VIC-I, dwa VIA, joystick/paddle, User Port, kaseta, IEC serial, cartridge/expansion | `$9000-$900F`, `$9110-$911F`, `$9120-$912F`, `$9400-$97FF` | ◐ VIC-I, VIA1/VIA2, klawiatura, joystick, User Port, kaseta, IEC, Color RAM, CRT i pluginy cartridge | fizyczne źródło paddle/light-pen, adapter RS-232 |
 | VIC-20 +3K / +8K / +16K / +24K / All | te same porty zewnętrzne; dodatkowo odpowiedni blok RAM | jak wyżej; pamięć bloków `$0400`, `$2000`, `$4000`, `$6000`, `$A000` | ◐ profile pamięci i pluginy DLL mają jawne zasoby oraz walidację konfliktów | bardziej złożone multi-cartridge i pełne warianty sprzętowe |
 
@@ -421,7 +421,11 @@ wieloukładowe i bankowane nadal wymagają osobnego urządzenia przełączające
 
 ### 7. PET 8096/8296 i SuperPET
 
-- [ ] Najpierw dodać osobne profile i manifesty ROM, bez zmiany istniejących profili.
+- [x] Najpierw dodać osobne profile i manifesty ROM, bez zmiany istniejących profili.
+  - [x] Dodać profile planowane `cbm-8096-french`, `cbm-8296` i `superpet` jako
+        `Placeholder`, niewybieralne przez bieżący emulator.
+  - [x] Dodać manifest firmware Waterloo SuperPET dla bloków `$A000-$BFFF`,
+        `$C000-$DFFF` i `$E000-$FFFF`; loader tylko weryfikuje obrazy na tym etapie.
 - [ ] Zaimplementować bankowanie pamięci oraz rejestr sterujący rozszerzeniem.
   - [ ] Dodać test przełączania banku i ochrony obszarów ROM/I/O.
 - [ ] Dopiero potem dodać dodatkowy procesor, ACIA/RS-232 i pozostałe urządzenia

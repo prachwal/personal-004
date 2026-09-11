@@ -68,6 +68,24 @@ public static class PetProfileCatalog
         RomDirectoryOverride = Cbm8032.RomDirectory
     };
 
+    public static PetProfile Cbm8096French { get; } = new("cbm-8096-french", "CBM 8096 French / BASIC 4 / 80x25 / placeholder", "BASIC 4", 80, 25, 0x8000, 0x8000, 0x0800, true, "characters-french.bin", PetRomManifest.Cbm8096French, PetProfileStatus.Placeholder, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm8032)
+    {
+        RomDirectoryOverride = Cbm8032.RomDirectory
+    };
+
+    public static PetProfile Cbm8296 { get; } = new("cbm-8296", "CBM 8296 / BASIC 4 / 80x25 / placeholder", "BASIC 4", 80, 25, 0x8000, 0x8000, 0x0800, true, "characters-324242-01.bin", PetRomManifest.Cbm8296, PetProfileStatus.Placeholder, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm8032)
+    {
+        RomDirectoryOverride = Cbm8032.RomDirectory
+    };
+
+    public static PetProfile SuperPet { get; } = new("superpet", "SuperPET / Waterloo 6809 / 80x25 / placeholder", "BASIC 4", 80, 25, 0x8000, 0x8000, 0x0800, true, "characters.901640-01.bin", PetRomManifest.Cbm8032, PetProfileStatus.Placeholder, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm8032)
+    {
+        RomDirectoryOverride = Cbm8032.RomDirectory,
+        ExpansionRomManifest = PetRomManifest.SuperPetWaterloo50Hz
+    };
+
+    public static IReadOnlyList<PetProfile> Planned { get; } = [Cbm8096French, Cbm8296, SuperPet];
+
     public static IReadOnlyList<PetProfile> All { get; } = [Pet2001_8, Pet2001_32, Cbm3008, Cbm3016, Cbm3032, Cbm4008Crtc40N60, Cbm4016Crtc40N60, Cbm4032, Cbm4032Crtc40N50, Cbm4032Crtc40B50, Cbm4032Crtc40B60, Cbm8032, Cbm8032Crtc80B50, Cbm8016Converted80N50, Converted80NUnknown];
 
     /// <summary>Looks up a profile by <see cref="PetProfile.Id"/> (e.g. "pet-2001-32") - the

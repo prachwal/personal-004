@@ -64,6 +64,11 @@ public sealed record PetProfile(
     /// <summary>Subfolder name under <c>roms/pet/</c> holding this profile's ROM set.</summary>
     public string RomDirectory => RomDirectoryOverride ?? Id;
 
+    /// <summary>Optional firmware for an expansion processor or banked board. It is declared for
+    /// inventory and validation now; the current PET bus does not map it until that hardware is
+    /// implemented.</summary>
+    public IReadOnlyList<PetRomRequirement>? ExpansionRomManifest { get; init; }
+
     /// <summary>
     /// Physical width:height ratio of one on-screen pixel on real PET/CBM hardware - pixels are
     /// not square. 40-column models are 5:6 (slightly taller than wide); 80-column models double

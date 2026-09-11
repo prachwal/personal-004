@@ -79,6 +79,16 @@ public sealed class PetProfileCatalogTests
         profile.RomManifest.Single(requirement => requirement.Path == "edit-4-80-n_unk.bin").Length.Should().Be(0x1000);
     }
 
+    [Test]
+    public void ExpandedPetProfiles_ArePlaceholdersUntilTheirAdditionalHardwareIsImplemented()
+    {
+        PetProfileCatalog.Planned.Should().HaveCount(3);
+        PetProfileCatalog.Planned.Should().OnlyContain(profile => profile.Status == PetProfileStatus.Placeholder);
+        PetProfileCatalog.Cbm8096French.RomManifest.Should().ContainSingle(requirement => requirement.Path == "edit-french.bin");
+        PetProfileCatalog.Cbm8296.RomManifest.Should().ContainSingle(requirement => requirement.Path == "edit-50hz-324243-02b.bin");
+        PetProfileCatalog.SuperPet.ExpansionRomManifest.Should().HaveCount(3);
+    }
+
     [TestCaseSource(nameof(Profiles))]
     public void RomManifest_LoadsFromProfileSubfolder(PetProfile profile)
     {
@@ -99,5 +109,29 @@ public sealed class PetProfileCatalogTests
             $"{profile.Id}'s character ROM should sit alongside its main ROM set");
     }
 
+    [TestCaseSource(nameof(PlannedProfiles))]
+    public void PlannedProfile_RomManifest_LoadsFromSharedFirmwareFolder(PetProfile profile)
+    {
+        var directory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
+
+        var images = PetRomLoader.Load(directory, profile.RomManifest);
+
+        images.Should().HaveCount(profile.RomManifest.Count);
+    }
+
+    [Test]
+    public void SuperPet_WaterlooFirmwareManifest_LoadsFromSharedFirmwareFolder()
+    {
+        var profile = PetProfileCatalog.SuperPet;
+        var directory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
+
+        var images = PetRomLoader.Load(directory, profile.ExpansionRomManifest!);
+
+        images.Should().HaveCount(3);
+        images.Select(image => image.Requirement.Address).Should().Equal(0xA000, 0xC000, 0xE000);
+    }
+
     private static IEnumerable<PetProfile> Profiles() => PetProfileCatalog.All;
+
+    private static IEnumerable<PetProfile> PlannedProfiles() => PetProfileCatalog.Planned;
 }
