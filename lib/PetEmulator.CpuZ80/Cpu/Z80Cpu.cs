@@ -358,6 +358,12 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
                 RegisterOpcode(addPairOpcode, () => AddPair(addPairOpcode));
             }
         }
+
+        for (var cbOpcode = 0; cbOpcode <= byte.MaxValue; cbOpcode++)
+        {
+            var subOpcode = (byte)cbOpcode;
+            RegisterPageOpcode(0xCB, subOpcode, () => ExecuteCbOpcode(subOpcode));
+        }
     }
 
     protected void RegisterOpcode(byte opcode, Func<int> execute)
@@ -368,6 +374,11 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
     protected void RegisterEdOpcode(byte opcode, Func<int> execute)
     {
         Opcodes.Set(CreateDefinition(0xED, opcode, execute));
+    }
+
+    private void RegisterPageOpcode(byte page, byte opcode, Func<int> execute)
+    {
+        Opcodes.Set(CreateDefinition(page, opcode, execute));
     }
 
     private OpcodeDefinition<Z80Registers> CreateDefinition(byte page, byte opcode, Func<int> execute)
@@ -589,6 +600,11 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
     private int ExecuteCb()
     {
         var opcode = FetchByte(true);
+        return ExecuteRegistered(new OpcodeKey(0xCB, opcode));
+    }
+
+    private int ExecuteCbOpcode(byte opcode)
+    {
         var register = opcode & 7;
         var value = GetRegister(register);
         var bit = (opcode >> 3) & 7;
