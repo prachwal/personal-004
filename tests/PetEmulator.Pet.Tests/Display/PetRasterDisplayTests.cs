@@ -156,7 +156,7 @@ public class PetRasterDisplayTests
         // Was: PET 2001-8 (BASIC 1) blinked 0/80 real render ticks - PetRasterDisplay hardcoded
         // $C4/$C5/$C6 (BASIC 2/4's addresses), but BASIC 1 tracks the cursor at $E0/$E1/$E2
         // instead (confirmed by typing a character repeatedly and watching $E2 increment by
-        // exactly 1 each time - see docs/pet-cursor-fix.md). PetProfile.CursorTracking now
+        // exactly 1 each time - see docs/pet/cursor-fix.md). PetProfile.CursorTracking now
         // carries the right addresses per profile instead of one hardcoded triple.
         var font = LoadRealFont();
         var profile = PetProfileCatalog.Pet2001_8;

@@ -297,5 +297,5 @@ public sealed class PetMachine : IMachine
 
     // RunUntil/RunUntilOrStalled moved to PetEmulator.Core.MachineExtensions (pure IMachine
     // extension methods, unchanged call syntax) once VIC-20 needed the identical logic - see
-    // docs/vic20-migration-plan.md step 8.
+    // docs/vic20/migration-plan.md step 8.
 }

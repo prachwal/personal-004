@@ -19,7 +19,7 @@ namespace PetEmulator.Desktop.ViewModels;
 /// Owns a running <see cref="Vic20Machine"/>, its render loop, and keyboard translation - the
 /// VIC-20 implementation of <see cref="IMachineViewModel"/>, mirroring
 /// <see cref="PetMachineViewModel"/>'s shape exactly, tape widget included (see
-/// <see cref="Vic20Machine.Datasette"/>, added by docs/vic20-tape.md). <see cref="Devices"/>
+/// <see cref="Vic20Machine.Datasette"/>, added by docs/vic20/tape.md). <see cref="Devices"/>
 /// excludes the datasette and primary disk drive (both have dedicated widgets), while any other
 /// attached device is exposed through the generic status bar like PET's.
 /// </summary>

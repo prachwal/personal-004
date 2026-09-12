@@ -20,7 +20,7 @@ The shell container this reuses [verified, unchanged since the Chip Tester plans
 **Media Tester's building blocks, all pre-existing and unmodified by this plan**:
 
 - `D64Image` [verified, `src/PetEmulator.Pet/CbmDos/D64Image.cs`]: `Load(path)`/`Load(byte[])`, `ReadDirectory()`, `ReadFile(entry)`, `CreateFormatted(name, id)`, `WriteSector`/`AddDirectoryEntry`/`SaveToBytes()` - a complete, standalone, machine-independent disk-image API.
-- `PetIeeeDiskDrive` [verified, `src/PetEmulator.Pet/CbmDos/PetIeeeDiskDrive.cs`]: wraps `CbmDosEngine` behind `IIeeeDevice` (`OpenForRead`/`OpenForWrite`/`Close`/`Write`/`TryRead`) - the exact same drive class real `PetMachine` uses, directly attachable to a fresh `PetIeeeBus` with no CPU/machine needed (this session's own earlier debugging work drove it exactly this way, in isolation, to verify the DOS/command layer - see `docs/vic20-disk.md`'s "CbmDosEngine's own... implementation was verified correct, in isolation").
+- `PetIeeeDiskDrive` [verified, `src/PetEmulator.Pet/CbmDos/PetIeeeDiskDrive.cs`]: wraps `CbmDosEngine` behind `IIeeeDevice` (`OpenForRead`/`OpenForWrite`/`Close`/`Write`/`TryRead`) - the exact same drive class real `PetMachine` uses, directly attachable to a fresh `PetIeeeBus` with no CPU/machine needed (this session's own earlier debugging work drove it exactly this way, in isolation, to verify the DOS/command layer - see `docs/vic20/disk.md`'s "CbmDosEngine's own... implementation was verified correct, in isolation").
 - `PetIeeeBus.Activity` [verified, `src/PetEmulator.Pet/Ieee488/PetIeeeBus.cs:7,39`]: `event Action<IeeeBusActivity>? Activity` (`IeeeBusActivity(string Kind, string Detail)`) - line-change and byte events, the exact shape `WaveformControl`'s `IWaveformSource`/`WaveformSample` already consumes for Chip Tester (adapting one to the other is the only new glue code needed for the PET/IEEE-488 side).
 - `Vic20SerialBus.Activity` [this session's own earlier addition, `src/PetEmulator.Vic20/Serial/Vic20SerialBus.cs`]: identical shape (`Vic20SerialActivity(string Kind, string Detail)`), same reuse story for the VIC-20/IEC side.
 - `Vic20Datasette`/`PetDatasette` [verified, `src/PetEmulator.Vic20/Tape/Vic20Datasette.cs`, `src/PetEmulator.Pet/Tape/PetDatasette.cs`]: `LoadTape(pulseCycles, name)`, `PressPlay`/`Stop`/`Rewind`, and `PetDatasette` additionally has its own `DatasetteActivity` event (same shape again). `PetTapePulseDecoder.DecodeBytes(pulseCycles)` [verified, `src/PetEmulator.Pet/Tape/PetTapePulseDecoder.cs:14`] already turns raw pulse timing into bytes standalone.
@@ -125,7 +125,7 @@ Verification commands: `dotnet build`, `dotnet test` (whole solution), manual sm
     "tree_plus_swap_panel_layout": "src/PetEmulator.Desktop/ViewModels/ChipTesterViewModel.cs, Views/ChipTesterView.axaml",
     "waveform_control": "src/PetEmulator.Desktop/Views/Controls/WaveformControl.cs (Chip Tester)",
     "flat_memory_bus": "src/PetEmulator.Desktop/Infrastructure/FlatMemoryBus.cs (Chip Tester)",
-    "isolated_disk_drive": "src/PetEmulator.Pet/CbmDos/{D64Image,PetIeeeDiskDrive}.cs - already proven driven in isolation this session (docs/vic20-disk.md)",
+    "isolated_disk_drive": "src/PetEmulator.Pet/CbmDos/{D64Image,PetIeeeDiskDrive}.cs - already proven driven in isolation this session (docs/vic20/disk.md)",
     "activity_events": [
       "src/PetEmulator.Pet/Ieee488/PetIeeeBus.cs:7,39 (IeeeBusActivity)",
       "src/PetEmulator.Vic20/Serial/Vic20SerialBus.cs (Vic20SerialActivity, this session's own addition)",

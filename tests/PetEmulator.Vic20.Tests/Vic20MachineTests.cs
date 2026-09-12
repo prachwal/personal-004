@@ -26,9 +26,9 @@ public sealed class Vic20MachineTests
     public void Keyboard_RoutesThroughVia2PortBOutPortAIn_NotVia1()
     {
         // Layer 1 (register-level bus integration, no KERNAL involved) for the real wiring bug
-        // docs/vic20-rendering-fixes.md's keyboard investigation found: row-select is VIA2 port B
+        // docs/vic20/rendering-fixes.md's keyboard investigation found: row-select is VIA2 port B
         // ($9120), column readback is VIA2 port A ($9121) - confirmed against the real KERNAL
-        // disassembly (docs/vic20-disassembly/kernal.asm). An earlier version of this wiring used
+        // disassembly (docs/vic20/disassembly/kernal.asm). An earlier version of this wiring used
         // VIA1 port A/port B instead - every real keypress silently vanished.
         var machine = CreateMachine();
         machine.Keyboard.Press(2, 0);
@@ -117,7 +117,7 @@ public sealed class Vic20MachineTests
         // advance the KERNAL's screen line-pointer by exactly one row when pressed alone, so a
         // pointer-movement check can't tell them apart (see
         // Vic20KeyboardMatrixTests.Vic20HostKeyMap_Enter_IsRowOneColSeven and
-        // docs/vic20-rendering-fixes.md). Only watching for the typed command's real effect can -
+        // docs/vic20/rendering-fixes.md). Only watching for the typed command's real effect can -
         // CRSR-DOWN never executes "PRINT2+2" no matter how long it's given to run; Enter does.
         var machine = CreateMachine();
         machine.RunUntil(_ => HasLetters(machine), 2_000_000).Should().BeTrue("must boot first");
@@ -251,7 +251,7 @@ public sealed class Vic20MachineTests
     public void MachineDebugger_WorksAgainstVic20MachineWithNoVic20SpecificCode()
     {
         // MachineDebugger (PetEmulator.Debugger) was built purely against IMachine/IProcessor/
-        // IMemoryBus - see docs/pet-debug-tools.md. This proves that promise: it works here with
+        // IMemoryBus - see docs/pet/debug-tools.md. This proves that promise: it works here with
         // zero VIC-20-specific code, the entire point of building it CPU/machine-agnostic.
         var machine = CreateMachine();
         var debugger = new MachineDebugger(machine);

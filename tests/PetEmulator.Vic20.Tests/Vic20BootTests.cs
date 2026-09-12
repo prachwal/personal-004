@@ -5,7 +5,7 @@ using PetEmulator.Core;
 namespace PetEmulator.Vic20.Tests;
 
 /// <summary>
-/// The first correctness gate for this port (see docs/vic20-migration-plan.md step 9) - proves
+/// The first correctness gate for this port (see docs/vic20/migration-plan.md step 9) - proves
 /// the machine boots real BASIC on real ROMs, not that individual chips behave in isolation.
 /// Methodology ported from cpu-vibe-001's Vic20BootTests.Boot_ReachesBasicReady_AndScreenHasText:
 /// count non-space screen characters instead of searching for a literal "READY." string (the
@@ -51,7 +51,7 @@ public sealed class Vic20BootTests
             // Screen-code letters are 1-26 - zeroed RAM (0x00, e.g. a provisional pre-relocation
             // screen address still showing cleared memory) is trivially "!= space" (0x20) too, a
             // real false positive this session's own VIC-20 boot investigation hit (see
-            // docs/vic20-migration-plan.md's boot-detection note): checking for an actual letter
+            // docs/vic20/migration-plan.md's boot-detection note): checking for an actual letter
             // can't pass on cleared memory.
             var code = machine.Memory.Read((ushort)(screenAddr + i));
             if (code is >= 1 and <= 26)

@@ -1,7 +1,7 @@
 # Plan migracji VIC-20
 
 **Status: v1 zaimplementowany i działa** (boot do BASIC READY, klawiatura, real ROM-y, debug
-tooling za darmo - patrz `docs/vic20-testing-strategy.md`). Kroki 0-10, 12 (Layer 0/1/2/3) i 13
+tooling za darmo - patrz `docs/vic20/testing-strategy.md`). Kroki 0-10, 12 (Layer 0/1/2/3) i 13
 zrobione. Krok 11 (rendering Desktop) świadomie pominięty - poza zakresem "silnik działa"; nikt
 jeszcze o niego nie prosił (YAGNI).
 
@@ -15,7 +15,7 @@ presets (start: tylko "unexpanded", $2000-$7FFF/$A000 wolne).
 
 ## Krok 0 — decyzja: `BusAccess`/`Observer` współdzielony czy zduplikowany
 
-`BusAccess`/`PetMemoryBus.Observer`/`InstructionTracer` (`docs/pet-debug-tools.md`) są dziś
+`BusAccess`/`PetMemoryBus.Observer`/`InstructionTracer` (`docs/pet/debug-tools.md`) są dziś
 w `PetEmulator.Pet`, ale nic w nich nie jest PET-specyficzne - to generyczny "obserwuj każdy
 Read/Write" wzorzec. VIC-20 to drugi konsument: albo (a) przenieść `BusAccess`+`Observer`-shape
 do `PetEmulator.Core` teraz (jeden ruch, `impact()` na `PetMemoryBus`/`BusAccess` obowiązkowy,
@@ -99,13 +99,13 @@ Mirror `PetMachine` 1:1 w strukturze (inny bus/chipy, ten sam kształt):
 **Pierwsza bramka poprawności, przed czymkolwiek dalej.** Port metodologii
 `Vic20BootTests.Boot_ReachesBasicReady_AndScreenHasText` na wzorzec tego repo (`RunUntil` +
 liczenie niepustych znaków na ekranie zamiast szukania literalnego "READY.", bo VIC-20 layout
-ekranu inny niż PET) - Layer 2 w stylu `docs/pet-disk-testing-strategy.md`. Dopóki to nie
+ekranu inny niż PET) - Layer 2 w stylu `docs/pet/disk-testing-strategy.md`. Dopóki to nie
 przechodzi, reszta (rendering, klawiatura pełnym skryptem) nie ma sensu weryfikować.
 
 ## Krok 10 — debug tooling (za darmo)
 
 `MachineDebugger` już CPU-agnostyczny (`trace`/`watch`/`dump`/`break-pc` - patrz
-`docs/pet-debug-tools.md`) - działa na `Vic20Machine : IMachine` bez zmian. Nowy
+`docs/pet/debug-tools.md`) - działa na `Vic20Machine : IMachine` bez zmian. Nowy
 `Vic20DebuggerSession` mirroring `PetDebuggerSession` (profile/roms/key/type/status), plus
 `trace-log`/`disk-stall-check`-analogi jeśli krok 0 (a) wybrany (inaczej: duplikować albo pominąć
 w v1).
@@ -119,7 +119,7 @@ pikseli per `Vic20Video.RenderChar`), PET to prosty tekst-grid przez font bitmap
 
 ## Krok 12 — pełna strategia testów
 
-Mirror 4-warstwowej struktury z `docs/pet-disk-testing-strategy.md`:
+Mirror 4-warstwowej struktury z `docs/pet/disk-testing-strategy.md`:
 
 - Layer 0: `MOS6560Tests` (register map/raster/columns/rows) - metodologia inspirowana
   `cpu-vibe-006`/`personal-002`'s MOS6560 testami (nie kopiowana - inny chip-shape tutaj).
@@ -129,8 +129,8 @@ Mirror 4-warstwowej struktury z `docs/pet-disk-testing-strategy.md`:
 
 ## Krok 13 — dokumentacja
 
-`docs/vic20-debug-tools.md` (albo rozszerzyć `pet-debug-tools.md` na oba, jeśli krok 0 (a)) +
-`docs/vic20-testing-strategy.md` po ukończeniu kroku 12.
+`docs/desktop/debug-monitoring-plan.md` (albo rozszerzyć `docs/pet/debug-tools.md` na oba, jeśli krok 0 (a)) +
+`docs/vic20/testing-strategy.md` po ukończeniu kroku 12.
 
 ## Bramki (każdy krok)
 

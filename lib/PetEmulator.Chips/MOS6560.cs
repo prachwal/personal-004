@@ -6,7 +6,7 @@ namespace PetEmulator.Chips;
 /// <summary>
 /// Minimal MOS 6560/6561 VIC (Video Interface Chip) - the VIC-20's video/audio chip, 16
 /// memory-mapped registers. Ported (rewritten, not copied - different bus/device contracts) from
-/// a reference implementation (see docs/vic20-migration-plan.md step 2). The model supports the
+/// a reference implementation (see docs/vic20/migration-plan.md step 2). The model supports the
 /// NTSC 6560 and PAL 6561 timing profiles; both variants share the register and audio behavior.
 /// </summary>
 public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
@@ -121,7 +121,7 @@ public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
     /// within color RAM's own window and must be added to <c>ColorRamStart</c> - reading straight
     /// from offset 0 is wrong whenever the low 10 bits aren't already 0). Confirmed empirically
     /// against the real KERNAL: with <see cref="ScreenMatrixBase"/>=$3E00 (this repo's real,
-    /// final boot-time value - see docs/vic20-migration-plan.md's color-RAM bug note), real
+    /// final boot-time value - see docs/vic20/migration-plan.md's color-RAM bug note), real
     /// KERNAL writes to color RAM land at $9600-$97F9 (offset $200), exactly
     /// <c>ScreenMatrixBase &amp; 0x3FF</c> = $3E00 &amp; 0x3FF = $200.</summary>
     public int ColorMatrixOffset => ScreenMatrixBase & 0x3FF;
@@ -133,7 +133,7 @@ public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
     // real VIC-20's boot screen is blue text on a white background - which is only what this
     // repo's RenderChar produces if "bit set" means false (no swap). Was inverted (`!= 0` read as
     // "reverse"), which silently swapped ink/paper for the entire default boot screen (white text
-    // on blue instead of the real blue-on-white) - see docs/vic20-rendering-fixes.md.
+    // on blue instead of the real blue-on-white) - see docs/vic20/rendering-fixes.md.
     public bool ReverseMode => (_registers[0x0F] & 0x08) == 0;
     public byte BorderColor => (byte)(_registers[0x0F] & 0x07);
 

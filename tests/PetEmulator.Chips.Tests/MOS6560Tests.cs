@@ -5,7 +5,7 @@ using PetEmulator.Chips;
 
 namespace PetEmulator.Chips.Tests;
 
-/// <summary>Layer 0 (see docs/vic20-migration-plan.md step 12): pure chip logic, no CPU/bus.</summary>
+/// <summary>Layer 0 (see docs/vic20/migration-plan.md step 12): pure chip logic, no CPU/bus.</summary>
 public sealed class MOS6560Tests
 {
     [Test]
@@ -111,7 +111,7 @@ public sealed class MOS6560Tests
     {
         // Bit 3's real polarity is inverted from what its name suggests: 1 = normal, 0 = reversed
         // (confirmed via the real KERNAL boot value $1B - see MOS6560.ReverseMode's doc comment
-        // and docs/vic20-rendering-fixes.md). This is the case the round-trip test above didn't
+        // and docs/vic20/rendering-fixes.md). This is the case the round-trip test above didn't
         // cover, letting the polarity bug through unnoticed.
         var vic = new MOS6560(baseAddress: 0x9000);
 

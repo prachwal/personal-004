@@ -2,10 +2,16 @@
 
 ## Dokumentacja bieżącego projektu
 
-- [Architektura i budowanie komputera z komponentów](architecture.md) — wspólny model składania
+- [Architektura i budowanie komputera z komponentów](architecture/overview.md) — wspólny model składania
   maszyny oraz przykłady PET i VIC-20.
-- [Plan migracji VIC-20](vic20-migration-plan.md) i [strategia testów VIC-20](vic20-testing-strategy.md).
-- [Narzędzia debugowania](pet-debug-tools.md) — wspólne dla maszyn implementujących kontrakty Core.
+- [Implementacja PET/CBM](pet/README.md) oraz [mapowanie portów PET](pet/io-ports.md) —
+  profile, magistrala, PIA/VIA/CRTC, kasety, IEEE-488 i SuperPET.
+- [Implementacja VIC-20](vic20/README.md) oraz [mapowanie portów VIC-20](vic20/io-ports.md) —
+  VIC-I, VIA, IEC, cartridge, RAM, kaseta, joystick i audio.
+- [Układy](chips/README.md) — osobne, pełne checklisty dla MOS2114, MT6520, MOS6522,
+  MT6545, MOS6560, MC146818 i MOS6551.
+- [Plan migracji VIC-20](vic20/migration-plan.md) i [strategia testów VIC-20](vic20/testing-strategy.md).
+- [Narzędzia debugowania](pet/debug-tools.md) — wspólne dla maszyn implementujących kontrakty Core.
 
 Ten katalog jest indeksem kodu i artefaktow z poprzednich projektow emulatorow. Nie kopiuje kodu, ROM-ow ani fontow. Sciezki wskazuja oryginalne lokalizacje do pozniejszego porownania.
 

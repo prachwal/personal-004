@@ -206,7 +206,7 @@ public sealed class D64Image
     /// succeed (every track's free count reads 0) and <see cref="CbmDosEngine"/>'s SAVE silently
     /// writes nothing while still reporting success - a real bug this type's own first "blank
     /// disk" helper reproduced, found while adding a "New Disk" feature (see
-    /// docs/pet-disk-testing-strategy.md).</summary>
+    /// docs/pet/disk-testing-strategy.md).</summary>
     public static byte[] CreateFormatted(string diskName, string diskId, string dosType = "2A")
     {
         var data = new byte[TotalSectors * 256];

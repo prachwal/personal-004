@@ -115,7 +115,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     /// <summary>Loads a VICE-style .tap file into the current machine's datasette, if it has one -
     /// both <see cref="PetMachineViewModel"/> and <see cref="Vic20MachineViewModel"/> do (see
-    /// docs/vic20-tape.md). The file-picker dialog itself is Avalonia-specific glue that lives in
+    /// docs/vic20/tape.md). The file-picker dialog itself is Avalonia-specific glue that lives in
     /// <see cref="MainWindow"/>'s code-behind (needs a <c>TopLevel</c>), which calls straight
     /// through to this.</summary>
     [RelayCommand]
@@ -195,7 +195,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Puts a fresh, empty, writable tape in the current machine's datasette, if it has
-    /// one - VIC-20 only for now (real SAVE support - see docs/vic20-tape.md; PET has no SAVE
+    /// one - VIC-20 only for now (real SAVE support - see docs/vic20/tape.md; PET has no SAVE
     /// emulation yet). No file dialog needed (nothing to pick a path for yet), so this is a plain
     /// command, not glue through <see cref="MainWindow"/>'s code-behind like <see cref="LoadTape"/>.</summary>
     [RelayCommand]

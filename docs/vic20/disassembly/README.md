@@ -2,13 +2,13 @@
 
 Plain `da65` (cc65) disassembly of the real ROMs in `roms/vic20/`, kept on disk (not regenerated
 on demand) so future debugging can grep it directly instead of re-running `da65` each time - see
-`docs/vic20-rendering-fixes.md` for the investigation that first needed this.
+`docs/vic20/rendering-fixes.md` for the investigation that first needed this.
 
 Regenerate with:
 
 ```bash
-da65 --cpu 6502 --start-addr 0xE000 -o docs/vic20-disassembly/kernal.asm roms/vic20/kernal.bin
-da65 --cpu 6502 --start-addr 0xC000 -o docs/vic20-disassembly/basic.asm roms/vic20/basic.bin
+da65 --cpu 6502 --start-addr 0xE000 -o docs/vic20/disassembly/kernal.asm roms/vic20/kernal.bin
+da65 --cpu 6502 --start-addr 0xC000 -o docs/vic20/disassembly/basic.asm roms/vic20/basic.bin
 ```
 
 No config/label file was supplied, so `da65`'s linear disassembly occasionally misreads a data

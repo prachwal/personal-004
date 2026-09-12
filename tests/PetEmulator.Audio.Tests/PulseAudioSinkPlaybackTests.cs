@@ -28,7 +28,7 @@ internal sealed class SineWaveSource(uint sampleRate = 44100, int channels = 1) 
 /// unit test. Excluded from the default run (<c>dotnet test</c> with no filter never hits a real
 /// audio device in CI or a headless box); run explicitly with:
 /// <c>dotnet test --filter "FullyQualifiedName~PulseAudioSinkPlaybackTests"</c> on a box that has
-/// one, per docs/audio-wsl-backend.md.</summary>
+/// one, per docs/desktop/audio-wsl-backend.md.</summary>
 [Explicit("Plays real audio through the host's PulseAudio/WSLg server - run manually to verify the backend actually works, not on every CI run.")]
 public sealed class PulseAudioSinkPlaybackTests
 {

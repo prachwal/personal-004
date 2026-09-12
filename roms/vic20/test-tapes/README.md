@@ -9,7 +9,7 @@ a header block (type `NonRelocatableProgram`, filename `HELLOVIC`, load address 
 by 3 sacrificial lead-in bytes and the payload `HELLO VIC` (ASCII).
 
 The 3 lead-in bytes work around a real, observed KERNAL quirk: the tape-read routine's adaptive
-pulse-timing calibration (see `docs/vic20-tape.md`) needs a byte or two to settle right after a
+pulse-timing calibration (see `docs/vic20/tape.md`) needs a byte or two to settle right after a
 fresh sync-to-data-block transition, occasionally corrupting the first 1-2 content bytes of a
 block. Real BASIC SAVEs are naturally immune (their own first bytes are link-pointer/line-number
 filler, not meaningful content) - a hand-built payload isn't, hence the padding. Confirmed stable

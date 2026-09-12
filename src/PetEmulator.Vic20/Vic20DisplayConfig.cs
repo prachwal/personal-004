@@ -8,7 +8,7 @@ namespace PetEmulator.Vic20;
 /// it (a future PAL variant, a different canvas) without touching the machine's own code. Mirrors
 /// PetEmulator.Pet.PetProfile.PixelAspect's role for PET, just as its own small record instead of
 /// a field on a bigger profile type (VIC-20 v1 has no profile catalog - see
-/// docs/vic20-migration-plan.md's NTSC-only scope cut).
+/// docs/vic20/migration-plan.md's NTSC-only scope cut).
 /// </summary>
 public sealed record Vic20DisplayConfig(
     int PixelAspectWidth,

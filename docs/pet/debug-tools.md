@@ -2,7 +2,7 @@
 
 What's available for diagnosing a problem on a real, booted `PetMachine` - what each tool sees,
 what it doesn't, and how they compose. Written after the large-file LOAD stall investigation (see
-`docs/pet-disk-testing-strategy.md`), which used an ad-hoc version of most of this by hand; these
+`docs/pet/disk-testing-strategy.md`), which used an ad-hoc version of most of this by hand; these
 are that work made reusable.
 
 None of this touches `lib/PetEmulator.Cpu6502/` - every tool here is built at the
@@ -93,7 +93,7 @@ public readonly record struct TracedInstruction(long Index, ushort PC, IReadOnly
   the ISR *ends* - look for the next vector fetch, or bracket the region you care about with
   `break-pc` at a known RTI-adjacent address instead.
 - This is the tool that replaces the one-off scratch script used to root-cause the large-file LOAD
-  stall (`docs/pet-disk-testing-strategy.md`) - same technique, now reusable instead of
+  stall (`docs/pet/disk-testing-strategy.md`) - same technique, now reusable instead of
   hand-written per bug.
 
 ## `PetMachine.IeeeByteTransferCount`

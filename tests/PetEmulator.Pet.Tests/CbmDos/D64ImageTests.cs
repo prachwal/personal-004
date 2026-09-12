@@ -115,7 +115,7 @@ public sealed class D64ImageTests
 
     // CreateFormatted exists because CreateEmpty's all-zero BAM can never allocate a sector (every
     // track's free count reads 0) - a real bug found while adding a "New Disk" feature (see
-    // docs/pet-disk-testing-strategy.md and PetDiskEndToEndTests, which used to mount CreateEmpty
+    // docs/pet/disk-testing-strategy.md and PetDiskEndToEndTests, which used to mount CreateEmpty
     // and had SAVE silently write nothing while still reporting success).
     [Test]
     public void CreateFormatted_RoundTripsNameIdAndDosType()

@@ -31,7 +31,7 @@ Nowa klasa `PetEmulator.Pet.PetMachine : IMachine`, zbudowana z `PetProfile`:
 - `IProcessor` = `Cpu6502` (patrz krok 2), skonstruowany z tym dekoderem jako `IMemoryBus`.
 - `IReadOnlyList<IDevice>` = `[Pia1, Pia2, Via, Crtc, Datasette]` — `StepInstruction()` robi
   `Processor.StepInstruction()`, potem `foreach (var d in Devices) d.Tick(cyklyZuzyteWTymKroku)`
-  (personal-001 wzorzec, patrz `architecture.md` sekcja "Maszyna").
+  (personal-001 wzorzec, patrz `../architecture/overview.md` sekcja "Maszyna").
 - **Impact-check obowiazkowy** (`impact({target:"Cpu6502", direction:"upstream"})`,
   `impact({target:"IMachine", ...})`) przed dotknieciem tych symboli — `IMachine` juz raz
   rozszerzony w tej sesji (risk LOW, 1 implementacja testowa), ale stan mogl sie zmienic.
@@ -52,7 +52,7 @@ umieszczac w Core `Cpu6502State`"). Ale Debugger CLI juz teraz podmienil `break-
 `break-cycle`/`break-instruction-count` wlasnie dlatego, ze PC nie jest dostepne generycznie — to
 prowizorka do naprawienia tutaj.
 
-Rozwiazanie zgodne z `architecture.md` ("opcjonalny dostep po nazwie dla debuggera"): nowy,
+Rozwiazanie zgodne z `../architecture/overview.md` ("opcjonalny dostep po nazwie dla debuggera"): nowy,
 **opcjonalny** interfejs w `PetEmulator.Core`:
 
 ```csharp
@@ -96,7 +96,7 @@ To NIE jest wymagane, zeby `watch`/`dump`/`trace` dzialaly na prawdziwym PET —
 diagnozowania samego protokolu IEEE-488/tape, warte zrobienia dopiero gdy krok 1-4 stoi i faktycznie
 ktos debuguje LOAD/SAVE.
 
-## Co NIE robic (per `architecture.md` "Czego nie kopiowac")
+## Co NIE robic (per `../architecture/overview.md` "Czego nie kopiowac")
 
 - Nie wystawiac `Cpu6502State`/`Cpu6502Registers` bezposrednio w `PetEmulator.Core` — tylko przez
   `IDebuggableProcessor.GetRegisters()` (name-keyed, opaque dla Core).

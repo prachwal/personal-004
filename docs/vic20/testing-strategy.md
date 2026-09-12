@@ -1,6 +1,6 @@
 # VIC-20 testing strategy
 
-Mirrors `docs/pet-disk-testing-strategy.md`'s 4-layer structure (see `docs/vic20-migration-plan.md`
+Mirrors `docs/pet/disk-testing-strategy.md`'s 4-layer structure (see `docs/vic20/migration-plan.md`
 step 12). All layers pass as of this writing.
 
 ## Layer 0 — chip unit tests
@@ -27,7 +27,7 @@ own startup banner), then confirms the KERNAL configured real VIC columns/rows d
 proof the keyboard, not just the CPU, is real and working.
 
 `Vic20MachineTests.cs` additionally proves the debug-tooling promise from
-`docs/pet-debug-tools.md`: `MachineDebugger` (`PetEmulator.Debugger`) works against
+`docs/pet/debug-tools.md`: `MachineDebugger` (`PetEmulator.Debugger`) works against
 `Vic20Machine` with **zero VIC-20-specific code** - it was built purely against
 `IMachine`/`IProcessor`/`IMemoryBus`, and this is the test that cashes that in.
 
@@ -39,7 +39,7 @@ proof the keyboard, not just the CPU, is real and working.
 
 ## What v1 does NOT cover
 
-Per `docs/vic20-migration-plan.md`'s explicit scope cuts: cartridge loading, tape/disk, audio
+Per `docs/vic20/migration-plan.md`'s explicit scope cuts: cartridge loading, tape/disk, audio
 (`MOS6560`'s oscillator registers exist as raw bytes but nothing decodes them), PAL timing
 (NTSC-only constants), expansion-preset banking (unexpanded memory map only), and Desktop
 rendering (no `Vic20ScreenControl` yet - the engine boots and runs correctly, nothing renders it

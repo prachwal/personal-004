@@ -1,7 +1,7 @@
 # Audio abstraction and the WSL host backend
 
 This repo has no sound chip yet (VIC-20 v1 explicitly cut audio - see
-`docs/vic20-migration-plan.md`'s "Czego NIE robić w v1"; PET's own hardware has
+`docs/vic20/migration-plan.md`'s "Czego NIE robić w v1"; PET's own hardware has
 at best a PIA2 CB2 buzzer, not modeled either). `lib/PetEmulator.Audio/` exists
 so a future SID/AY/PET-beeper implementation has a ready, WSL-proven place to
 plug into, instead of re-deriving host audio output from scratch.

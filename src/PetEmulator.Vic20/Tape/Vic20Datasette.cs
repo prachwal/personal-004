@@ -7,7 +7,7 @@ namespace PetEmulator.Vic20.Tape;
 /// handled at a higher level (<see cref="Vic20Machine"/> snapshots the real KERNAL's own header
 /// buffer and program bytes once it detects a real SAVE dispatch, then hands the encoded result
 /// straight to <see cref="LoadTape"/> - see <c>Vic20Machine</c>'s doc comment and
-/// docs/vic20-tape.md's "Write (SAVE)" section for why: this class's first pass tried a literal
+/// docs/vic20/tape.md's "Write (SAVE)" section for why: this class's first pass tried a literal
 /// analog capture of VIA2 PB3's real write pulses, which genuinely worked at the wiring level but
 /// never reliably round-tripped back through LOAD - real emulated interrupt-dispatch jitter on
 /// each individual bit-toggle interrupt was enough to blur the two-level (~192/~352-cycle) FM
@@ -23,7 +23,7 @@ namespace PetEmulator.Vic20.Tape;
 /// cycle-width ranges (352/512/672) fall squarely inside the 296-424/440-576/600-744 microsecond
 /// ranges Commodore's own KERNAL source documents for these four pulse kinds).
 ///
-/// Real wiring (see docs/vic20-tape.md for how this was found - a labeled KERNAL disassembly, not
+/// Real wiring (see docs/vic20/tape.md for how this was found - a labeled KERNAL disassembly, not
 /// a guess): VIA2 CA1 ($912C PCR bit 0) = cassette READ line (NOT VIA1 - VIA1's CA1 is the
 /// [RESTORE] key). VIA1 PA6 ($9111/$911F bit 6, active low) = cassette switch sense (NOT PA7).
 /// VIA1 CA2 (PCR bits 1-3, manual-output mode, bit 1 = level) = cassette motor control, active

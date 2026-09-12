@@ -107,7 +107,7 @@ public sealed class PetRasterDisplay
     /// hardware).
     ///
     /// Was a single hardcoded $C4/$C5/$C6 with a CRTC-register branch for BASIC 4 profiles -
-    /// wrong on two counts (see docs/pet-cursor-fix.md): CRTC-equipped profiles don't use their
+    /// wrong on two counts (see docs/pet/cursor-fix.md): CRTC-equipped profiles don't use their
     /// CRTC's hardware cursor register at all (real BASIC 4 KERNALs write it once, to $0000,
     /// during init and never touch it again), and the original PET 2001 (BASIC 1) uses
     /// $E0/$E1/$E2 instead of $C4/$C5/$C6 - a different ROM revision, a different zero-page

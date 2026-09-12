@@ -8,7 +8,7 @@ using PetEmulator.Vic20.Display;
 
 namespace PetEmulator.Vic20.Tests;
 
-/// <summary>Layer 1 (see docs/vic20-migration-plan.md step 12): register-level bus integration -
+/// <summary>Layer 1 (see docs/vic20/migration-plan.md step 12): register-level bus integration -
 /// pokes chip registers directly through the decoded bus, no CPU/KERNAL involved.</summary>
 public sealed class Vic20MemoryBusTests
 {

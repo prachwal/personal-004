@@ -19,10 +19,10 @@ public sealed record Vic20MountedCartridge(string Path, Vic20Cartridge Cartridge
 /// Orchestrates a complete unexpanded VIC-20: a stock NMOS 6502 (<see cref="Cpu6502Classic"/>),
 /// its address-decoded bus (<see cref="Vic20MemoryBus"/>), and the VIC/VIA1/VIA2/color-RAM chips
 /// that hang off it. Mirrors PetEmulator.Pet.PetMachine's shape exactly (same StepInstruction/
-/// Reset/BusObserver pattern) - see docs/vic20-migration-plan.md step 8.
+/// Reset/BusObserver pattern) - see docs/vic20/migration-plan.md step 8.
 ///
 /// Also watches for a real SAVE dispatch to build <see cref="Datasette"/>'s content - see
-/// <see cref="CaptureSaveIfDispatched"/>'s doc comment and docs/vic20-tape.md's "Write (SAVE)"
+/// <see cref="CaptureSaveIfDispatched"/>'s doc comment and docs/vic20/tape.md's "Write (SAVE)"
 /// section for the full story (a real, labeled KERNAL disassembly, not a guess).
 /// </summary>
 public sealed class Vic20Machine : IMachine
@@ -89,7 +89,7 @@ public sealed class Vic20Machine : IMachine
 
         // VIA2 port B ($9120): row-select (active-low, ORB & DDRB); VIA2 port A ($9121): column
         // readback for the selected row. Confirmed against the real KERNAL disassembly
-        // (docs/vic20-disassembly/kernal.asm ~line 1685: "sta $9120" writes row-select,
+        // (docs/vic20/disassembly/kernal.asm ~line 1685: "sta $9120" writes row-select,
         // "lda $9121"/"lda $9121" debounce-reads columns) and the real boot-time DDR writes
         // ($9122=DDRB=$FF all-output, $9123=DDRA=$00 all-input) - NOT VIA1, and NOT port A for
         // output/port B for input as an earlier version of this wiring (and the reference project
@@ -296,7 +296,7 @@ public sealed class Vic20Machine : IMachine
 
     /// <summary>
     /// Builds a real tape from a real SAVE - see this class's own doc comment and
-    /// docs/vic20-tape.md's "Write (SAVE)" section.
+    /// docs/vic20/tape.md's "Write (SAVE)" section.
     ///
     /// Detects the moment SAVE's <c>TAPE</c> dispatcher redirects $0314/$0315 to <c>WRTZ</c> (the
     /// real KERNAL's own "start of a write" signal - see <see cref="SaveDispatchVector"/>'s doc

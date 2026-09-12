@@ -2,9 +2,9 @@
 
 Three bugs reported after actually running the GUI (colors wrong, aspect ratio wrong, no
 blinking cursor) - all root-caused using the real KERNAL disassembly
-(`docs/vic20-disassembly/kernal.asm`, `docs/vic20-disassembly/basic.asm` - `da65`, kept on disk
+(`docs/vic20/disassembly/kernal.asm`, `docs/vic20/disassembly/basic.asm` - `da65`, kept on disk
 per the workflow this doc records for next time) plus `PetMachine.BusObserver`-style register/
-memory tracing (mirrors `docs/pet-debug-tools.md`'s methodology).
+memory tracing (mirrors `docs/pet/debug-tools.md`'s methodology).
 
 ## Bug 1: colors wrong (root cause: color-RAM address offset)
 

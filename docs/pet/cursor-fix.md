@@ -4,7 +4,7 @@ Asked directly: "zweryfikuj profile pet czy startują do mrygającego kursora" (
 profiles boot to a blinking cursor). Checked all 4 (`PetProfileCatalog.All`) by booting each to a
 real `READY.` and diffing rendered frames over 80 render ticks (matching
 `PetMachineViewModel.InstructionsPerTick`'s real cadence) - the same methodology
-`docs/vic20-rendering-fixes.md`'s Bug 3 used to prove a blink is real, not a guess.
+`docs/vic20/rendering-fixes.md`'s Bug 3 used to prove a blink is real, not a guess.
 
 ## Before
 
