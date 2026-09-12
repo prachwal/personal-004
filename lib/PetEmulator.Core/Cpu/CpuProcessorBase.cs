@@ -72,15 +72,16 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
     /// <summary>Executes one lifecycle step and preserves the public IProcessor contract.</summary>
     public virtual void StepInstruction()
     {
-        var before = CaptureSnapshot();
+        var observer = ExecutionObserver;
+        var before = observer is null ? null : CaptureSnapshot();
         _currentOpcode = null;
         _currentMnemonic = null;
         _watchpointHit = false;
 
-        if (ExecutionObserver?.ShouldBreak(before) == true)
+        if (observer?.ShouldBreak(before!) == true)
         {
             var breakpoint = CpuStepResult.Breakpoint();
-            ExecutionObserver.OnStepCompleted(new CpuStepTrace(before, CaptureSnapshot(), null, null, breakpoint));
+            observer.OnStepCompleted(new CpuStepTrace(before!, CaptureSnapshot(), null, null, breakpoint));
             return;
         }
 
@@ -91,7 +92,7 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
         }
         catch (Exception exception)
         {
-            ExecutionObserver?.OnStepFailed(before, exception);
+            observer?.OnStepFailed(before!, exception);
             throw;
         }
 
@@ -101,8 +102,8 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
         if (result.InstructionCompleted)
             InstructionCount++;
 
-        ExecutionObserver?.OnStepCompleted(
-            new CpuStepTrace(before, CaptureSnapshot(), _currentOpcode, _currentMnemonic, result));
+        observer?.OnStepCompleted(
+            new CpuStepTrace(before!, CaptureSnapshot(), _currentOpcode, _currentMnemonic, result));
     }
 
     /// <summary>Convenience alias used by processor-facing code.</summary>

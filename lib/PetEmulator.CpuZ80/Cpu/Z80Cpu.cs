@@ -7,16 +7,14 @@ using Z80InterruptLines = PetEmulator.CpuZ80.Interrupts.IInterruptLines;
 
 namespace PetEmulator.CpuZ80.Cpu;
 
-public partial class Z80Cpu : IProcessor, IDebuggableProcessor
+public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
 {
     private readonly IBus bus;
     private readonly Z80InterruptLines interruptLines;
     private readonly IBusCycleObserver? cycleObserver;
     private readonly ILogger logger;
-    private readonly IClock clock;
     private readonly Dictionary<byte, Func<int>> opcodes = new();
     private readonly Dictionary<byte, Func<int>> edOpcodes = new();
-    private ulong instructionCount;
     private bool coreIrq;
     private bool coreNmi;
 
@@ -27,12 +25,12 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
     /// costs nothing on the hot Step() path when nobody asked for it.
     /// </param>
     public Z80Cpu(IBus bus, Z80InterruptLines interruptLines, IBusCycleObserver? cycleObserver = null, ILogger<Z80Cpu>? logger = null, IClock? clock = null)
+        : base(new Z80Registers(), new Z80MemoryBusAdapter(bus), clock, new Z80PortBusAdapter(bus))
     {
         this.bus = bus;
         this.interruptLines = interruptLines;
         this.cycleObserver = cycleObserver;
         this.logger = logger ?? NullLogger<Z80Cpu>.Instance;
-        this.clock = clock ?? new EmulationClock();
         InitializeOpcodes();
         Reset();
     }
@@ -40,7 +38,7 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
     [LoggerMessage(Level = LogLevel.Trace, Message = "PC={PC:X4} opcode={Opcode:X2}")]
     private static partial void LogInstruction(ILogger logger, ushort pc, byte opcode);
 
-    public Z80Registers Registers { get; } = new();
+    public Z80Registers Registers => State;
 
     /// <summary>
     /// Condition-checked diagnostic actions, run in order at the start of
@@ -49,9 +47,6 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
     /// </summary>
     public CpuHookCollection Hooks { get; } = new();
 
-    public bool Halted => Registers.Halted;
-    public ulong CycleCount => clock.CycleCount;
-    public ulong InstructionCount => instructionCount;
     public bool Iff1 { get => Registers.Iff1; private set => Registers.Iff1 = value; }
     public bool Iff2 { get => Registers.Iff2; private set => Registers.Iff2 = value; }
     public byte InterruptMode { get => Registers.InterruptMode; private set => Registers.InterruptMode = value; }
@@ -61,39 +56,26 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
     private int traceCycleLength;
     private int traceStandaloneRefreshLength;
 
-    public void Reset()
+    public override void Reset()
     {
         Registers.Reset();
-        instructionCount = 0;
         coreIrq = false;
         coreNmi = false;
-        clock.Reset();
+        base.Reset();
     }
 
-    public void SetIRQ(bool active) => coreIrq = active;
+    public override void SetIRQ(bool active) => coreIrq = active;
 
-    public void SetNMI(bool active) => coreNmi = active;
+    public override void SetNMI(bool active) => coreNmi = active;
 
-    public void StepInstruction() => Step();
-
-    public IReadOnlyDictionary<string, ulong> GetRegisters() => new Dictionary<string, ulong>
+    public new int Step()
     {
-        ["A"] = Registers.A, ["F"] = Registers.F,
-        ["B"] = Registers.B, ["C"] = Registers.C,
-        ["D"] = Registers.D, ["E"] = Registers.E,
-        ["H"] = Registers.H, ["L"] = Registers.L,
-        ["I"] = Registers.I, ["R"] = Registers.R,
-        ["PC"] = Registers.PC, ["SP"] = Registers.SP,
-        ["IX"] = Registers.IX, ["IY"] = Registers.IY,
-        ["AF"] = Registers.AF, ["BC"] = Registers.BC,
-        ["DE"] = Registers.DE, ["HL"] = Registers.HL,
-        ["AF'"] = Registers.AlternateAF, ["BC'"] = Registers.AlternateBC,
-        ["DE'"] = Registers.AlternateDE, ["HL'"] = Registers.AlternateHL,
-        ["IFF1"] = Iff1 ? 1UL : 0UL, ["IFF2"] = Iff2 ? 1UL : 0UL,
-        ["IM"] = InterruptMode
-    };
+        var before = CycleCount;
+        StepInstruction();
+        return checked((int)(CycleCount - before));
+    }
 
-    public int Step()
+    protected override void BeforeStep()
     {
         // HasAny is a plain bool field - skips even touching the list
         // (Count, indexer) when nothing is registered, the common case.
@@ -101,8 +83,14 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
             for (var i = 0; i < Hooks.Count; i++)
                 Hooks[i].RunIfMatched(this);
 
+    }
+
+    protected override CpuStepResult ExecuteStep()
+    {
+        BeforeStep();
+
         if (interruptLines.WaitAsserted)
-            return CompleteStep(1, false); // frozen mid-bus-cycle, same as real hardware - no fetch, no execute, no NMI/INT service until whatever asserted WAIT releases it
+            return CompleteStep(CpuStepResult.Idle(1, waiting: true)); // frozen mid-bus-cycle, same as real hardware
 
         traceMachineCycle = 0;
         traceTStates = 0;
@@ -113,19 +101,20 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
         Registers.PreviousNmi = nmi;
 
         if (nmiEdge)
-            return CompleteStep(ServiceNmi(), false);
+            return CompleteStep(CpuStepResult.Interrupt((ulong)ServiceNmi()));
 
         if ((interruptLines.IntAsserted || coreIrq) && Iff1 && Registers.InterruptDelay == 0)
-            return CompleteStep(ServiceMaskableInterrupt(), false);
+            return CompleteStep(CpuStepResult.Interrupt((ulong)ServiceMaskableInterrupt()));
 
         if (Halted)
         {
             traceStandaloneRefreshLength = 4;
             IncrementRefresh();
-            return CompleteStep(4, false);
+            return CompleteStep(CpuStepResult.Idle(4));
         }
 
         var opcode = FetchByte(true);
+        SetCurrentOpcode(OpcodeKey.Base(opcode));
         if (!opcodes.TryGetValue(opcode, out var execute))
             throw new NotSupportedException($"Unsupported Z80 opcode 0x{opcode:X2} at 0x{(ushort)(Registers.PC - 1):X4}.");
 
@@ -134,18 +123,19 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
         var cycles = execute();
         if (Registers.InterruptDelay > 0)
             Registers.InterruptDelay--;
-        return CompleteStep(cycles, true);
+        return CompleteStep(CpuStepResult.Completed((ulong)cycles));
     }
 
-    private int CompleteStep(int cycles, bool instruction)
-    {
-        clock.Advance((ulong)cycles);
-        if (instruction)
-            instructionCount++;
-        return cycles;
-    }
+    protected override OpcodeKey FetchOpcode()
+        => OpcodeKey.Base(FetchByte(true));
 
-    protected virtual void InitializeOpcodes()
+    protected override OpcodeDefinition<Z80Registers> DecodeOpcode(OpcodeKey key)
+        => throw new NotSupportedException("The legacy Z80 dispatcher is still active during the staged Core migration.");
+
+    protected override CpuStepResult ExecuteOpcode(OpcodeDefinition<Z80Registers> definition)
+        => definition.Execute(Registers, ExecutionContext);
+
+    protected new virtual void InitializeOpcodes()
     {
         RegisterOpcode(0x00, () => 4);
         RegisterOpcode(0x08, ExchangeAf);
