@@ -28,7 +28,7 @@
 - [x] Wspólne `LDA/LDB/STA/STB` — `M6800LoadStore.cs`
 - [x] Wspólne instrukcje rejestru `X` — `M6800IndexRegister.cs`
 - [x] Przenieść pozostałe instrukcje MC6800 i usunąć shims z `M6809Cpu` — usunięto duplikaty ALU, RMW, branch, RTS oraz A/B/X load/store; CPU6809 wskazuje na bazowe implementacje Cpu6800
-- [ ] Zbudować niezależną tablicę opcode’ów i procesor MC6800
-- [ ] Dodać pełną regresję instrukcji MC6800
+- [x] Zbudować niezależną tablicę opcode’ów i procesor MC6800 — `M6800Processor` posiada własną tablicę wykonawczą i pełną metadanych mapę 256 opcode’ów
+- [x] Dodać pełną regresję instrukcji MC6800 — sweep wszystkich zaimplementowanych opcode’ów oraz testy adresowania; Cpu6800 `9/9`
 
-Stan kontynuacji: w toku; cleanup `M6809Cpu` zweryfikowany buildem solution, Cpu6800 `6/6` i Cpu6809 `91/91`.
+Stan kontynuacji: zakończony; `M6800Processor` i regresja MC6800 gotowe; solution build, Cpu6800 `9/9`, Cpu6809 `91/91`.

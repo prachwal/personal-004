@@ -57,6 +57,54 @@ public class M6800CpuTests
         cpu.State.Flags.C.Should().BeFalse();
     }
 
+    [Test]
+    public void Mc6800OpcodeMetadata_DefinesCompleteByteMap()
+    {
+        var cpu = new M6800Processor(new TestMemoryBus());
+
+        cpu.OpcodeMetadata.Definitions.Should().HaveCount(256);
+        cpu.OpcodeMetadata.Definitions.Count(definition => definition.IsImplemented).Should().BeGreaterThan(100);
+    }
+
+    [Test]
+    public void Mc6800ImplementedOpcodes_ExecuteWithoutDispatchFailures()
+    {
+        var memory = new TestMemoryBus();
+        var cpu = new M6800Processor(memory);
+
+        foreach (var definition in cpu.OpcodeMetadata.Definitions.Where(definition => definition.IsImplemented))
+        {
+            memory.Write(0xFFFE, 0x01);
+            memory.Write(0xFFFF, 0x00);
+            memory.Write(0x0100, definition.Opcode);
+            cpu.Reset();
+
+            var action = () => cpu.StepInstruction();
+            action.Should().NotThrow($"opcode 0x{definition.Opcode:X2} ({definition.Mnemonic})");
+        }
+    }
+
+    [Test]
+    public void Mc6800ImmediateAndIndexedInstructions_Use6800Addressing()
+    {
+        var memory = new TestMemoryBus();
+        var cpu = new M6800Processor(memory);
+        memory.Write(0xFFFE, 0x01);
+        memory.Write(0xFFFF, 0x00);
+        memory.Write(0x0100, 0x86); // LDAA #$42
+        memory.Write(0x0101, 0x42);
+        memory.Write(0x0102, 0xA6); // LDAA 1,X
+        memory.Write(0x0103, 0x01);
+        memory.Write(0x0201, 0x77);
+
+        cpu.Reset();
+        cpu.State.X = 0x0200;
+        cpu.StepInstruction();
+        cpu.State.A.Should().Be(0x42);
+        cpu.StepInstruction();
+        cpu.State.A.Should().Be(0x77);
+    }
+
     private sealed class TestCpu(IMemoryBus memory) : M6800Cpu(memory, new M6800State(), CreateTable())
     {
         public byte LastOpcode { get; private set; }
