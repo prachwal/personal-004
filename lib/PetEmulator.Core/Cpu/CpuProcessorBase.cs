@@ -127,11 +127,17 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
     {
         BeforeStep();
 
+        if (TryHandleWaitBeforeInterrupt(out var preInterruptWaitResult))
+            return CompleteStep(preInterruptWaitResult);
+
         if (TryServiceInterrupt(out var interruptResult))
             return CompleteStep(interruptResult);
 
         if (TryHandleWait(out var waitResult))
             return CompleteStep(waitResult);
+
+        if (TryHandleHalt(out var haltResult))
+            return CompleteStep(haltResult);
 
         var opcode = FetchOpcode();
         _currentOpcode = opcode;
@@ -150,7 +156,19 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
         return false;
     }
 
+    protected virtual bool TryHandleWaitBeforeInterrupt(out CpuStepResult result)
+    {
+        result = default;
+        return false;
+    }
+
     protected virtual bool TryHandleWait(out CpuStepResult result)
+    {
+        result = default;
+        return false;
+    }
+
+    protected virtual bool TryHandleHalt(out CpuStepResult result)
     {
         result = default;
         return false;

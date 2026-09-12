@@ -75,6 +75,11 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
 
     protected override void BeforeStep()
     {
+        traceMachineCycle = 0;
+        traceTStates = 0;
+        traceCycleLength = 0;
+        traceStandaloneRefreshLength = 4;
+
         // HasAny is a plain bool field - skips even touching the list
         // (Count, indexer) when nothing is registered, the common case.
         if (Hooks.HasAny)
@@ -83,58 +88,72 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
 
     }
 
-    protected override CpuStepResult ExecuteStep()
+    protected override bool TryHandleWaitBeforeInterrupt(out CpuStepResult result)
     {
-        BeforeStep();
-
         if (interruptLines.WaitAsserted)
-            return CompleteStep(CpuStepResult.Idle(1, waiting: true)); // frozen mid-bus-cycle, same as real hardware
+        {
+            result = CpuStepResult.Idle(1, waiting: true); // frozen mid-bus-cycle, same as real hardware
+            return true;
+        }
 
-        traceMachineCycle = 0;
-        traceTStates = 0;
-        traceCycleLength = 0;
-        traceStandaloneRefreshLength = 4;
+        result = default;
+        return false;
+    }
+
+    protected override bool TryServiceInterrupt(out CpuStepResult result)
+    {
         var nmi = interruptLines.NmiAsserted || coreNmi;
         var nmiEdge = nmi && !Registers.PreviousNmi;
         Registers.PreviousNmi = nmi;
 
         if (nmiEdge)
-            return CompleteStep(CpuStepResult.Interrupt((ulong)ServiceNmi()));
-
-        if ((interruptLines.IntAsserted || coreIrq) && Iff1 && Registers.InterruptDelay == 0)
-            return CompleteStep(CpuStepResult.Interrupt((ulong)ServiceMaskableInterrupt()));
-
-        if (Halted)
         {
-            traceStandaloneRefreshLength = 4;
-            IncrementRefresh();
-            return CompleteStep(CpuStepResult.Idle(4));
+            result = CpuStepResult.Interrupt((ulong)ServiceNmi());
+            return true;
         }
 
-        var opcode = FetchByte(true);
-        var key = OpcodeKey.Base(opcode);
-        if (!Opcodes.TryGet(key, out var definition))
-            throw new NotSupportedException($"Unsupported Z80 opcode 0x{opcode:X2} at 0x{(ushort)(Registers.PC - 1):X4}.");
+        if ((interruptLines.IntAsserted || coreIrq) && Iff1 && Registers.InterruptDelay == 0)
+        {
+            result = CpuStepResult.Interrupt((ulong)ServiceMaskableInterrupt());
+            return true;
+        }
 
-        SetCurrentOpcode(definition!.Key, definition.Mnemonic);
-        LogInstruction(logger, (ushort)(Registers.PC - 1), opcode);
+        result = default;
+        return false;
+    }
 
-        var result = definition.Execute(Registers, ExecutionContext);
-        if (Registers.InterruptDelay > 0)
-            Registers.InterruptDelay--;
-        return CompleteStep(result);
+    protected override bool TryHandleHalt(out CpuStepResult result)
+    {
+        if (!Halted)
+        {
+            result = default;
+            return false;
+        }
+
+        IncrementRefresh();
+        result = CpuStepResult.Idle(4);
+        return true;
     }
 
     protected override OpcodeKey FetchOpcode()
-        => OpcodeKey.Base(FetchByte(true));
+    {
+        var opcode = FetchByte(true);
+        LogInstruction(logger, (ushort)(Registers.PC - 1), opcode);
+        return OpcodeKey.Base(opcode);
+    }
+
+    protected override CpuStepResult ExecuteOpcode(OpcodeDefinition<Z80Registers> definition)
+    {
+        var result = definition.Execute(Registers, ExecutionContext);
+        if (Registers.InterruptDelay > 0)
+            Registers.InterruptDelay--;
+        return result;
+    }
 
     protected override OpcodeDefinition<Z80Registers> DecodeOpcode(OpcodeKey key)
         => Opcodes.TryGet(key, out var definition)
             ? definition!
             : throw new NotSupportedException($"Unsupported Z80 opcode {key.Page:X2}:{key.Opcode:X2}.");
-
-    protected override CpuStepResult ExecuteOpcode(OpcodeDefinition<Z80Registers> definition)
-        => definition.Execute(Registers, ExecutionContext);
 
     /// <summary>
     /// Compatibility extension point for existing Z80 test and machine
