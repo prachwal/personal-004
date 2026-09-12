@@ -5,8 +5,6 @@ namespace PetEmulator.Cpu6809;
 
 public partial class M6809Cpu : M6800Cpu, IFirqProcessor
 {
-protected OpcodeRegistrationTable OpcodeTable = null!;
-
     protected override int ShortBranchCycles => 3;
     protected override int BranchSubroutineCycles => 7;
 
@@ -33,9 +31,6 @@ protected OpcodeRegistrationTable OpcodeTable = null!;
     protected bool _firqPending;
     protected bool _nmiPending;
     protected bool _nmiArmed;  // set true when S is written, cleared on Reset
-
-    protected OpcodeRegistrationTable Page10OpcodeTable = null!;
-    protected OpcodeRegistrationTable Page11OpcodeTable = null!;
 
     public M6809Cpu(IMemoryBus memory)
         : this(memory, new M6809State())

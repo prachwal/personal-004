@@ -9,6 +9,7 @@ Status: pełna migracja rodziny 6502 do wspólnego Core zakończona.
 - [x] Wspólny zegar, liczniki, IRQ/NMI i obserwator wykonania są podłączone.
 - [x] Publiczne `Cpu6502.Opcodes` wskazuje na tabelę Core.
 - [x] Dispatch cyklowy korzysta z definicji Core.
+- [x] Silnik cyklowy i kontrakt `IProcessor` korzystają z tej samej instancji zegara Core.
 - [x] Domyślne tablice wariantów Core są publikowane jako sealed registry.
 - [x] `Cpu6502Variant.OpcodeTable` jest publicznym kontraktem rozszerzania wariantu.
 - [x] Natywna tablica NMOS Core nie tworzy legacy definicji.
@@ -34,7 +35,7 @@ Status: pełna migracja rodziny 6502 do wspólnego Core zakończona.
 - [x] Testy binarne 6502 są w projekcie (`6502_functional_test.bin`).
 - [x] Pełny test Klaus non-BCD: 1/1.
 - [x] Pełny test Klaus BCD: 1/1.
-- [x] Pełna regresja CPU: 332 zaliczone, 1 pominięty test NES oznaczony `Ignore`.
+- [x] Pełna regresja CPU: 333 zaliczone, 1 pominięty test NES oznaczony `Ignore`.
 - [x] Brak legacy `OpcodeTable`/`OpcodeDefinition` w bibliotece CPU 6502.
 
 ## Ryzyka

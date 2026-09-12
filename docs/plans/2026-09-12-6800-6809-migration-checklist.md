@@ -6,12 +6,13 @@ Rodzina 6800/6809: migracja bazowa zakończona; 6809 pozostaje rozszerzeniem 680
 
 - [x] `M6800Cpu` używa wspólnego lifecycle, stanu i tabeli opcode’ów Core.
 - [x] `M6809Cpu` dziedziczy po `M6800Cpu` i zachowuje strony opcode’ów 10/11.
+- [x] 6809 rejestruje strony 0/10/11 bezpośrednio w `Core.OpcodeTable`; usunięto `OpcodeRegistrationTable`.
 - [x] Zachowane są DP, Y/U/S, FIRQ/NMI/IRQ oraz formaty ramek stosu.
 - [x] Wspólne instrukcje 6800 są implementowane w bazie i rozszerzane przez 6809.
 - [x] Testy CPU6800: 11/11; testy CPU6809: 91/91.
 - [x] Test binarny MC6800 i test binarny 6809 przechodzą.
 - [ ] Przenieść pozostałe rodzinne różnice do jawnych capability Core.
-- [ ] Wykonać końcową regresję całego rozwiązania po migracji Z80.
+- [x] Wykonać końcową regresję całego rozwiązania po migracji Z80 — pełna regresja przechodzi po naprawie wspólnego zegara 6502.
 
 - [x] Etap 1: baseline build/test i zapis zachowania wyjściowego — build OK; CPU6809 90/90; PET 255/255
 - [x] Etap 2: projekt Cpu6800 oraz projekt testów — solution build OK; test assembly ładuje się bez testów
@@ -28,10 +29,10 @@ Rodzina 6800/6809: migracja bazowa zakończona; 6809 pozostaje rozszerzeniem 680
 
 ## Stan
 
-- branch: refactor/6800-6809-core-architecture
-- aktualny etap: zakończony
-- ostatnia weryfikacja: GitNexus up-to-date; detect-changes all: No changes detected
-- uwagi: plan migracji znajduje się w 2026-09-12-gitnexus-plan-6800-6809-core-migration.md
+- branch: plan/unify-cpu-core
+- aktualny etap: migracja 6800/6809 do wspólnego Core zakończona
+- ostatnia weryfikacja: build solution 0 ostrzeżeń/0 błędów; Cpu6800 11/11; Cpu6809 91/91; binaria przechodzą
+- uwagi: wcześniejsze 3 awarie PET wynikały z dwóch zegarów w zmigrowanym 6502; używany jest teraz jeden zegar Core.
 
 ## Kontynuacja: pełny zestaw instrukcji w Cpu6800
 

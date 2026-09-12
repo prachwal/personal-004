@@ -49,6 +49,25 @@ public class ClockInjectionTests
     }
 
     [Test]
+    public void Default_clock_is_shared_with_the_common_processor_contract()
+    {
+        var memory = new FlatMemory();
+        var cpu = new Cpu6502Classic(memory);
+        memory.Write(0xFFFC, 0x00);
+        memory.Write(0xFFFD, 0x00);
+        memory.Write(0x0000, 0xEA); // NOP, 2 cycles
+        cpu.Reset();
+        cpu.PC = 0x0000;
+
+        IProcessor processor = cpu;
+        cpu.StepInstruction();
+
+        Assert.AreEqual(2UL, cpu.CycleCount);
+        Assert.AreEqual(2UL, processor.CycleCount,
+            "the common processor contract must observe the same clock as the 6502 engine");
+    }
+
+    [Test]
     public void Reset_resets_the_injected_clock()
     {
         var clock = new FakeClock();

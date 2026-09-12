@@ -25,7 +25,10 @@ public partial class Cpu6502
     {
         _memory = memoryBus ?? throw new ArgumentNullException(nameof(memoryBus));
         Variant = variant ?? throw new ArgumentNullException(nameof(variant));
-        _clock = clock ?? new Clock();
+        // CpuProcessorBase owns the clock used by the shared lifecycle and by
+        // IProcessor.CycleCount. Keep the cycle-stepped engine on that same
+        // instance so peripherals observe the cycles advanced by the CPU.
+        _clock = base.Clock;
         Registers = new Cpu6502Registers(this);
         State.Owner = this;
         foreach (var definition in variant.OpcodeTable.Entries)
