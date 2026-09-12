@@ -30,6 +30,16 @@ public enum PetScreenCharacterEncoding
     Ascii
 }
 
+/// <summary>How a profile marks the active text cursor on screen.</summary>
+public enum PetCursorStrategy
+{
+    /// <summary>The KERNAL exposes the cursor position through a zero-page pointer.</summary>
+    ZeroPagePointer,
+
+    /// <summary>The screen character's high bit selects reverse video, as in Waterloo 6809.</summary>
+    ScreenHighBit
+}
+
 public enum PetKeyboardRevision
 {
     Pet2001Graphics,
@@ -96,6 +106,8 @@ public sealed record PetProfile(
     public bool IsImplemented => Status == PetProfileStatus.Implemented;
 
     public PetScreenCharacterEncoding ScreenCharacterEncoding { get; internal set; } = PetScreenCharacterEncoding.PetScreenCode;
+
+    public PetCursorStrategy CursorStrategy { get; internal set; } = PetCursorStrategy.ZeroPagePointer;
 
     /// <summary>Explicit video-hardware classification derived from the profile's I/O model.</summary>
     public PetVideoHardware VideoHardware => RequiresCrtc ? PetVideoHardware.Crtc : PetVideoHardware.Discrete;

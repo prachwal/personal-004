@@ -217,5 +217,6 @@ public sealed class SuperPet6809Profile : PetProfileDefinition
         Profile.AciaBaseAddress = SuperPetMemoryMap.AciaBaseAddress;
         Profile.InitialProcessor = SuperPetProcessor.Motorola6809;
         Profile.ScreenCharacterEncoding = PetScreenCharacterEncoding.Ascii;
+        Profile.CursorStrategy = PetCursorStrategy.ScreenHighBit;
     }
 }

@@ -76,7 +76,9 @@ public sealed class PetRasterDisplay
                 nameof(frameBuffer));
         }
 
-        var cursor = GetCursorPosition();
+        var cursor = _profile.CursorStrategy == PetCursorStrategy.ZeroPagePointer
+            ? GetCursorPosition()
+            : null;
         for (var row = 0; row < _profile.Rows; row++)
         {
             for (var col = 0; col < _profile.Columns; col++)

@@ -109,5 +109,6 @@ Select :
 
 The selected blank cell contains `$A0`, not `$20`: it is ASCII space with reverse
 video. Therefore the renderer must strip bit 7 before selecting the second 2 KiB
-ASCII character-ROM bank and invert the resulting glyph. Cursor position cannot be
-derived from the generic PET BASIC zero-page pointer for this profile.
+ASCII character-ROM bank and invert the resulting glyph. The profile uses the
+`ScreenHighBit` cursor strategy; its generic PET BASIC zero-page pointer is not
+read and cannot create a second, false blinking cursor.

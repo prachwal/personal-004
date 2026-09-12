@@ -131,6 +131,27 @@ public class PetRasterDisplayTests
     }
 
     [Test]
+    public void Render_SuperPetAscii_DoesNotUsePetZeroPagePointerAsSecondCursor()
+    {
+        var font = new PetCharacterRomLoader().Load(Path.Combine(
+            RomLocator.Directory("cbm-8032", "characters.901640-01.bin"),
+            "characters.901640-01.bin"));
+        var profile = PetProfileCatalog.SuperPet6809;
+        profile.CursorStrategy.Should().Be(PetCursorStrategy.ScreenHighBit);
+        var memory = new FakeMemoryBus();
+        memory.Write((ushort)profile.VideoRamStart, (byte)' ');
+        WriteCursorPointer(memory, profile, (ushort)profile.VideoRamStart, 0);
+        var display = new PetRasterDisplay(profile, memory, font);
+        var frame = new uint[display.PixelWidth * display.PixelHeight];
+
+        display.Render(frame);
+
+        CellPixels(frame, display.PixelWidth, font, 0, 0)
+            .Should().OnlyContain(pixel => pixel == 0xFF102810u,
+                "Waterloo uses screen bit 7 for its cursor and must ignore PET zero-page pointers");
+    }
+
+    [Test]
     public void Render_WrongSizedBuffer_Throws()
     {
         var font = LoadRealFont();
