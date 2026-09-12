@@ -49,15 +49,13 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
     /// </summary>
     public CpuHookCollection Hooks { get; } = new();
 
-    public bool Halted { get; private set; }
+    public bool Halted => Registers.Halted;
     public ulong CycleCount => clock.CycleCount;
     public ulong InstructionCount => instructionCount;
-    public bool Iff1 { get; private set; }
-    public bool Iff2 { get; private set; }
-    public byte InterruptMode { get; private set; } = 1;
+    public bool Iff1 { get => Registers.Iff1; private set => Registers.Iff1 = value; }
+    public bool Iff2 { get => Registers.Iff2; private set => Registers.Iff2 = value; }
+    public byte InterruptMode { get => Registers.InterruptMode; private set => Registers.InterruptMode = value; }
 
-    private int interruptDelay;
-    private bool previousNmi;
     private int traceMachineCycle;
     private int traceTStates;
     private int traceCycleLength;
@@ -66,12 +64,6 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
     public void Reset()
     {
         Registers.Reset();
-        Halted = false;
-        Iff1 = false;
-        Iff2 = false;
-        InterruptMode = 0;
-        interruptDelay = 0;
-        previousNmi = false;
         instructionCount = 0;
         coreIrq = false;
         coreNmi = false;
@@ -117,13 +109,13 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
         traceCycleLength = 0;
         traceStandaloneRefreshLength = 4;
         var nmi = interruptLines.NmiAsserted || coreNmi;
-        var nmiEdge = nmi && !previousNmi;
-        previousNmi = nmi;
+        var nmiEdge = nmi && !Registers.PreviousNmi;
+        Registers.PreviousNmi = nmi;
 
         if (nmiEdge)
             return CompleteStep(ServiceNmi(), false);
 
-        if ((interruptLines.IntAsserted || coreIrq) && Iff1 && interruptDelay == 0)
+        if ((interruptLines.IntAsserted || coreIrq) && Iff1 && Registers.InterruptDelay == 0)
             return CompleteStep(ServiceMaskableInterrupt(), false);
 
         if (Halted)
@@ -140,8 +132,8 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
         LogInstruction(logger, (ushort)(Registers.PC - 1), opcode);
 
         var cycles = execute();
-        if (interruptDelay > 0)
-            interruptDelay--;
+        if (Registers.InterruptDelay > 0)
+            Registers.InterruptDelay--;
         return CompleteStep(cycles, true);
     }
 
@@ -391,7 +383,7 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
 
     private int Halt()
     {
-        Halted = true;
+        Registers.Halted = true;
         return 4;
     }
 
@@ -973,7 +965,7 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
     private int ServiceNmi()
     {
         traceStandaloneRefreshLength = 5;
-        Halted = false;
+        Registers.Halted = false;
         IncrementRefresh();
         Push(Registers.PC);
         Iff2 = Iff1;
@@ -984,7 +976,7 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
 
     private int ServiceMaskableInterrupt()
     {
-        Halted = false;
+        Registers.Halted = false;
         Iff1 = false;
         Iff2 = false;
         var acknowledgedOpcode = AcknowledgeInterrupt();
@@ -1181,7 +1173,7 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
     {
         Iff1 = true;
         Iff2 = true;
-        interruptDelay = 2;
+        Registers.InterruptDelay = 2;
         return 4;
     }
 
