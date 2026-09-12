@@ -65,6 +65,26 @@ public abstract class M6800Cpu : IProcessor, IDebuggableProcessor
 
     protected abstract int ExecuteOpcode(byte opcode);
 
+    public virtual byte FetchDirect()
+    {
+        return Mmu.Read(ResolveDirectAddress(Fetch()));
+    }
+
+    public virtual byte LdDirect() => FetchDirect();
+
+    public virtual ushort Ld16Direct()
+    {
+        return Read16(ResolveDirectAddress(Fetch()));
+    }
+
+    public virtual ushort FetchExtended() => Fetch16();
+
+    public virtual byte LdExtended() => Mmu.Read(FetchExtended());
+
+    public virtual ushort Ld16Extended() => Read16(FetchExtended());
+
+    protected virtual ushort ResolveDirectAddress(byte offset) => offset;
+
     protected byte Fetch()
     {
         byte value = Mmu.Read(State.PC);

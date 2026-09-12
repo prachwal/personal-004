@@ -25,6 +25,24 @@ public class M6800CpuTests
         cpu.InstructionCount.Should().Be(1);
     }
 
+    [Test]
+    public void CommonAddressing_ReadsDirectAndExtendedOperands()
+    {
+        var memory = new TestMemoryBus();
+        var cpu = new TestCpu(memory);
+        memory.Write(0x0012, 0x34);
+        memory.Write(0x0040, 0x12);
+        memory.Write(0x0041, 0x34);
+        cpu.State.PC = 0x0100;
+        memory.Write(0x0100, 0x12);
+        memory.Write(0x0101, 0x00);
+        memory.Write(0x0102, 0x40);
+        memory.Write(0x0103, 0x00);
+
+        cpu.FetchDirect().Should().Be(0x34);
+        cpu.Ld16Extended().Should().Be(0x1234);
+    }
+
     private sealed class TestCpu(IMemoryBus memory) : M6800Cpu(memory, new M6800State(), CreateTable())
     {
         public byte LastOpcode { get; private set; }

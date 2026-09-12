@@ -403,41 +403,9 @@ public class M6809Cpu : M6800Cpu
 
     protected override int ExecuteOpcode(byte op) => OpcodeTable[op]();
 
+    protected override ushort ResolveDirectAddress(byte offset) => (ushort)((State.DP << 8) | offset);
+
     #region Addressing Modes
-
-    public byte FetchDirect()
-    {
-        byte n = Fetch();
-        ushort addr = (ushort)(((State.DP) << 8) | n);
-        return Mmu.Read(addr);
-    }
-
-    public ushort Ld16Direct()
-    {
-        byte n = Fetch();
-        ushort addr = (ushort)(((State.DP) << 8) | n);
-        return Read16(addr);
-    }
-
-    public byte LdDirect()
-    {
-        return FetchDirect();
-    }
-
-    public ushort FetchExtended()
-    {
-        return Fetch16();
-    }
-
-    public byte LdExtended()
-    {
-        return Mmu.Read(FetchExtended());
-    }
-
-    public ushort Ld16Extended()
-    {
-        return Read16(FetchExtended());
-    }
 
     public ushort FetchIndexed(out int extraCycles)
     {
