@@ -8,14 +8,14 @@
 - [x] Etap 6: M6809Cpu dziedziczy po M6800Cpu — build solution OK; CPU6809 90/90; PET 255/255
 - [x] Etap 7: migracja wspólnych instrukcji i adresowania — wspólne direct/extended load helpers; 6809 zachowuje DP przez hook; CPU6809 90/90
 - [x] Etap 8: integracja tablic 6800/6809 i jawne nielegalne opcode'y — metadata page-0/page-10/page-11; unsupported prefixed entries są jawne, zachowane 2 cykle
-- [ ] Etap 9: regresja SuperPET i testy integracyjne
-- [ ] Etap 10: pełne testy MC6800
+- [x] Etap 9: regresja SuperPET i testy integracyjne — PET 255 aktywnych przypadków bez błędów; przypadki long-running pozostają skipped
+- [x] Etap 10: pełne testy MC6800 — Cpu6800.Tests 5/5
 - [ ] Etap 11: końcowa analiza GitNexus i przegląd diffu
 - [ ] Etap 12: Definition of Done i przekazanie
 
 ## Stan
 
 - branch: refactor/6800-6809-core-architecture
-- aktualny etap: 9
-- ostatnia weryfikacja: solution build OK; CPU6809 metadata test 1/1; pełna regresja CPU6809 uruchomiona bez zgłoszonych błędów
+- aktualny etap: 11
+- ostatnia weryfikacja: CPU6809 91/91; CPU6800 5/5; PET 255 aktywnych przypadków bez błędów
 - uwagi: plan migracji znajduje się w 2026-09-12-gitnexus-plan-6800-6809-core-migration.md
