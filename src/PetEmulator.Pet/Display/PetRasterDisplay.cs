@@ -76,16 +76,26 @@ public sealed class PetRasterDisplay
                 nameof(frameBuffer));
         }
 
-        var cursor = GetCursorPosition();
+        var cursor = _profile.CursorStrategy == PetCursorStrategy.ZeroPagePointer
+            ? GetCursorPosition()
+            : null;
         for (var row = 0; row < _profile.Rows; row++)
         {
             for (var col = 0; col < _profile.Columns; col++)
             {
                 var screenCode = _memory.Read((ushort)(_profile.VideoRamStart + row * _profile.Columns + col));
-                var invert = _cursorVisible && cursor is { } c && c.Row == row && c.Column == col;
+                // Both PET screen codes and Waterloo's ASCII screen use bit 7 for reverse video.
+                // Waterloo marks its menu cursor by writing $A0 (reverse ASCII space), so the bit
+                // must be removed before selecting the ASCII character-ROM bank as well.
+                var isReverse = (screenCode & 0x80) != 0;
+                var invert = isReverse
+                    || (_cursorVisible && cursor is { } c && c.Row == row && c.Column == col);
+                var characterCode = _profile.ScreenCharacterEncoding == PetScreenCharacterEncoding.Ascii
+                    ? 0x100 + (screenCode & 0x7F)
+                    : screenCode & 0x7F;
                 for (var glyphRow = 0; glyphRow < _font.GlyphHeight; glyphRow++)
                 {
-                    var bits = _font.GetGlyphRow(screenCode, glyphRow);
+                    var bits = _font.GetGlyphRow(characterCode, glyphRow);
                     if (invert)
                         bits = (byte)~bits;
                     var pixelRowOffset = (row * _font.GlyphHeight + glyphRow) * PixelWidth + col * _font.GlyphWidth;
@@ -107,7 +117,7 @@ public sealed class PetRasterDisplay
     /// hardware).
     ///
     /// Was a single hardcoded $C4/$C5/$C6 with a CRTC-register branch for BASIC 4 profiles -
-    /// wrong on two counts (see docs/pet-cursor-fix.md): CRTC-equipped profiles don't use their
+    /// wrong on two counts (see docs/pet/cursor-fix.md): CRTC-equipped profiles don't use their
     /// CRTC's hardware cursor register at all (real BASIC 4 KERNALs write it once, to $0000,
     /// during init and never touch it again), and the original PET 2001 (BASIC 1) uses
     /// $E0/$E1/$E2 instead of $C4/$C5/$C6 - a different ROM revision, a different zero-page

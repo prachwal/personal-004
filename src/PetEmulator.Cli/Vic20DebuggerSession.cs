@@ -9,7 +9,7 @@ namespace PetEmulator.Cli;
 
 /// <summary>
 /// Scripted, headless command session for a <see cref="Vic20Machine"/> - the VIC-20 analog of
-/// <see cref="PetDebuggerSession"/> (see docs/vic20-migration-plan.md step 10). No <c>profile</c>
+/// <see cref="PetDebuggerSession"/> (see docs/vic20/migration-plan.md step 10). No <c>profile</c>
 /// command (v1 is NTSC-unexpanded only, see that plan's scope cuts) - just <c>roms</c>, then
 /// machine-touching commands. Everything not listed here (<c>trace</c>/<c>watch</c>/
 /// <c>break-cycle</c>/<c>break-pc</c>/<c>dump</c>/...) delegates to <see cref="MachineDebugger"/>,

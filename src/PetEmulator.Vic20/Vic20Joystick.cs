@@ -15,7 +15,7 @@ public enum Vic20JoystickInput
 /// VIA1 PA2-PA5 and VIA2 PB7; the machine combines these masks with the existing IEC and tape
 /// input lines before the CPU reads either VIA.
 /// </summary>
-public sealed class Vic20Joystick
+public sealed class Vic20Joystick : IJoystickSource, IJoystickInputSink
 {
     private bool _up;
     private bool _down;

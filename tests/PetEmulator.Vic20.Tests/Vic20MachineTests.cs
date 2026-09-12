@@ -1,6 +1,8 @@
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Core;
+using PetEmulator.Cpu6502;
+using PetEmulator.Chips;
 using PetEmulator.Debugger;
 using PetEmulator.Pet.CbmDos;
 using PetEmulator.Vic20.Tests.Roms;
@@ -11,12 +13,22 @@ namespace PetEmulator.Vic20.Tests;
 public sealed class Vic20MachineTests
 {
     [Test]
+    public void DisplayConfigSelectsTheMatchingVicTimingProfile()
+    {
+        var machine = new Vic20Machine(RomLocator.Directory("kernal.bin"), Vic20DisplayConfig.Pal);
+
+        machine.DisplayConfig.Should().Be(Vic20DisplayConfig.Pal);
+        machine.Vic.Standard.Should().Be(MOS6560Standard.Pal);
+        machine.Vic.TimingCyclesPerLine.Should().Be(MOS6560.PalCyclesPerLine);
+        machine.Vic.TimingTotalScanlines.Should().Be(MOS6560.PalTotalScanlines);
+    }
+    [Test]
     public void Keyboard_RoutesThroughVia2PortBOutPortAIn_NotVia1()
     {
         // Layer 1 (register-level bus integration, no KERNAL involved) for the real wiring bug
-        // docs/vic20-rendering-fixes.md's keyboard investigation found: row-select is VIA2 port B
+        // docs/vic20/rendering-fixes.md's keyboard investigation found: row-select is VIA2 port B
         // ($9120), column readback is VIA2 port A ($9121) - confirmed against the real KERNAL
-        // disassembly (docs/vic20-disassembly/kernal.asm). An earlier version of this wiring used
+        // disassembly (docs/vic20/disassembly/kernal.asm). An earlier version of this wiring used
         // VIA1 port A/port B instead - every real keypress silently vanished.
         var machine = CreateMachine();
         machine.Keyboard.Press(2, 0);
@@ -24,6 +36,32 @@ public sealed class Vic20MachineTests
         machine.Via2.Write(0x9120, unchecked((byte)~(1 << 2))); // select row 2 only
 
         machine.Via2.Read(0x9121).Should().Be(unchecked((byte)~1), "row 2 col 0 is pressed");
+    }
+
+    [Test]
+    [CancelAfter(10_000)]
+    public void Via1TimerIrq_IsPropagatedToThe6502IrqVector()
+    {
+        var machine = CreateMachine();
+        machine.RunUntil(_ => machine.Vic.Columns > 0 && machine.Vic.Rows > 0, 2_000_000)
+            .Should().BeTrue("the KERNAL must finish initialization before the timer IRQ is injected");
+
+        var reads = new List<ushort>();
+        machine.BusObserver = access =>
+        {
+            if (!access.IsWrite)
+                reads.Add(access.Address);
+        };
+
+        machine.Memory.Write(0x911D, 0x7F); // clear any boot-time VIA1 interrupt flags
+        ((PetEmulator.Cpu6502.Cpu6502)machine.Processor).Registers.P &= unchecked((byte)~0x04); // CLI for the test CPU
+        machine.Memory.Write(0x911E, 0xC0); // enable VIA1 Timer 1 interrupt
+        machine.Memory.Write(0x9114, 0x01);
+        machine.Memory.Write(0x9115, 0x00); // start T1 with a two-cycle period
+        machine.Run(20);
+
+        reads.Should().Contain(0xFFFE, "the 6502 must fetch the low byte of the IRQ vector");
+        reads.Should().Contain(0xFFFF, "the 6502 must fetch the high byte of the IRQ vector");
     }
 
     [Test]
@@ -53,6 +91,10 @@ public sealed class Vic20MachineTests
     public void UserPort_ExposesVIA1PortBInputDirectionAndOutput()
     {
         var machine = CreateMachine();
+        var outputChanges = 0;
+        var directionChanges = 0;
+        machine.UserPort.OutputChanged += () => outputChanges++;
+        machine.UserPort.DirectionChanged += () => directionChanges++;
         machine.UserPort.Input = 0xA5;
         machine.Via1.Write(0x9112, 0x00); // all User Port pins as inputs
 
@@ -63,6 +105,8 @@ public sealed class Vic20MachineTests
 
         machine.UserPort.Direction.Should().Be(0xF0);
         machine.UserPort.Output.Should().Be(0x50);
+        outputChanges.Should().Be(1);
+        directionChanges.Should().Be(1);
     }
 
     [Test]
@@ -73,7 +117,7 @@ public sealed class Vic20MachineTests
         // advance the KERNAL's screen line-pointer by exactly one row when pressed alone, so a
         // pointer-movement check can't tell them apart (see
         // Vic20KeyboardMatrixTests.Vic20HostKeyMap_Enter_IsRowOneColSeven and
-        // docs/vic20-rendering-fixes.md). Only watching for the typed command's real effect can -
+        // docs/vic20/rendering-fixes.md). Only watching for the typed command's real effect can -
         // CRSR-DOWN never executes "PRINT2+2" no matter how long it's given to run; Enter does.
         var machine = CreateMachine();
         machine.RunUntil(_ => HasLetters(machine), 2_000_000).Should().BeTrue("must boot first");
@@ -207,7 +251,7 @@ public sealed class Vic20MachineTests
     public void MachineDebugger_WorksAgainstVic20MachineWithNoVic20SpecificCode()
     {
         // MachineDebugger (PetEmulator.Debugger) was built purely against IMachine/IProcessor/
-        // IMemoryBus - see docs/pet-debug-tools.md. This proves that promise: it works here with
+        // IMemoryBus - see docs/pet/debug-tools.md. This proves that promise: it works here with
         // zero VIC-20-specific code, the entire point of building it CPU/machine-agnostic.
         var machine = CreateMachine();
         var debugger = new MachineDebugger(machine);

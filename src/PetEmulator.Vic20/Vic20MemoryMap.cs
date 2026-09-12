@@ -1,6 +1,6 @@
 namespace PetEmulator.Vic20;
 
-/// <summary>Real, unexpanded VIC-20 hardware addresses (see docs/vic20-migration-plan.md step 5 -
+/// <summary>Real, unexpanded VIC-20 hardware addresses (see docs/vic20/migration-plan.md step 5 -
 /// expansion-preset banking ($3K/$8K/$16K/$24K/All) deliberately out of scope for v1: an
 /// unexpanded machine boots BASIC and runs small programs exactly like real unexpanded
 /// hardware does).</summary>

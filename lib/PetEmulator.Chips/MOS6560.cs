@@ -6,9 +6,8 @@ namespace PetEmulator.Chips;
 /// <summary>
 /// Minimal MOS 6560/6561 VIC (Video Interface Chip) - the VIC-20's video/audio chip, 16
 /// memory-mapped registers. Ported (rewritten, not copied - different bus/device contracts) from
-/// a reference implementation (see docs/vic20-migration-plan.md step 2), NTSC-only for v1: no
-/// three tone oscillators and one noise generator, no PAL timing (<see cref="TotalScanlines"/>/<see
-/// cref="CyclesPerLine"/> are NTSC constants only).
+/// a reference implementation (see docs/vic20/migration-plan.md step 2). The model supports the
+/// NTSC 6560 and PAL 6561 timing profiles; both variants share the register and audio behavior.
 /// </summary>
 public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
 {
@@ -18,21 +17,34 @@ public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
     public const double Phi2Ntsc = 1_431_8181.0 / 14.0;
     public const int TotalScanlines = 261;
     public const int CyclesPerLine = 65;
+    public const double Phi2Pal = 17_734_472.0 / 16.0;
+    public const int PalTotalScanlines = 312;
+    public const int PalCyclesPerLine = 71;
 
     private readonly ushort _baseAddress;
+    private readonly MOS6560Standard _standard;
     private readonly byte[] _registers = new byte[RegisterCount];
     private int _rasterCounter;
     private long _lineCycles;
     private readonly double[] _audioPhases = new double[4];
     private ushort _noiseLfsr = 0xFFFF;
 
-    public MOS6560(string name = "VIC", ushort baseAddress = 0)
+    public MOS6560(string name = "VIC", ushort baseAddress = 0, MOS6560Standard standard = MOS6560Standard.Ntsc)
     {
         Name = name;
         _baseAddress = baseAddress;
+        _standard = standard;
     }
 
     public string Name { get; }
+
+    public MOS6560Standard Standard => _standard;
+
+    public double Phi2 => _standard == MOS6560Standard.Pal ? Phi2Pal : Phi2Ntsc;
+
+    public int TimingTotalScanlines => _standard == MOS6560Standard.Pal ? PalTotalScanlines : TotalScanlines;
+
+    public int TimingCyclesPerLine => _standard == MOS6560Standard.Pal ? PalCyclesPerLine : CyclesPerLine;
 
     public uint Length => RegisterCount;
 
@@ -109,7 +121,7 @@ public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
     /// within color RAM's own window and must be added to <c>ColorRamStart</c> - reading straight
     /// from offset 0 is wrong whenever the low 10 bits aren't already 0). Confirmed empirically
     /// against the real KERNAL: with <see cref="ScreenMatrixBase"/>=$3E00 (this repo's real,
-    /// final boot-time value - see docs/vic20-migration-plan.md's color-RAM bug note), real
+    /// final boot-time value - see docs/vic20/migration-plan.md's color-RAM bug note), real
     /// KERNAL writes to color RAM land at $9600-$97F9 (offset $200), exactly
     /// <c>ScreenMatrixBase &amp; 0x3FF</c> = $3E00 &amp; 0x3FF = $200.</summary>
     public int ColorMatrixOffset => ScreenMatrixBase & 0x3FF;
@@ -121,7 +133,7 @@ public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
     // real VIC-20's boot screen is blue text on a white background - which is only what this
     // repo's RenderChar produces if "bit set" means false (no swap). Was inverted (`!= 0` read as
     // "reverse"), which silently swapped ink/paper for the entire default boot screen (white text
-    // on blue instead of the real blue-on-white) - see docs/vic20-rendering-fixes.md.
+    // on blue instead of the real blue-on-white) - see docs/vic20/rendering-fixes.md.
     public bool ReverseMode => (_registers[0x0F] & 0x08) == 0;
     public byte BorderColor => (byte)(_registers[0x0F] & 0x07);
 
@@ -179,11 +191,11 @@ public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
         return destination.Length;
     }
 
-    private static double CalculateFrequency(byte register, int divider) =>
+    private double CalculateFrequency(byte register, int divider) =>
         // VIC frequency registers use the complete 8-bit value while enabled.
         // Bit 7 is the enable bit, but it also participates in the divider; masking
         // it out turns values such as $F0 into a ~28 Hz rumble instead of ~266 Hz.
-        Phi2Ntsc / divider / (255 - register + 1);
+        Phi2 / divider / (255 - register + 1);
 
     private double RenderSquare(bool enabled, double frequency, int phaseIndex, double dt, ref int generators)
     {
@@ -227,12 +239,18 @@ public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
     public void Tick(ulong cycles)
     {
         _lineCycles += (long)cycles;
-        while (_lineCycles >= CyclesPerLine)
+        while (_lineCycles >= TimingCyclesPerLine)
         {
-            _lineCycles -= CyclesPerLine;
+            _lineCycles -= TimingCyclesPerLine;
             _rasterCounter++;
-            if (_rasterCounter >= TotalScanlines)
+            if (_rasterCounter >= TimingTotalScanlines)
                 _rasterCounter = 0;
         }
     }
+}
+
+public enum MOS6560Standard
+{
+    Ntsc,
+    Pal
 }

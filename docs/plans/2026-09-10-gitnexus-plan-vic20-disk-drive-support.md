@@ -39,7 +39,7 @@ bytes in/out plus a device number. This is the reusable core.
 `src/PetEmulator.Vic20/Vic20Machine.cs:22-213`] wires `MOS6560` (VIC), two
 `MOS6522` VIAs (`Via1`@$9110, `Via2`@$9120), color RAM, keyboard matrix and
 `Vic20Datasette` (cassette). It has no IEEE/serial bus of any kind today.
-`docs/vic20-migration-plan.md` [verified, lines 12-13 and "Czego NIE robić w
+`docs/vic20/migration-plan.md` [verified, lines 12-13 and "Czego NIE robić w
 v1"] explicitly scoped disk out of v1 ("VIC-20 miał inny format taśmy niż PET
 - osobna decyzja później" for tape, disk not mentioned at all - never
 attempted). `MOS6522` [verified, `lib/PetEmulator.Chips/MOS6522.cs`] exposes
@@ -168,9 +168,9 @@ work, not a port of `PetIeeeBus`.
    `Vic20DebuggerSession` CLI commands (mirror `mount-disk`/`new-disk` if
    `PetDebuggerSession` has them - verify at implementation time).
 7. `detect_changes({scope:"all"})`, full `dotnet test`, docs update
-   (`docs/vic20-migration-plan.md`'s "Czego NIE robić" line removing disk from
-   the exclusion list; add a `docs/vic20-disk.md` mirroring
-   `docs/pet-disk-testing-strategy.md`'s layer structure) before commit.
+   (`docs/vic20/migration-plan.md`'s "Czego NIE robić" line removing disk from
+   the exclusion list; add a `docs/vic20/disk.md` mirroring
+   `docs/pet/disk-testing-strategy.md`'s layer structure) before commit.
 
 ## Test Strategy (§8)
 
@@ -215,7 +215,7 @@ implementation_context:
       canonicalization: 'gitnexus-evidence-provenance-v2 NUL-framed UTF-8 records'
       value: '0a9c85780067d9afcd0764f307b60891e3cee927ee11eaeb5ec7826d10fd82cd'
     cited_path_manifest:
-      - path: 'docs/vic20-migration-plan.md'
+      - path: 'docs/vic20/migration-plan.md'
         object_kind: {head: regular, index: regular, worktree: regular, untracked: absent}
         state: clean
         rename_from: null
@@ -349,7 +349,7 @@ implementation_context:
     - file: 'src/PetEmulator.Desktop/ViewModels/MainWindowViewModel.cs'
       symbols: ['MainWindowViewModel']
       intended_change: 'Route New/Load-disk commands to Vic20MachineViewModel when CurrentMachine is VIC-20, mirroring the existing PET routing'
-    - file: 'docs/vic20-migration-plan.md'
+    - file: 'docs/vic20/migration-plan.md'
       symbols: []
       intended_change: 'Remove disk from the "Czego NIE robić w v1" exclusion list once shipped'
 
@@ -431,4 +431,4 @@ differences.
   unchanged (proves zero regression to the reused DOS layer).
 - `detect_changes({scope:"all"})` reviewed before commit; any HIGH/CRITICAL
   risk re-confirmed against the additive-only constraint in §6/§9.
-- `docs/vic20-migration-plan.md` and a new `docs/vic20-disk.md` updated.
+- `docs/vic20/migration-plan.md` and a new `docs/vic20/disk.md` updated.

@@ -1,6 +1,6 @@
 # GitNexus Engineering Plan
 
-> Task: Add VIC-20 audio output - MOS6560's built-in 3-oscillator + noise square-wave generator, played through PetEmulator.Audio's IAudioOutput/AudioOutputFactory (verified working on this WSL host, docs/audio-wsl-backend.md).
+> Task: Add VIC-20 audio output - MOS6560's built-in 3-oscillator + noise square-wave generator, played through PetEmulator.Audio's IAudioOutput/AudioOutputFactory (verified working on this WSL host, docs/desktop/audio-wsl-backend.md).
 > Evidence verified at commit e20c105667b9cbd8f6f0bdb3caad868b7ccfca95; GitNexus index refreshed this session (--index-only, no --pdg) after impact() showed it 7 commits behind - re-read after refresh.
 > Evidence provenance schema 2; global dirty digest sha256:ff5012ae903afa6e767a06a933ee16792830d5e71a096722a8d9bbaeced73d12; cited-path manifest 9 sorted entries; exact generated plan path excluded.
 
@@ -10,7 +10,7 @@ Give `MOS6560` (the VIC-20's video *and* sound chip) a working `IAudioSource`
 implementation, and have `Vic20MachineViewModel` play it through the
 already-verified `PetEmulator.Audio` backend - so a booted VIC-20 running a
 real program that pokes its sound registers is actually audible, the same way
-`docs/audio-wsl-backend.md`'s own sine-wave test was heard on this machine.
+`docs/desktop/audio-wsl-backend.md`'s own sine-wave test was heard on this machine.
 
 ## Current Behaviour (§2-3) - architecture folded in
 
@@ -51,7 +51,7 @@ port]:
 session]: `IAudioSource` (`Format` + `Render(Span<AudioFrame>)`,
 `AudioContracts.cs`), `IAudioOutput`/`AudioOutputFactory.CreateDefault()`
 (`PulseAudioSink`/`AudioOutputFactory.cs`) - real-playback-verified on this
-exact host (`docs/audio-wsl-backend.md`'s "Verification performed on this
+exact host (`docs/desktop/audio-wsl-backend.md`'s "Verification performed on this
 host" section, captured `RDPSink.monitor` independently). Zero changes needed
 there; this task is purely "implement `IAudioSource`, then call `Start`".
 
@@ -135,14 +135,14 @@ currently an empty no-op - a clean, already-existing hook for `Stop()`.
    silence when all disabled, volume scaling, noise non-silence. Run
    `dotnet test tests/PetEmulator.Chips.Tests` before touching the ViewModel.
 4. Wire `Vic20MachineViewModel` per §6.3.
-5. Manual/real verification: mirror `docs/audio-wsl-backend.md`'s own
+5. Manual/real verification: mirror `docs/desktop/audio-wsl-backend.md`'s own
    methodology - run the actual Desktop app (or a small script poking
    `$900A`/`$900E` directly through `MOS6560.Write`) and confirm audible
    sound, ideally cross-checked with a `parec`/`RDPSink.monitor` capture the
    same way that document did for the sink itself, not just "no exception."
 6. `detect_changes({scope:"all"})`, full `dotnet test`, then update
    `MOS6560.cs`'s own class doc (currently says "no audio oscillators" - now
-   false) and `docs/vic20-migration-plan.md`'s "Poza zakresem v1: ... audio"
+   false) and `docs/vic20/migration-plan.md`'s "Poza zakresem v1: ... audio"
    line before commit.
 
 ## Test Strategy (§8)
@@ -185,7 +185,7 @@ implementation_context:
       canonicalization: 'gitnexus-evidence-provenance-v2 NUL-framed UTF-8 records'
       value: 'ff5012ae903afa6e767a06a933ee16792830d5e71a096722a8d9bbaeced73d12'
     cited_path_manifest:
-      - path: 'docs/vic20-migration-plan.md'
+      - path: 'docs/vic20/migration-plan.md'
         object_kind: {head: regular, index: regular, worktree: regular, untracked: absent}
         state: clean
         rename_from: null
@@ -280,7 +280,7 @@ implementation_context:
     - file: 'lib/PetEmulator.Chips/MOS6560.cs'
       symbols: []
       intended_change: "Update class doc comment - remove the now-false 'no audio oscillators' claim"
-    - file: 'docs/vic20-migration-plan.md'
+    - file: 'docs/vic20/migration-plan.md'
       symbols: []
       intended_change: 'Remove audio from the "Poza zakresem v1" exclusion list'
 
@@ -329,7 +329,7 @@ UI in this pass - deferred, add only if requested after hearing it play.
 
 **Explicitly deferred (not in scope):** Volume/mute UI control, CLI audio,
 PAL-frequency audio (this repo is NTSC-only throughout, per
-`docs/vic20-migration-plan.md`), any attempt at cycle-accurate (vs.
+`docs/vic20/migration-plan.md`), any attempt at cycle-accurate (vs.
 continuous-time-resampled) oscillator timing beyond what the donor model
 already provides.
 
@@ -343,10 +343,10 @@ already provides.
 - A real, unmodified VIC-20 program that pokes `$900A`-`$900E` produces
   audible sound when run through the Desktop app on this WSL host - ideally
   cross-checked with a real `parec`/`RDPSink.monitor` capture, mirroring
-  `docs/audio-wsl-backend.md`'s own verification methodology, not just "the
+  `docs/desktop/audio-wsl-backend.md`'s own verification methodology, not just "the
   test passed."
 - Full `dotnet test` green, including every existing `MOS6560Tests` case and
   the entire `PetEmulator.Audio` suite unchanged.
 - `detect_changes({scope:"all"})` reviewed before commit; `MOS6560.cs`'s
-  class doc and `docs/vic20-migration-plan.md` updated to drop the "no audio"
+  class doc and `docs/vic20/migration-plan.md` updated to drop the "no audio"
   claim.

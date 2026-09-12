@@ -1,25 +1,48 @@
-using PetEmulator.Pet.Roms;
+using PetEmulator.Pet.Profiles;
 
 namespace PetEmulator.Pet;
 
-/// <summary>Ported from personal-001's PetProfileCatalog. Ids double as ROM subfolder names (<see cref="PetProfile.RomDirectory"/>).</summary>
+/// <summary>Runtime profile catalog backed by one annotated definition class per machine profile.</summary>
 public static class PetProfileCatalog
 {
-    public static PetProfile Pet2001_8 { get; } = new("pet-2001-8", "PET 2001-8 / BASIC 1 / 40x25", "BASIC 1", 40, 25, 0x2000, 0x8000, 0x0400, false, "characters-1.901447-08.bin", PetRomManifest.Pet2001_8, PetProfileStatus.Implemented, PetCursorTracking.Basic1Convention, PetKeyboardLayout.Pet2001Graphics);
+    public static PetProfile Pet2001_8 { get; } = new Pet2001_8Profile().Profile;
+    public static PetProfile Pet2001_32 { get; } = new Pet2001_32Profile().Profile;
+    public static PetProfile Cbm3008 { get; } = new Cbm3008Profile().Profile;
+    public static PetProfile Cbm3016 { get; } = new Cbm3016Profile().Profile;
+    public static PetProfile Cbm3032 { get; } = new Cbm3032Profile().Profile;
+    public static PetProfile Cbm4032 { get; } = new Cbm4032Profile().Profile;
+    public static PetProfile Cbm4008Crtc40N60 { get; } = new Cbm4008Crtc40N60Profile().Profile;
+    public static PetProfile Cbm4016Crtc40N60 { get; } = new Cbm4016Crtc40N60Profile().Profile;
+    public static PetProfile Cbm4032Crtc40N50 { get; } = new Cbm4032Crtc40N50Profile().Profile;
+    public static PetProfile Cbm4032Crtc40B50 { get; } = new Cbm4032Crtc40B50Profile().Profile;
+    public static PetProfile Cbm4032Crtc40B60 { get; } = new Cbm4032Crtc40B60Profile().Profile;
+    public static PetProfile Cbm8032 { get; } = new Cbm8032Profile().Profile;
+    public static PetProfile Cbm8032Crtc80B50 { get; } = new Cbm8032Crtc80B50Profile().Profile;
+    public static PetProfile Cbm8016Converted80N50 { get; } = new Cbm8016Converted80N50Profile().Profile;
+    public static PetProfile Converted80NUnknown { get; } = new Converted80NUnknownProfile().Profile;
+    public static PetProfile Cbm8096French { get; } = new Cbm8096FrenchProfile().Profile;
+    public static PetProfile Cbm8296 { get; } = new Cbm8296Profile().Profile;
+    public static PetProfile SuperPet6502 { get; } = new SuperPet6502Profile().Profile;
+    public static PetProfile SuperPet6809 { get; } = new SuperPet6809Profile().Profile;
 
-    public static PetProfile Pet2001_32 { get; } = new("pet-2001-32", "PET 2001-32 / BASIC 2 / 40x25", "BASIC 2", 40, 25, 0x8000, 0x8000, 0x0400, false, "characters-2.901447-10.bin", PetRomManifest.Pet2001_32, PetProfileStatus.Implemented, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Pet2001Graphics);
+    /// <summary>Legacy alias for the default CLI profile, which represents 6809 mode.</summary>
+    public static PetProfile SuperPet => SuperPet6809;
 
-    public static PetProfile Cbm4032 { get; } = new("cbm-4032", "CBM 4032 / BASIC 4 / 40x25", "BASIC 4", 40, 25, 0x8000, 0x8000, 0x0400, true, "characters-2.901447-10.bin", PetRomManifest.Cbm4032, PetProfileStatus.Implemented, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm4032);
+    public static IReadOnlyList<PetProfile> Planned { get; } = [Cbm8096French, Cbm8296, SuperPet6502, SuperPet6809];
 
-    public static PetProfile Cbm8032 { get; } = new("cbm-8032", "CBM 8032 / BASIC 4 / 80x25", "BASIC 4", 80, 25, 0x8000, 0x8000, 0x0800, true, "characters-2.901447-10.bin", PetRomManifest.Cbm8032, PetProfileStatus.Implemented, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm8032);
+    public static IReadOnlyList<PetProfile> All { get; } =
+    [
+        Pet2001_8, Pet2001_32, Cbm3008, Cbm3016, Cbm3032,
+        Cbm4008Crtc40N60, Cbm4016Crtc40N60, Cbm4032,
+        Cbm4032Crtc40N50, Cbm4032Crtc40B50, Cbm4032Crtc40B60,
+        Cbm8032, Cbm8032Crtc80B50, Cbm8016Converted80N50, Converted80NUnknown
+    ];
 
-    public static IReadOnlyList<PetProfile> All { get; } = [Pet2001_8, Pet2001_32, Cbm4032, Cbm8032];
+    /// <summary>Profiles that passed the ROM and memory-bus checks and may be selected by a host.</summary>
+    public static IReadOnlyList<PetProfile> Available { get; } = [.. All, SuperPet6502, SuperPet6809];
 
-    /// <summary>Looks up a profile by <see cref="PetProfile.Id"/> (e.g. "pet-2001-32") - the
-    /// string form a script/CLI command line points at, as opposed to <see cref="All"/>'s typed
-    /// enumeration.</summary>
     public static PetProfile Find(string id) =>
-        All.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase))
+        Available.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase))
         ?? throw new InvalidOperationException(
-            $"Unknown PET profile '{id}'. Available: {string.Join(", ", All.Select(p => p.Id))}.");
+            $"Unknown PET profile '{id}'. Available: {string.Join(", ", Available.Select(p => p.Id))}.");
 }

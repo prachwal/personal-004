@@ -11,7 +11,7 @@ namespace PetEmulator.Pet;
 /// Confirmed by typing one character repeatedly and watching which zero-page byte increments by
 /// exactly 1 each time (the column), and which pair combines with
 /// <see cref="PetProfile.VideoRamStart"/> to land in a genuinely valid, live-tracked screen
-/// offset (the line pointer) - see docs/pet-cursor-fix.md for the full investigation, including
+/// offset (the line pointer) - see docs/pet/cursor-fix.md for the full investigation, including
 /// the CRTC-register red herring this replaced (real BASIC 4 KERNALs never use their CRTC's
 /// hardware cursor register for this - see that doc).
 /// </summary>

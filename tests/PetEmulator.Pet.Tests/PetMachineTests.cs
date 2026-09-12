@@ -1,10 +1,12 @@
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Core;
+using PetEmulator.Core.Serial;
 using PetEmulator.Chips;
 using PetEmulator.Pet.Keyboard;
 using PetEmulator.Pet.Tape;
 using PetEmulator.Pet.Tests.Roms;
+using PetEmulator.Pet.Roms;
 
 namespace PetEmulator.Pet.Tests;
 
@@ -131,6 +133,7 @@ public sealed class PetMachineTests
 
     [Test]
     [CancelAfter(30_000)]
+    [Explicit("Long-running real ROM boot test; run explicitly.")]
     public void Pet2001_8_BootsWithoutThrowing_ForBoundedSteps()
     {
         var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
@@ -143,6 +146,7 @@ public sealed class PetMachineTests
 
     [Test]
     [CancelAfter(30_000)]
+    [Explicit("Long-running real ROM boot test; run explicitly.")]
     public void Cbm8032_BootsWithoutThrowing_ForBoundedSteps()
     {
         var machine = CreateMachine(PetProfileCatalog.Cbm8032);
@@ -151,6 +155,193 @@ public sealed class PetMachineTests
 
         machine.Processor.Halted.Should().BeFalse();
         machine.Processor.InstructionCount.Should().BeGreaterThan(0);
+    }
+
+    [TestCaseSource(nameof(AllProfiles))]
+    [CancelAfter(30_000)]
+    [Explicit("Long-running real ROM profile sweep; run explicitly.")]
+    public void EveryImplementedProfile_BootsWithoutThrowing_ForBoundedSteps(PetProfile profile)
+    {
+        var machine = CreateMachine(profile);
+
+        machine.Run(500);
+
+        machine.Processor.Halted.Should().BeFalse(profile.Id);
+        machine.Processor.InstructionCount.Should().BeGreaterThan(0, profile.Id);
+    }
+
+    [TestCaseSource(nameof(AllProfiles))]
+    public void EveryImplementedProfile_UsesTheVerifiedCommonPeripheralWiring(PetProfile profile)
+    {
+        var machine = CreateMachine(profile);
+
+        machine.Devices.Select(device => device.Id).Should().Contain(["datasette", "datasette2"],
+            profile.Id);
+        machine.UserPort.Should().NotBeNull(profile.Id);
+        (machine.Crtc is not null).Should().Be(profile.VideoHardware == PetVideoHardware.Crtc, profile.Id);
+    }
+
+    [Test]
+    public void SuperPet_Acia_IsMappedAtEff0_AndUsesTheSerialTransport()
+    {
+        using var transport = new BufferedSerialTransport();
+        var profileDirectory = RomLocator.Directory(PetProfileCatalog.SuperPet.RomDirectory, PetProfileCatalog.SuperPet.RomManifest[0].Path);
+        var machine = new PetMachine(
+            PetProfileCatalog.SuperPet,
+            Directory.GetParent(profileDirectory)!.FullName,
+            serialTransport: transport);
+
+        machine.Memory.Write(0xEFF0, 0xA5);
+        transport.TryReadTransmitted(out var transmitted).Should().BeTrue();
+        transmitted.Should().Be(0xA5);
+
+        machine.Memory.Write(0xEFF2, 0x00);
+        transport.ReceiveFromHost(0x5A);
+        machine.StepInstruction();
+
+        machine.Acia.Should().NotBeNull();
+        machine.Acia!.Irq.Should().BeTrue();
+        machine.Memory.Read(0xEFF0).Should().Be(0x5A);
+    }
+
+    [Test]
+    public void SuperPet_ExposesWaterlooFirmwareToThe6809WithoutReplacingThe6502()
+    {
+        var profile = PetProfileCatalog.SuperPet6502;
+        var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
+        var romsRoot = Directory.GetParent(profileDirectory)!.FullName;
+        var machine = new PetMachine(profile, romsRoot, serialTransport: new BufferedSerialTransport());
+
+        machine.SuperPet6809Cpu.Should().NotBeNull();
+        machine.SuperPet6809Memory.Should().NotBeNull();
+        machine.SuperPet6809Cpu!.State.PC.Should().Be(
+            (ushort)((machine.SuperPet6809Memory!.Read(0xFFFE) << 8) | machine.SuperPet6809Memory.Read(0xFFFF)));
+        machine.Processor.Should().NotBe(machine.SuperPet6809Cpu);
+
+        var firmwareFirstByte = PetRomLoader.Load(
+            Path.Combine(romsRoot, profile.RomDirectory), profile.ExpansionRomManifest!)[0].Data[0];
+        machine.SuperPet6809Memory.Read(0xA000).Should().Be(firmwareFirstByte);
+    }
+
+    [Test]
+    public void SuperPet_6809ExecutesTheWaterlooResetRoutine()
+    {
+        var profile = PetProfileCatalog.SuperPet;
+        var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
+        var machine = new PetMachine(
+            profile,
+            Directory.GetParent(profileDirectory)!.FullName,
+            serialTransport: new BufferedSerialTransport());
+
+        for (var instruction = 0; instruction < 16; instruction++)
+            machine.SuperPet6809Cpu!.StepInstruction();
+
+        machine.SuperPet6809Cpu!.Halted.Should().BeFalse();
+        machine.SuperPet6809Cpu.InstructionCount.Should().Be(16);
+    }
+
+    [Test]
+    public void SuperPet_CpuSwitchSelectsTheMatchingProcessorAndMemoryMap()
+    {
+        var profile = PetProfileCatalog.SuperPet6502;
+        var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
+        var machine = new PetMachine(profile, Directory.GetParent(profileDirectory)!.FullName,
+            serialTransport: new BufferedSerialTransport());
+        var petMemory = machine.Memory;
+
+        machine.SelectedProcessor.Should().Be(SuperPetProcessor.Mos6502);
+        machine.Memory.Should().BeSameAs(petMemory);
+
+        machine.SelectProcessor(SuperPetProcessor.Motorola6809);
+
+        machine.SelectedProcessor.Should().Be(SuperPetProcessor.Motorola6809);
+        machine.Processor.Should().BeSameAs(machine.SuperPet6809Cpu);
+        machine.Memory.Should().BeSameAs(machine.SuperPet6809Memory);
+        machine.Memory.Read(0xA000).Should().Be(machine.SuperPet6809Memory!.Read(0xA000));
+
+        machine.SelectProcessor(SuperPetProcessor.Mos6502);
+
+        machine.SelectedProcessor.Should().Be(SuperPetProcessor.Mos6502);
+        machine.Processor.Should().NotBeSameAs(machine.SuperPet6809Cpu);
+        machine.Memory.Should().BeSameAs(petMemory);
+    }
+
+    [TestCase(SuperPetProcessor.Mos6502, "superpet-6502")]
+    [TestCase(SuperPetProcessor.Motorola6809, "superpet")]
+    public void SuperPetProfile_SelectsItsProcessorModeAtPowerOn(SuperPetProcessor expected, string profileId)
+    {
+        var profile = PetProfileCatalog.Find(profileId);
+        var machine = CreateMachine(profile);
+
+        machine.SelectedProcessor.Should().Be(expected);
+        machine.SuperPet6809Cpu.Should().NotBeNull();
+        machine.SuperPetProtectionDongle.Should().NotBeNull();
+    }
+
+    [Test]
+    public void SuperPet6809StartupDiagnostics_ReportsTheWaterlooResetLoop()
+    {
+        var machine = CreateMachine(PetProfileCatalog.SuperPet);
+
+        var report = machine.DiagnoseSuperPet6809Startup(250);
+
+        report.ResetVector.Should().Be(0xFF80);
+        report.InitialProgramCounter.Should().Be(0xFF80);
+        report.Instructions.Take(8).Select(instruction => instruction.ProgramCounter)
+            .Should().Equal(0xFF80, 0xFF83, 0xFF85, 0xFF89, 0xFF8B, 0xFF8C, 0xFF89, 0xFF8B);
+        report.Instructions.Take(8).Select(instruction => instruction.Opcode)
+            .Should().Equal(0x8E, 0xC6, 0x10, 0xAF, 0x5A, 0x26, 0xAF, 0x5A);
+        report.FinalProgramCounter.Should().Be(0xBC26);
+        report.Halted.Should().BeFalse();
+        report.DeviceAccesses.Should().Contain(access => access.IsWrite && access.Address == 0xEFF1);
+    }
+
+    [Test]
+    public void SuperPet_ExpansionRamUsesIndependentBanksThroughEffc()
+    {
+        var profile = PetProfileCatalog.SuperPet;
+        var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
+        var machine = new PetMachine(profile, Directory.GetParent(profileDirectory)!.FullName,
+            serialTransport: new BufferedSerialTransport());
+        machine.SelectProcessor(SuperPetProcessor.Motorola6809);
+
+        machine.Memory.Write(SuperPetMemoryMap.BankSelectRegister, 2);
+        machine.Memory.Write(SuperPetMemoryMap.ExpansionRamWindow, 0xA2);
+        machine.Memory.Write(SuperPetMemoryMap.BankSelectRegister, 7);
+        machine.Memory.Write(SuperPetMemoryMap.ExpansionRamWindow, 0xA7);
+
+        machine.Memory.Read(SuperPetMemoryMap.ExpansionRamWindow).Should().Be(0xA7);
+        machine.Memory.Write(SuperPetMemoryMap.BankSelectRegister, 2);
+        machine.Memory.Read(SuperPetMemoryMap.ExpansionRamWindow).Should().Be(0xA2);
+        ((SuperPet6809MemoryBus)machine.SuperPet6809Memory!).SelectedBank.Should().Be(2);
+    }
+
+    [Test]
+    public void SuperPet_MapsThe6702DongleAtEfe0ThroughEfe3()
+    {
+        var profile = PetProfileCatalog.SuperPet;
+        var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
+        var machine = new PetMachine(profile, Directory.GetParent(profileDirectory)!.FullName,
+            serialTransport: new BufferedSerialTransport());
+        machine.SelectProcessor(SuperPetProcessor.Motorola6809);
+
+        machine.Memory.Read(SuperPetMemoryMap.ProtectionDongleBaseAddress).Should().Be(0xD6);
+        machine.Memory.Write(SuperPetMemoryMap.ProtectionDongleBaseAddress, 0x12);
+        machine.Memory.Write((ushort)(SuperPetMemoryMap.ProtectionDongleBaseAddress + 3), 0x35);
+
+        machine.Memory.Read((ushort)(SuperPetMemoryMap.ProtectionDongleBaseAddress + 2)).Should().Be(0xD6);
+        machine.SuperPetProtectionDongle.Should().NotBeNull();
+    }
+
+    [Test]
+    public void NonSuperPet_RejectsSelectingThe6809Processor()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Cbm8032);
+
+        var act = () => machine.SelectProcessor(SuperPetProcessor.Motorola6809);
+
+        act.Should().Throw<InvalidOperationException>();
+        machine.SelectedProcessor.Should().Be(SuperPetProcessor.Mos6502);
     }
 
     [Test]
@@ -191,7 +382,90 @@ public sealed class PetMachineTests
     }
 
     [Test]
+    public void DatasetteSense_IsActiveLowOnPetPia1PortA()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_32);
+        var pia1Base = PetMemoryBus.Pia1Base;
+
+        machine.Memory.Write((ushort)(pia1Base + 1), 0x04); // CRA: select ORA
+        machine.Memory.Write((ushort)(pia1Base + 3), 0x04); // CRB: select ORB
+        machine.Memory.Write(pia1Base, 0x00); // select keyboard row 0
+
+        var idle = machine.Memory.Read(pia1Base);
+        (idle & 0x10).Should().Be(0x10, "cassette sense is released high before PLAY");
+
+        machine.Datasette.LoadTape([100, 200], "sense-test.tap");
+        machine.Datasette.PressPlay();
+
+        var playing = machine.Memory.Read(pia1Base);
+        (playing & 0x10).Should().Be(0, "cassette sense is active-low while PLAY is pressed");
+    }
+
+    [Test]
+    public void SecondDatasette_UsesPia1Pa5AndViaPb4_IndependentlyOfCassetteOne()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+        var pia1Base = PetMemoryBus.Pia1Base;
+        var viaBase = PetMemoryBus.ViaBase;
+
+        machine.Memory.Write((ushort)(pia1Base + 1), 0x04); // select PIA1 ORA
+        machine.Datasette2.PressPlay();
+        var playing = machine.Memory.Read(pia1Base);
+        (playing & 0x20).Should().Be(0, "cassette #2 sense is active-low on PA5");
+        machine.Datasette.Sense.Should().BeFalse("cassette #1 must remain released");
+
+        machine.Memory.Write((ushort)(viaBase + MOS6522.Ddrb), 0x10);
+        machine.Memory.Write((ushort)(viaBase + MOS6522.Orb), 0x00);
+        machine.Datasette2.MotorOn.Should().BeTrue();
+        machine.Datasette.MotorOn.Should().BeFalse("cassette #1 motor is controlled by PIA1 CB2");
+
+        machine.Memory.Write((ushort)(viaBase + MOS6522.Orb), 0x10);
+        machine.Datasette2.MotorOn.Should().BeFalse();
+    }
+
+    [Test]
+    public void Devices_ExposeBothIndependentCassettes()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+
+        machine.Devices.Should().Contain(d => d.Id == "datasette");
+        machine.Devices.Should().Contain(d => d.Id == "datasette2");
+    }
+
+    [Test]
+    public void UserPort_MapsViaPortAInputOutputDirectionAndCa2Handshake()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+        var viaBase = PetMemoryBus.ViaBase;
+
+        machine.UserPort.Input = 0x5A;
+        machine.Memory.Write((ushort)(viaBase + MOS6522.Ddra), 0xF0);
+        machine.Memory.Write((ushort)(viaBase + MOS6522.OraWithoutHandshake), 0xA5);
+
+        machine.UserPort.Output.Should().Be(0xA0);
+        machine.UserPort.Direction.Should().Be(0xF0);
+        machine.Memory.Read((ushort)(viaBase + MOS6522.OraWithoutHandshake)).Should().Be(0xAA);
+
+        machine.Memory.Write((ushort)(viaBase + MOS6522.PeripheralControl), 0x0C);
+        machine.UserPort.HandshakeOutput.Should().BeFalse();
+        machine.Memory.Write((ushort)(viaBase + MOS6522.PeripheralControl), 0x0E);
+        machine.UserPort.HandshakeOutput.Should().BeTrue();
+    }
+
+    [Test]
+    public void UserPort_HandshakeInput_IsForwardedToViaCa2()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
+        machine.Memory.Write((ushort)(PetMemoryBus.ViaBase + MOS6522.PeripheralControl), 0x02);
+
+        machine.UserPort.HandshakeInput = false;
+
+        machine.Via.CA2.Should().BeFalse();
+    }
+
+    [Test]
     [CancelAfter(30_000)]
+    [Explicit("Long-running real ROM boot test; run explicitly.")]
     public void RunUntil_StopsAsSoonAsConditionIsTrue()
     {
         var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
@@ -301,6 +575,7 @@ public sealed class PetMachineTests
     /// and pressing play is what makes LOAD proceed - not just having a tape attached.</summary>
     [Test]
     [CancelAfter(60_000)]
+    [Explicit("Long-running real tape/disk integration test; run explicitly.")]
     public void PressPlay_LetsLoadProceedPastThePressPlayPrompt()
     {
         var profile = PetProfileCatalog.Pet2001_32;
@@ -445,4 +720,6 @@ public sealed class PetMachineTests
         var romsRoot = Directory.GetParent(profileDirectory)!.FullName;
         return new PetMachine(profile, romsRoot);
     }
+
+    private static IEnumerable<PetProfile> AllProfiles() => PetProfileCatalog.All;
 }

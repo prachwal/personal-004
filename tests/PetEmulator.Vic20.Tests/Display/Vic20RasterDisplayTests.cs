@@ -1,8 +1,10 @@
 using FluentAssertions;
 using NUnit.Framework;
+using PetEmulator.Audio;
 using PetEmulator.Core;
 using PetEmulator.Chips;
 using PetEmulator.Vic20.Display;
+using PetEmulator.Vic20.Tests.Roms;
 
 namespace PetEmulator.Vic20.Tests.Display;
 
@@ -56,6 +58,36 @@ public sealed class Vic20RasterDisplayTests
         buffer[0].Should().Be(inkArgb, "leftmost pixel of the glyph's top row is set");
         buffer[1].Should().Be(paperArgb, "second pixel is clear");
         buffer[7].Should().Be(inkArgb, "rightmost pixel is set");
+    }
+
+    [Test]
+    [CancelAfter(10_000)]
+    public void RealRomBoot_ConfiguresScreenAndDrivesVicRenderingRasterAndAudio()
+    {
+        var machine = new Vic20Machine(RomLocator.Directory("kernal.bin"));
+        machine.RunUntil(_ => machine.Vic.Columns > 0 && machine.Vic.Rows > 0, 2_000_000)
+            .Should().BeTrue("the real KERNAL must configure the VIC before rendering");
+
+        var display = new Vic20RasterDisplay(machine.Memory, machine.Vic);
+        var frame = new uint[display.PixelWidth * display.PixelHeight];
+        display.Render(frame);
+
+        var border = Vic20Palette.ToArgb(machine.Vic.BorderColor);
+        frame.Should().Contain(pixel => pixel != border, "the boot screen should contain rendered character cells");
+
+        var rasterValues = new HashSet<int>();
+        for (var i = 0; i < 32; i++)
+        {
+            machine.StepInstruction();
+            rasterValues.Add(machine.Vic.Raster);
+        }
+        rasterValues.Should().HaveCountGreaterThan(1, "the VIC raster must advance while the machine executes");
+
+        machine.Memory.Write(0x900A, 0x80 | 0x40);
+        machine.Memory.Write(0x900E, 0x0F);
+        var audio = new AudioFrame[64];
+        machine.Vic.Render(audio).Should().Be(audio.Length);
+        audio.Should().Contain(sample => sample.Left != 0 || sample.Right != 0);
     }
 
     private static (Vic20RasterDisplay Display, MOS6560 Vic, FakeMemoryBus Memory) CreateDisplay()

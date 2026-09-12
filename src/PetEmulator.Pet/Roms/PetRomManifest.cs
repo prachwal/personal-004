@@ -31,10 +31,65 @@ public static class PetRomManifest
         new("kernal-4.901465-22.bin", 0xF000, 0x1000)
     ];
 
+    public static IReadOnlyList<PetRomRequirement> Cbm4032_40N50 { get; } = WithEditor("edit-4-40-n-50Hz.901498-01.bin");
+    public static IReadOnlyList<PetRomRequirement> Cbm4032_40B50 { get; } = WithEditor("edit-4-40-b-50Hz.ts.bin");
+    public static IReadOnlyList<PetRomRequirement> Cbm4032_40B60 { get; } = WithEditor("edit-4-40-b-60Hz.ts.bin");
+
     public static IReadOnlyList<PetRomRequirement> Cbm8032 { get; } =
     [
         new("basic-4.901465-23-20-21.bin", 0xB000, 0x3000),
         new("edit-4-80-b-60Hz.901474-03.bin", 0xE000, 0x0800),
+        new("kernal-4.901465-22.bin", 0xF000, 0x1000)
+    ];
+
+    public static IReadOnlyList<PetRomRequirement> Cbm8032_80B50 { get; } =
+    [
+        new("basic-4.901465-23-20-21.bin", 0xB000, 0x3000),
+        new("edit-4-80-b-50Hz.901474-04-0283.bin", 0xE000, 0x0800),
+        new("kernal-4.901465-22.bin", 0xF000, 0x1000)
+    ];
+
+    public static IReadOnlyList<PetRomRequirement> Cbm8016Converted80N50 { get; } =
+    [
+        new("basic-4.901465-23-20-21.bin", 0xB000, 0x3000),
+        new("edit-4-80-n-50Hz.4016_to_8016.bin", 0xE000, 0x0800),
+        new("kernal-4.901465-22.bin", 0xF000, 0x1000)
+    ];
+
+    public static IReadOnlyList<PetRomRequirement> Converted80NUnknown { get; } =
+    [
+        new("basic-4.901465-23-20-21.bin", 0xB000, 0x3000),
+        new("edit-4-80-n_unk.bin", 0xE000, 0x1000),
+        new("kernal-4.901465-22.bin", 0xF000, 0x1000)
+    ];
+
+    public static IReadOnlyList<PetRomRequirement> SuperPetWaterloo50Hz { get; } =
+    [
+        new("waterloo-a000-bfff.970018-12.bin", 0xA000, 0x2000),
+        new("waterloo-c000-dfff.970019-12.bin", 0xC000, 0x2000),
+        new("waterloo-e000-ffff-970034-12.bin", 0xE000, 0x2000)
+    ];
+
+    public static IReadOnlyList<PetRomRequirement> Cbm8096French { get; } = WithCombinedBasicEditor("edit-french.bin", 0x1000);
+    public static IReadOnlyList<PetRomRequirement> Cbm8296 { get; } = WithCombinedBasicEditor("edit-50hz-324243-02b.bin");
+
+    private static IReadOnlyList<PetRomRequirement> WithEditor(
+        string editorPath,
+        uint editorLength = 0x0800) =>
+    [
+        new("basic-4-b000.901465-23.bin", 0xB000, 0x1000),
+        new("basic-4-c000.901465-20.bin", 0xC000, 0x1000),
+        new("basic-4-d000.901465-21.bin", 0xD000, 0x1000),
+        new(editorPath, 0xE000, editorLength),
+        new("kernal-4.901465-22.bin", 0xF000, 0x1000)
+    ];
+
+    private static IReadOnlyList<PetRomRequirement> WithCombinedBasicEditor(
+        string editorPath,
+        uint editorLength = 0x0800) =>
+    [
+        new("basic-4.901465-23-20-21.bin", 0xB000, 0x3000),
+        new(editorPath, 0xE000, editorLength),
         new("kernal-4.901465-22.bin", 0xF000, 0x1000)
     ];
 }

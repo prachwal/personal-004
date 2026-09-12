@@ -72,4 +72,46 @@ public sealed class PetIeeeBusBindingTests
         var read = pia2.Read(0);
         ((byte)(read ^ 0xFF)).Should().Be((byte)'7'); // error text starts "73,CBM DOS..."
     }
+
+    [Test]
+    public void Via_port_b_input_mapsNdacNrfdAndDavToTheDocumentedActiveLowBits()
+    {
+        var pia2 = new MT6520();
+        var via = new MOS6522();
+        var bus = new PetIeeeBus();
+        var binding = new PetIeeeBusBinding(pia2, via, bus);
+
+        bus.Reset();
+        binding.Reset();
+        via.Read(MOS6522.Orb).Should().Be(0x80, "idle DAV is released while NDAC and NRFD are ready");
+
+        bus.AcceptHandshake(); // NRFD asserted, NDAC active-low asserted
+        binding.Tick();
+        via.Read(MOS6522.Orb).Should().Be(0x81, "NDAC low is PB0 while DAV remains released on PB7");
+
+        bus.CompleteHandshake();
+        binding.Tick();
+        via.Read(MOS6522.Orb).Should().Be(0xC0, "released NDAC plus ready NRFD are reflected on PB0/PB6/PB7");
+    }
+
+    [Test]
+    public void Pia2Ca2AndCb2OutputsDriveNdacAndDavWithTheExpectedPolarity()
+    {
+        var pia2 = new MT6520();
+        var via = new MOS6522();
+        var bus = new PetIeeeBus();
+        _ = new PetIeeeBusBinding(pia2, via, bus);
+
+        bus.AcceptHandshake();
+        pia2.Write(1, 0x34); // CA2 manual output low: NDAC asserted
+        bus.NDAC.Should().BeFalse();
+        pia2.Write(1, 0x3C); // CA2 manual output high: NDAC released
+        bus.NDAC.Should().BeTrue();
+
+        pia2.Write(3, 0x3C); // establish CB2 manual output high: DAV released
+        pia2.Write(3, 0x34); // CB2 manual output low: DAV asserted
+        bus.DAV.Should().BeTrue();
+        pia2.Write(3, 0x3C); // CB2 manual output high: DAV released
+        bus.DAV.Should().BeFalse();
+    }
 }

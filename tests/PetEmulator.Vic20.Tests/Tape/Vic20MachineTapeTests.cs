@@ -7,7 +7,7 @@ using PetEmulator.Vic20.Keyboard;
 namespace PetEmulator.Vic20.Tests.Tape;
 
 /// <summary>Real-KERNAL-level proof that <see cref="Vic20Datasette"/>'s wiring is correct - see
-/// docs/vic20-tape.md for the investigation (an earlier, wrong VIA1-only wiring guess is why an
+/// docs/vic20/tape.md for the investigation (an earlier, wrong VIA1-only wiring guess is why an
 /// earlier version of this file only proved the machine reaches "SEARCHING", never a full
 /// decode). <see cref="LoadDecodesARealTapeFileByteForByte"/> is the real proof: a genuine header
 /// (filename, load address) plus payload bytes, round-tripped through the real KERNAL's own tape
@@ -27,7 +27,7 @@ public sealed class Vic20MachineTapeTests
 
         machine.Datasette.LoadTape(tap.PulseCycles, "hello-vic.tap");
         // Real hardware order: PLAY is pressed before LOAD is typed (or the real KERNAL blocks on
-        // "PRESS PLAY ON TAPE" - see CSTEL in docs/vic20-tape.md) - both work, this just avoids
+        // "PRESS PLAY ON TAPE" - see CSTEL in docs/vic20/tape.md) - both work, this just avoids
         // needing to also assert the prompt appears and gets dismissed.
         machine.Datasette.PressPlay();
 
@@ -53,7 +53,7 @@ public sealed class Vic20MachineTapeTests
         // Real proof, not a false positive: corrupts the target RAM with garbage between SAVE and
         // LOAD, so a match can only mean LOAD genuinely rewrote it - a program byte that happened
         // to survive untouched would look identical whether or not LOAD ever ran (this file's own
-        // history already hit exactly that trap once - see docs/vic20-tape.md).
+        // history already hit exactly that trap once - see docs/vic20/tape.md).
         var machine = new Vic20Machine(RomsRoot());
         machine.RunUntil(_ => machine.Vic.Columns > 0 && machine.Vic.Rows > 0, 2_000_000).Should().BeTrue("must boot first");
         machine.Run(200_000);
@@ -62,8 +62,13 @@ public sealed class Vic20MachineTapeTests
         machine.Datasette.PressPlay();
         Vic20TextTyper.Type(machine, "10 A=5\n", holdInstructions: 8000, gapInstructions: 8000);
         machine.Run(200_000);
+        machine.Datasette.WriteRecorder.Begin();
         Vic20TextTyper.Type(machine, "SAVE\n", holdInstructions: 8000, gapInstructions: 8000);
         machine.Run(3_000_000);
+        var recordedWritePulses = machine.Datasette.WriteRecorder.End();
+
+        recordedWritePulses.Should().NotBeEmpty("the real SAVE routine must drive VIA2 PB3");
+        recordedWritePulses.Should().OnlyContain(width => width > 0);
 
         const ushort ProgramStart = 0x1000;
         var saved = new byte[8];

@@ -36,7 +36,7 @@ public static class MachineExtensions
     /// <see cref="StallCheckResult.Stalled"/> set instead of running blind all the way to
     /// <paramref name="maxInstructions"/> before reporting failure. Built to replace manual
     /// instruction-budget bisection (halve the budget, rerun, re-read a trace by hand) - see
-    /// docs/pet-disk-testing-strategy.md and docs/pet-debug-tools.md.</summary>
+    /// docs/pet/disk-testing-strategy.md and docs/pet/debug-tools.md.</summary>
     public static StallCheckResult RunUntilOrStalled(
         this IMachine machine, Func<IMemoryBus, bool> condition, Func<long> progress, ulong maxInstructions, ulong stallWindow = 50_000)
     {

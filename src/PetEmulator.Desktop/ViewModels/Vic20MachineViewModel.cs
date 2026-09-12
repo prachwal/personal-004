@@ -19,7 +19,7 @@ namespace PetEmulator.Desktop.ViewModels;
 /// Owns a running <see cref="Vic20Machine"/>, its render loop, and keyboard translation - the
 /// VIC-20 implementation of <see cref="IMachineViewModel"/>, mirroring
 /// <see cref="PetMachineViewModel"/>'s shape exactly, tape widget included (see
-/// <see cref="Vic20Machine.Datasette"/>, added by docs/vic20-tape.md). <see cref="Devices"/>
+/// <see cref="Vic20Machine.Datasette"/>, added by docs/vic20/tape.md). <see cref="Devices"/>
 /// excludes the datasette and primary disk drive (both have dedicated widgets), while any other
 /// attached device is exposed through the generic status bar like PET's.
 /// </summary>
@@ -254,9 +254,9 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
 
     public void HandleKey(Key key, HostKeyEventKind kind)
     {
-        if (TryGetJoystickInput(key, out var joystickInput))
+        if (Vic20KeyboardJoystickAdapter.TryApply(
+                key, kind == HostKeyEventKind.Press, _machine.Joystick))
         {
-            _machine.Joystick.Set(joystickInput, kind == HostKeyEventKind.Press);
             return;
         }
 
@@ -288,21 +288,6 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
             _machine.Keyboard.Press(action.Row, action.Column);
         else
             _machine.Keyboard.Release(action.Row, action.Column);
-    }
-
-    private static bool TryGetJoystickInput(Key key, out Vic20JoystickInput input)
-    {
-        input = key switch
-        {
-            Key.NumPad8 => Vic20JoystickInput.Up,
-            Key.NumPad2 => Vic20JoystickInput.Down,
-            Key.NumPad4 => Vic20JoystickInput.Left,
-            Key.NumPad6 => Vic20JoystickInput.Right,
-            Key.NumPad0 => Vic20JoystickInput.Fire,
-            _ => default
-        };
-
-        return key is Key.NumPad8 or Key.NumPad2 or Key.NumPad4 or Key.NumPad6 or Key.NumPad0;
     }
 
     public void Tick()

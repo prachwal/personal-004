@@ -5,7 +5,7 @@ namespace PetEmulator.Audio.Tests;
 
 /// <summary>Covers <see cref="PulseAudioSink.Interleave"/> only - the one piece of the sink that
 /// is pure and doesn't need a real PulseAudio server. The P/Invoke playback loop itself is
-/// exercised manually (see docs/audio-wsl-backend.md); it has no meaningful behavior to assert
+/// exercised manually (see docs/desktop/audio-wsl-backend.md); it has no meaningful behavior to assert
 /// without an actual WSLg audio server.</summary>
 public sealed class PulseAudioSinkTests
 {

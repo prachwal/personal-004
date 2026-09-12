@@ -90,4 +90,20 @@ public sealed class Cbm4032KeyboardMapTests
 
         Assert.That(map.Translate("F13", HostKeyEventKind.Press), Is.Empty);
     }
+
+    [Test]
+    public void Cursor_keys_use_the_real_cursor_pair_and_keyboard_shift()
+    {
+        var map = new Cbm4032KeyboardMap();
+
+        Assert.That(map.Translate("Left", HostKeyEventKind.Press), Is.EqualTo(new[] { new MatrixAction(0, 7, true) }));
+        Assert.That(map.Translate("Up", HostKeyEventKind.Press), Is.EqualTo(new[]
+        {
+            new MatrixAction(8, 5, true), new MatrixAction(1, 6, true)
+        }));
+        Assert.That(map.Translate("Up", HostKeyEventKind.Release), Is.EqualTo(new[]
+        {
+            new MatrixAction(1, 6, false), new MatrixAction(8, 5, false)
+        }));
+    }
 }

@@ -34,6 +34,40 @@ public sealed class MT6545Tests
     }
 
     [Test]
+    public void AppliesTheMaskOrReadOnlyContractToEveryRegister()
+    {
+        var crtc = new MT6545();
+        var masks = new byte[]
+        {
+            0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0x1F, 0x7F, 0x7F, 0xFF,
+            0x1F, 0x7F, 0x1F, 0x3F, 0xFF, 0x3F, 0xFF
+        };
+
+        for (byte register = 0; register < 16; register++)
+        {
+            WriteRegister(crtc, register, 0xFF);
+            ReadRegister(crtc, register).Should().Be(masks[register]);
+        }
+
+        ReadRegister(crtc, 16).Should().Be(0);
+        ReadRegister(crtc, 17).Should().Be(0);
+    }
+
+    [Test]
+    public void UpdateAndTransparentModes_AreExplicitlyUnsupportedWithoutUpdateAddressRegisters()
+    {
+        var crtc = new MT6545();
+        WriteRegister(crtc, 0, 3);
+        WriteRegister(crtc, 1, 2);
+        WriteRegister(crtc, 8, 0x60);
+
+        ReadRegister(crtc, 8).Should().Be(0x60);
+        crtc.Tick(4);
+        crtc.MACounter.Should().BeInRange((ushort)0, (ushort)0x3FFF);
+        (crtc.Read(0) & 0x80).Should().Be(0);
+    }
+
+    [Test]
     public void ResetClearsRegistersCountersAndSignals()
     {
         var crtc = new MT6545();
@@ -238,6 +272,120 @@ public sealed class MT6545Tests
         second.Name.Should().Be("CRTC2");
     }
 
+    [Test]
+    public void ExposesLengthAndRejectsAddressesOutsideTheTwoRegisterWindow()
+    {
+        var crtc = new MT6545("TEST", 0x1000);
+
+        crtc.Name.Should().Be("TEST");
+        crtc.Length.Should().Be(2);
+        var read = () => crtc.Read(0x0FFF);
+        var write = () => crtc.Write(0x1002, 0);
+        read.Should().Throw<ArgumentOutOfRangeException>();
+        write.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Test]
+    public void SelectedRegisterAboveTheImplementedRangeIsReadOnlyAndReturnsFF()
+    {
+        var crtc = new MT6545();
+
+        crtc.Write(0, 31);
+        crtc.Read(1).Should().Be(0xFF);
+        crtc.Write(1, 0x55);
+        crtc.Read(1).Should().Be(0xFF);
+    }
+
+    [Test]
+    public void StatusReportsVerticalBlankAndClearsLightPenOnEitherLightPenRead()
+    {
+        new MT6545().Read(0).Should().Be(0);
+        var crtc = new MT6545();
+        WriteRegister(crtc, 0, 0);
+        WriteRegister(crtc, 1, 1);
+        WriteRegister(crtc, 4, 0);
+        WriteRegister(crtc, 6, 0);
+        WriteRegister(crtc, 9, 0);
+        crtc.Tick();
+        crtc.Read(0).Should().Be(0x20);
+        crtc.LightPenStrobe();
+
+        (crtc.Read(0) & 0x60).Should().Be(0x60);
+        crtc.Write(0, 16);
+        crtc.Read(1);
+        crtc.LightPenRegistered.Should().BeFalse();
+        crtc.LightPenStrobe();
+        crtc.Write(0, 17);
+        crtc.Read(1);
+        crtc.LightPenRegistered.Should().BeFalse();
+    }
+
+    [Test]
+    public void UsesZeroSyncWidthAsTheSixteenClockDefault()
+    {
+        var crtc = new MT6545();
+        WriteRegister(crtc, 0, 20);
+        WriteRegister(crtc, 2, 1);
+        WriteRegister(crtc, 3, 0);
+
+        crtc.Tick();
+        crtc.HSync.Should().BeFalse();
+        crtc.Tick();
+        crtc.HSync.Should().BeTrue();
+    }
+
+    [Test]
+    public void VerticalAdjustWaitsConfiguredRowsBeforeStartingNextFrame()
+    {
+        var crtc = new MT6545();
+        WriteRegister(crtc, 0, 0);
+        WriteRegister(crtc, 1, 1);
+        WriteRegister(crtc, 4, 0);
+        WriteRegister(crtc, 5, 2);
+        WriteRegister(crtc, 6, 1);
+        WriteRegister(crtc, 9, 0);
+        WriteRegister(crtc, 12, 0x12);
+        WriteRegister(crtc, 13, 0x34);
+
+        crtc.Tick();
+        crtc.VerticalBlanking.Should().BeFalse();
+        crtc.Tick();
+        crtc.VerticalBlanking.Should().BeTrue();
+        crtc.MACounter.Should().Be(0x1235);
+        crtc.Tick();
+        crtc.MACounter.Should().Be(0x1234);
+    }
+
+    [Test]
+    public void CursorBlinkModesToggleAtSixteenAndThirtyTwoFrames()
+    {
+        var sixteen = CreateSingleCharacterFrameCrtc(0x40);
+        sixteen.Tick();
+        sixteen.CursorEnable.Should().BeTrue();
+        Tick(sixteen, 16);
+        sixteen.Tick();
+        sixteen.CursorEnable.Should().BeFalse();
+
+        var thirtyTwo = CreateSingleCharacterFrameCrtc(0x60);
+        thirtyTwo.Tick();
+        thirtyTwo.CursorEnable.Should().BeTrue();
+        Tick(thirtyTwo, 32);
+        thirtyTwo.Tick();
+        thirtyTwo.CursorEnable.Should().BeFalse();
+    }
+
+    [Test]
+    public void CursorRasterWindowCanSuppressTheCursor()
+    {
+        var crtc = CreateSingleCharacterFrameCrtc(0);
+        WriteRegister(crtc, 10, 1);
+        WriteRegister(crtc, 11, 1);
+
+        crtc.Tick();
+
+        crtc.CursorEnable.Should().BeFalse();
+    }
+
     private static void Configure40x25(MT6545 crtc)
     {
         WriteRegister(crtc, 0, 39);
@@ -245,6 +393,21 @@ public sealed class MT6545Tests
         WriteRegister(crtc, 4, 26);
         WriteRegister(crtc, 6, 25);
         WriteRegister(crtc, 9, 0);
+    }
+
+    private static MT6545 CreateSingleCharacterFrameCrtc(byte cursorMode)
+    {
+        var crtc = new MT6545();
+        WriteRegister(crtc, 0, 0);
+        WriteRegister(crtc, 1, 1);
+        WriteRegister(crtc, 4, 0);
+        WriteRegister(crtc, 6, 1);
+        WriteRegister(crtc, 9, 0);
+        WriteRegister(crtc, 10, cursorMode);
+        WriteRegister(crtc, 11, 0);
+        WriteRegister(crtc, 14, 0);
+        WriteRegister(crtc, 15, 0);
+        return crtc;
     }
 
     private static byte ReadRegister(MT6545 crtc, byte register)

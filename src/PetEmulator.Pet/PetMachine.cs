@@ -1,7 +1,10 @@
 using PetEmulator.Cpu6502.Variants;
+using PetEmulator.Cpu6809;
 using PetEmulator.Core;
+using PetEmulator.Core.Serial;
 using PetEmulator.Pet.CbmDos;
 using PetEmulator.Chips;
+using PetEmulator.Pet.Diagnostics;
 using PetEmulator.Pet.Devices;
 using PetEmulator.Pet.Ieee488;
 using PetEmulator.Pet.Keyboard;
@@ -24,7 +27,14 @@ public sealed class PetMachine : IMachine
     private readonly MT6520 _pia2;
     private readonly MOS6522 _via;
     private readonly MT6545? _crtc;
+    private readonly MOS6551? _acia;
+    private readonly MOS6702? _superPetProtectionDongle;
+    private readonly SuperPet6809MemoryBus? _superPet6809Memory;
+    private readonly M6809Cpu? _superPet6809Cpu;
+    private IProcessor _activeProcessor;
+    private IMemoryBus _activeMemory;
     private readonly PetDatasette _datasette;
+    private readonly PetDatasette2 _datasette2;
     private readonly PetIeeeBus _ieeeBus;
     private readonly PetIeeeBusBinding _ieeeBusBinding;
     private readonly List<PetIeeeDriveStatus> _mountedDrives = [];
@@ -40,7 +50,7 @@ public sealed class PetMachine : IMachine
     private const int Pia1Cb1PulsePeriodCycles = 16_667; // ~1MHz PET clock / 60Hz
     private int _pia1Cb1Phase;
 
-    public PetMachine(PetProfile profile, string romsRoot, PetKeyboardMatrix? keyboard = null)
+    public PetMachine(PetProfile profile, string romsRoot, PetKeyboardMatrix? keyboard = null, ISerialTransport? serialTransport = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
@@ -52,11 +62,32 @@ public sealed class PetMachine : IMachine
         _pia2 = new MT6520("PIA2", PetMemoryBus.Pia2Base);
         _via = new MOS6522("VIA", PetMemoryBus.ViaBase);
         _crtc = profile.RequiresCrtc ? new MT6545("CRTC", PetMemoryBus.CrtcBase) : null;
+        var aciaTransport = profile.AciaBaseAddress is null
+            ? null
+            : serialTransport ?? new BufferedSerialTransport();
+        _acia = profile.AciaBaseAddress is { } aciaBase
+            ? new MOS6551(aciaTransport!, baseAddress: aciaBase)
+            : null;
+        var hasSuperPetBoard = profile.ExpansionRomManifest is { Count: > 0 } && profile.AciaBaseAddress is not null;
+        _superPetProtectionDongle = hasSuperPetBoard
+            ? new MOS6702(SuperPetMemoryMap.ProtectionDongleBaseAddress)
+            : null;
 
-        _memoryBus = new PetMemoryBus(profile, roms, _pia1, _pia2, _via, _crtc);
+        _memoryBus = new PetMemoryBus(profile, roms, _pia1, _pia2, _via, _crtc, _acia, profile.AciaBaseAddress);
         _cpu = new Cpu6502Classic(_memoryBus);
+        _activeProcessor = _cpu;
+        _activeMemory = _memoryBus;
+
+        if (hasSuperPetBoard && profile.ExpansionRomManifest is { Count: > 0 } expansionManifest)
+        {
+            var firmware = PetRomLoader.Load(Path.Combine(romsRoot, profile.RomDirectory), expansionManifest);
+            _superPet6809Memory = new SuperPet6809MemoryBus(_memoryBus, firmware, _acia!, profile.AciaBaseAddress!.Value, _superPetProtectionDongle!);
+            _superPet6809Cpu = new M6809Cpu(_superPet6809Memory);
+            _superPet6809Cpu.Reset();
+        }
 
         _datasette = new PetDatasette(_pia1);
+        _datasette2 = new PetDatasette2(_pia1, _via);
         _ieeeBus = new PetIeeeBus();
         // Latches true on any real byte transfer (LISTEN/TALK addressing, filename, or file data -
         // all real bus traffic, not just payload) for a GUI's disk-activity LED - see
@@ -83,12 +114,27 @@ public sealed class PetMachine : IMachine
         {
             var value = (byte)(0xF0 | _keyboardSelectedRow);
             if (_datasette.Sense) value &= 0xEF;
+            if (_datasette2.Sense) value &= 0xDF;
             if (_ieeeBus.EOI) value &= 0xBF;
             return value;
         };
         _pia1.PortBInput = () => Keyboard.ReadColumns(_keyboardSelectedRow);
 
+        UserPort.InputChanged += SyncUserPortInput;
+        UserPort.HandshakeInputChanged += SyncUserPortHandshakeInput;
+        _via.PortAInput = UserPort.Input;
+        _via.CA2 = UserPort.HandshakeInput;
+        _via.PortAWritten = output =>
+        {
+            UserPort.Output = output;
+            UserPort.Direction = _via.DDRA;
+        };
+        _via.Ca2OutputChanged = output => UserPort.HandshakeOutput = output;
+
         _ieeeBusBinding = new PetIeeeBusBinding(_pia2, _via, _ieeeBus);
+
+        if (profile.InitialProcessor is { } initialProcessor)
+            SelectProcessor(initialProcessor);
 
         Reset();
     }
@@ -105,6 +151,12 @@ public sealed class PetMachine : IMachine
     /// <summary>The VIA - exposed for debug tooling (timer/IRQ state).</summary>
     public MOS6522 Via => _via;
 
+    /// <summary>The SuperPET MOS 6551 ACIA, when the profile declares one.</summary>
+    public MOS6551? Acia => _acia;
+
+    /// <summary>The PET User Port wired to VIA Port A and CA2.</summary>
+    public PetUserPort UserPort { get; } = new();
+
     /// <summary>Fires for every real bus access (RAM/ROM/chip read or write) the CPU makes - see
     /// <see cref="BusAccess"/>'s doc comment. Optional; zero added cost on the hot path when
     /// unset.</summary>
@@ -118,12 +170,15 @@ public sealed class PetMachine : IMachine
     /// through this directly.</summary>
     public PetDatasette Datasette => _datasette;
 
+    /// <summary>The independent cassette #2 transport (sense on PIA1 PA5, motor on VIA PB4).</summary>
+    public PetDatasette2 Datasette2 => _datasette2;
+
     /// <summary>Every peripheral currently attached and worth a GUI status icon for - see
     /// <see cref="IDeviceStatus"/>'s doc comment for why this is a dynamic list rather than a
     /// fixed set of properties. Rebuilt on each access (cheap: a handful of entries), so it always
     /// reflects the latest <see cref="MountDisk"/>/<see cref="Datasette"/> state.</summary>
     public IReadOnlyList<IDeviceStatus> Devices =>
-        [new PetDatasetteStatus(_datasette), .. _mountedDrives];
+        [new PetDatasetteStatus(_datasette), new PetDatasette2Status(_datasette2), .. _mountedDrives];
 
     /// <summary>Mounts a D64 disk image on the IEEE-488 bus at <paramref name="deviceNumber"/>
     /// (8 is the PET/CBM DOS convention for the first drive). Replaces whatever was already
@@ -182,11 +237,108 @@ public sealed class PetMachine : IMachine
 
     public bool IsReady => true;
 
-    public ulong CycleCount => Processor.CycleCount;
+    public ulong CycleCount => _activeProcessor.CycleCount;
 
-    public IProcessor Processor => _cpu;
+    public IProcessor Processor => _activeProcessor;
 
-    public IMemoryBus Memory => _memoryBus;
+    public SuperPetProcessor SelectedProcessor =>
+        ReferenceEquals(_activeProcessor, _superPet6809Cpu)
+            ? SuperPetProcessor.Motorola6809
+            : SuperPetProcessor.Mos6502;
+
+    /// <summary>Optional Waterloo 6809 side of a SuperPET. It is selected with
+    /// <see cref="SelectProcessor"/> when the emulated hardware switch is set to 6809.</summary>
+    public M6809Cpu? SuperPet6809Cpu => _superPet6809Cpu;
+
+    public IMemoryBus? SuperPet6809Memory => _superPet6809Memory;
+
+    public MOS6702? SuperPetProtectionDongle => _superPetProtectionDongle;
+
+    public IMemoryBus Memory => _activeMemory;
+
+    /// <summary>
+    /// Resets the Waterloo side, executes a bounded startup trace and returns the reset vector,
+    /// firmware ranges and per-instruction CPU progress. The machine is left after the captured
+    /// trace so the caller can continue inspecting the exact failing state.
+    /// </summary>
+    public SuperPetStartupDiagnostics DiagnoseSuperPet6809Startup(int instructionCount = 16)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(instructionCount);
+        if (_superPet6809Cpu is null || _superPet6809Memory is null || _profile.ExpansionRomManifest is null)
+            throw new InvalidOperationException("The selected machine has no Waterloo 6809 board.");
+
+        SelectProcessor(SuperPetProcessor.Motorola6809);
+        Reset();
+
+        var resetVector = (ushort)((_superPet6809Memory.Read(0xFFFE) << 8) | _superPet6809Memory.Read(0xFFFF));
+        var trace = new List<SuperPetInstructionDiagnostic>(instructionCount);
+        var deviceAccesses = new List<SuperPetBusAccessDiagnostic>();
+        ushort currentProgramCounter = _superPet6809Cpu.State.PC;
+        _superPet6809Memory.Observer = access =>
+        {
+            if (access.Address is >= 0xE800 and < 0xF000)
+                deviceAccesses.Add(new SuperPetBusAccessDiagnostic(currentProgramCounter, access.IsWrite, access.Address, access.Value));
+        };
+        var initialProgramCounter = _superPet6809Cpu.State.PC;
+
+        for (var sequence = 0; sequence < instructionCount && !_superPet6809Cpu.Halted; sequence++)
+        {
+            var programCounter = _superPet6809Cpu.State.PC;
+            currentProgramCounter = programCounter;
+            var opcode = _superPet6809Memory.Read(programCounter);
+            var cyclesBefore = _superPet6809Cpu.CycleCount;
+            StepInstruction();
+            trace.Add(new SuperPetInstructionDiagnostic(
+                sequence,
+                programCounter,
+                opcode,
+                _superPet6809Cpu.State.PC,
+                checked((int)(_superPet6809Cpu.CycleCount - cyclesBefore)),
+                _superPet6809Cpu.InstructionCount,
+                _superPet6809Cpu.Halted,
+                _superPet6809Cpu.State.A,
+                _superPet6809Cpu.State.B,
+                _superPet6809Cpu.State.X,
+                _superPet6809Cpu.State.Y,
+                _superPet6809Cpu.State.U,
+                _superPet6809Cpu.State.S,
+                _superPet6809Cpu.State.DP,
+                _superPet6809Cpu.State.Flags.ToByte()));
+        }
+
+        _superPet6809Memory.Observer = null;
+        return new SuperPetStartupDiagnostics(
+            _profile.Id,
+            SelectedProcessor,
+            _profile.ExpansionRomManifest.Select(requirement =>
+                $"${requirement.Address:X4}-${requirement.Address + requirement.Length - 1:X4} {requirement.Path}").ToArray(),
+            resetVector,
+            initialProgramCounter,
+            _superPet6809Cpu.State.PC,
+            _superPet6809Cpu.CycleCount,
+            _superPet6809Cpu.InstructionCount,
+            _superPet6809Cpu.Halted,
+            trace,
+            deviceAccesses);
+    }
+
+    /// <summary>Changes the physical SuperPET CPU switch between 6502 and 6809.</summary>
+    public void SelectProcessor(SuperPetProcessor processor)
+    {
+        if (processor == SuperPetProcessor.Mos6502)
+        {
+            _activeProcessor = _cpu;
+            _activeMemory = _memoryBus;
+            return;
+        }
+
+        if (_superPet6809Cpu is null || _superPet6809Memory is null)
+            throw new InvalidOperationException("The selected machine has no SuperPET 6809 board.");
+
+        _activeProcessor = _superPet6809Cpu;
+        _activeMemory = _superPet6809Memory;
+        _activeProcessor.SetIRQ(_pia1.IRQ || _pia2.IRQ || _via.IRQ || (_acia?.Irq ?? false));
+    }
 
     public void Reset()
     {
@@ -197,9 +349,15 @@ public sealed class PetMachine : IMachine
         _pia2.Reset();
         _via.Reset();
         _crtc?.Reset();
+        _acia?.Reset();
+        _superPetProtectionDongle?.Reset();
+        _superPet6809Memory?.Reset();
+        _superPet6809Cpu?.Reset();
         _datasette.Reset();
+        _datasette2.Reset();
         _ieeeBusBinding.Reset();
         Keyboard.Reset();
+        SyncUserPortState();
         _keyboardSelectedRow = 0;
         _pia1Cb1Phase = 0;
         _cpu.Reset();
@@ -222,14 +380,16 @@ public sealed class PetMachine : IMachine
 
     public void StepInstruction()
     {
-        var cyclesBefore = _cpu.CycleCount;
-        _cpu.StepInstruction();
-        var cycles = _cpu.CycleCount - cyclesBefore;
+        var cpu = _activeProcessor;
+        var cyclesBefore = cpu.CycleCount;
+        cpu.StepInstruction();
+        var cycles = cpu.CycleCount - cyclesBefore;
 
         _pia1.Tick(cycles);
         _pia2.Tick(cycles);
         _crtc?.Tick(cycles);
         _via.Tick(cycles);
+        _acia?.Tick(cycles);
 
         for (ulong i = 0; i < cycles; i++)
         {
@@ -238,7 +398,7 @@ public sealed class PetMachine : IMachine
             _ieeeBusBinding.Tick();
         }
 
-        _cpu.SetIRQ(_pia1.IRQ || _pia2.IRQ || _via.IRQ);
+        cpu.SetIRQ(_pia1.IRQ || _pia2.IRQ || _via.IRQ || (_acia?.Irq ?? false));
     }
 
     public void Run(ulong instructionCount)
@@ -247,7 +407,20 @@ public sealed class PetMachine : IMachine
             StepInstruction();
     }
 
+    private void SyncUserPortInput() => _via.PortAInput = UserPort.Input;
+
+    private void SyncUserPortHandshakeInput() => _via.CA2 = UserPort.HandshakeInput;
+
+    private void SyncUserPortState()
+    {
+        SyncUserPortInput();
+        SyncUserPortHandshakeInput();
+        UserPort.Output = _via.PortAOutput;
+        UserPort.Direction = _via.DDRA;
+        UserPort.HandshakeOutput = _via.CA2Output;
+    }
+
     // RunUntil/RunUntilOrStalled moved to PetEmulator.Core.MachineExtensions (pure IMachine
     // extension methods, unchanged call syntax) once VIC-20 needed the identical logic - see
-    // docs/vic20-migration-plan.md step 8.
+    // docs/vic20/migration-plan.md step 8.
 }

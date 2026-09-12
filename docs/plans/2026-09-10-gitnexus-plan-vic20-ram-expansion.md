@@ -1,6 +1,6 @@
 # GitNexus Engineering Plan
 
-> Task: Design and add a VIC-20 cartridge mechanism for memory-expansion cartridges (RAM only, not ROM game cartridges) - the `Vic20ExpansionPreset` enum ($3K/$8K/$16K/$24K/All) already named and deliberately deferred in `docs/vic20-migration-plan.md` since this repo's original VIC-20 port. Real unexpanded VIC-20 memory blocks $0400-$0FFF/$2000-$3FFF/$4000-$5FFF/$6000-$7FFF/$A000-$BFFF go from open-bus to backed RAM depending on the selected preset, mirroring PET's multi-profile menu pattern.
+> Task: Design and add a VIC-20 cartridge mechanism for memory-expansion cartridges (RAM only, not ROM game cartridges) - the `Vic20ExpansionPreset` enum ($3K/$8K/$16K/$24K/All) already named and deliberately deferred in `docs/vic20/migration-plan.md` since this repo's original VIC-20 port. Real unexpanded VIC-20 memory blocks $0400-$0FFF/$2000-$3FFF/$4000-$5FFF/$6000-$7FFF/$A000-$BFFF go from open-bus to backed RAM depending on the selected preset, mirroring PET's multi-profile menu pattern.
 > Evidence verified at commit 5ff237cc12c12603289f5a99d860e16e9b635088; GitNexus index refreshed this session (`--index-only`, no `--pdg`) - `impact()` afterward still reported commits-behind (the same recurring local-augment/multi-process staleness-display quirk noted throughout this session, not a real gap).
 > Evidence provenance schema 2; global dirty digest sha256:48bcce5aec5c1b7d927b5dcc23c8b48f24affd3c8e7f94f597807dd7ebbe765b; cited-path manifest 8 sorted entries; exact generated plan path excluded.
 
@@ -10,7 +10,7 @@ Give `Vic20Machine`/`Vic20MemoryBus` real RAM-backed memory-expansion "cartridge
 
 ## 2. Current Behaviour
 
-`Vic20MemoryMap` [verified, `src/PetEmulator.Vic20/Vic20MemoryMap.cs:1-28`] documents exactly this gap in its own class doc comment: "expansion-preset banking ($3K/$8K/$16K/$24K/All) deliberately out of scope for v1: an unexpanded machine boots BASIC and runs small programs exactly like real unexpanded hardware does." `docs/vic20-migration-plan.md` [verified, lines 63-65, 145-147] independently confirms the same, naming the exact enum this plan implements: `Vic20ExpansionPreset` enum, "$3K/$8K/$16K/$24K/All" - and states the trigger condition explicitly: "dodać gdy faktycznie ktoś chce uruchomić program wymagający rozszerzonej pamięci" (add when someone actually wants to run a program needing expanded memory) - the user's request today.
+`Vic20MemoryMap` [verified, `src/PetEmulator.Vic20/Vic20MemoryMap.cs:1-28`] documents exactly this gap in its own class doc comment: "expansion-preset banking ($3K/$8K/$16K/$24K/All) deliberately out of scope for v1: an unexpanded machine boots BASIC and runs small programs exactly like real unexpanded hardware does." `docs/vic20/migration-plan.md` [verified, lines 63-65, 145-147] independently confirms the same, naming the exact enum this plan implements: `Vic20ExpansionPreset` enum, "$3K/$8K/$16K/$24K/All" - and states the trigger condition explicitly: "dodać gdy faktycznie ktoś chce uruchomić program wymagający rozszerzonej pamięci" (add when someone actually wants to run a program needing expanded memory) - the user's request today.
 
 `Vic20MemoryBus` [verified, `src/PetEmulator.Vic20/Vic20MemoryBus.cs:1-128`] decodes reads/writes via a linear chain of `InRange(address, base, length)` checks (`ReadCore`/`WriteCore`, lines 52-74, 82-110), falling through to `OpenBus` (0xFF) / a silent no-op write when nothing matches. Line 108-109's own comment names the exact gap: "unmapped... including the $A000-$BFFF cartridge window and unexpanded blocks $2000-$7FFF/$A000-$BFFF - no cartridge support in v1." **Not mentioned in that comment but structurally identical**: $0400-$0FFF (the real VIC-20's "3K expansion" block, real hardware terminology) is also unmapped today - `ZeroPageRamSize` is only 0x0400 (ends at $03FF) and `BuiltinRamStart` is $1000, leaving $0400-$0FFF with no decode branch at all.
 
@@ -51,7 +51,7 @@ Not applicable at this depth (§4) - `ReadCore`/`WriteCore`'s existing `InRange`
 namespace PetEmulator.Vic20;
 
 /// <summary>Real VIC-20 RAM-expansion cartridge presets - see Vic20MemoryMap's doc comment and
-/// docs/vic20-migration-plan.md's own deferred-scope note (this enum's exact name/members were
+/// docs/vic20/migration-plan.md's own deferred-scope note (this enum's exact name/members were
 /// already decided there). RAM only - ROM game-cartridge loading is a separate, still-deferred
 /// feature.</summary>
 public enum Vic20ExpansionPreset
@@ -147,7 +147,7 @@ Verification commands: `dotnet build`, `dotnet test` (whole solution, this sessi
       "value": "48bcce5aec5c1b7d927b5dcc23c8b48f24affd3c8e7f94f597807dd7ebbe765b"
     },
     "cited_path_manifest": [
-      "docs/vic20-migration-plan.md",
+      "docs/vic20/migration-plan.md",
       "src/PetEmulator.Desktop/ViewModels/MainWindowViewModel.cs",
       "src/PetEmulator.Desktop/ViewModels/Vic20MachineViewModel.cs",
       "src/PetEmulator.Pet/PetProfileCatalog.cs",
@@ -162,7 +162,7 @@ Verification commands: `dotnet build`, `dotnet test` (whole solution, this sessi
 
 ## 12. Assumptions and Open Questions
 
-1. **[inferred, not verified against this repo's own docs]** `All`'s exact block set (all five blocks, including block 5, totaling 35K) - matches real VIC-20 hardware's well-known "35K expansion" convention, but this repo's own `docs/vic20-migration-plan.md` only names the preset, not which blocks each one covers. If wrong, it's a one-line fix to `Vic20ExpansionPresetCatalog`/the block-enable mapping, not a structural problem.
+1. **[inferred, not verified against this repo's own docs]** `All`'s exact block set (all five blocks, including block 5, totaling 35K) - matches real VIC-20 hardware's well-known "35K expansion" convention, but this repo's own `docs/vic20/migration-plan.md` only names the preset, not which blocks each one covers. If wrong, it's a one-line fix to `Vic20ExpansionPresetCatalog`/the block-enable mapping, not a structural problem.
 2. **[assumed]** `EightK` maps to Block 1 ($2000-$3FFF) specifically, not Block 5 - matches the common real "VIC 1110" 8K expander convention (Block 1) and keeps the preset progression cumulative (`SixteenK`/`TwentyFourK` building on the same blocks `EightK` starts), which block 5 (isolated, `All`-only per this plan) would break.
 3. **[deferred, explicitly out of scope]** ROM game-cartridge loading (loading a real `.crt`/binary image as read-only into block 5 or elsewhere) - not asked for (§1), and this plan's block-5-as-RAM choice for `All` is compatible with, not a blocker for, that future work landing separately.
 4. **[deferred, explicitly out of scope]** Runtime cartridge insert/eject while a machine is running - real hardware only recognizes expansion RAM at power-on; this plan's presets are chosen at machine construction (same moment as PET's profile choice), not swappable mid-session.

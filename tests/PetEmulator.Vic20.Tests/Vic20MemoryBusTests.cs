@@ -4,10 +4,11 @@ using PetEmulator.Chips;
 using PetEmulator.Vic20.Roms;
 using PetEmulator.Vic20.Tests.Roms;
 using PetEmulator.Vic20.Cartridge.Abstractions;
+using PetEmulator.Vic20.Display;
 
 namespace PetEmulator.Vic20.Tests;
 
-/// <summary>Layer 1 (see docs/vic20-migration-plan.md step 12): register-level bus integration -
+/// <summary>Layer 1 (see docs/vic20/migration-plan.md step 12): register-level bus integration -
 /// pokes chip registers directly through the decoded bus, no CPU/KERNAL involved.</summary>
 public sealed class Vic20MemoryBusTests
 {
@@ -144,6 +145,33 @@ public sealed class Vic20MemoryBusTests
         bus.Write(0x9400, 0xFF);
 
         bus.Read(0x9400).Should().Be(0x0F);
+    }
+
+    [Test]
+    public void ColorRam_RendersThroughTheRealBusAtTheVicsColorMatrixOffset()
+    {
+        var vic = new MOS6560("VIC", 0x9000);
+        var bus = CreateBus(vic: vic);
+        var display = new Vic20RasterDisplay(bus, vic);
+
+        // One cell at the normal VIC-20 screen address $1E00 and character ROM at $8000.
+        bus.Write(0x9002, 0x81);
+        bus.Write(0x9003, 0x02);
+        bus.Write(0x9005, 0x70);
+        bus.Write(0x900F, 0x19);
+
+        var character = Enumerable.Range(0, 128)
+            .Select(index => (byte)index)
+            .First(code => bus.Read((ushort)(vic.CharAddr + code * 8)) != 0);
+        bus.Write((ushort)vic.ScreenAddr, character);
+        var colorAddress = (ushort)(Vic20MemoryMap.ColorRamStart + vic.ColorMatrixOffset);
+        bus.Write(colorAddress, 0x02);
+
+        bus.Read(colorAddress).Should().Be(0x02);
+        var frame = new uint[display.PixelWidth * display.PixelHeight];
+        display.Render(frame);
+
+        frame.Take(8).Should().Contain(Vic20Palette.ToArgb(2));
     }
 
     [Test]

@@ -118,7 +118,7 @@ public partial class Cpu6502
         {
             // ponytail: defensive cap, not a masking fix - a real 6502 instruction never exceeds
             // 8 cycles. If a handler forgets to set _sync, this turns a silent infinite loop (see
-            // docs/architecture.md "Znany bug w referencyjnym rdzeniu") into a fast, loud failure
+            // docs/architecture/overview.md "Znany bug w referencyjnym rdzeniu") into a fast, loud failure
             // that names the opcode, instead of hanging the caller.
             if (_cycleCount > 7)
                 throw new InvalidOperationException(

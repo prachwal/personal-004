@@ -42,8 +42,8 @@ public sealed class Vic20KeyboardMatrix
     /// currently asserts. With exactly one row asserted (the normal case during the KERNAL's
     /// per-row matrix scan) this is just that row's own columns, same as a single-row model would
     /// give - the real bug this generalizes past is the KERNAL's own "is anything pressed at all"
-    /// fast-path check (confirmed in docs/vic20-disassembly/kernal.asm and
-    /// docs/vic20-rendering-fixes.md's keyboard investigation): it asserts ALL EIGHT rows at once
+    /// fast-path check (confirmed in docs/vic20/disassembly/kernal.asm and
+    /// docs/vic20/rendering-fixes.md's keyboard investigation): it asserts ALL EIGHT rows at once
     /// ($9120=$00) and reads $9121 exactly once before ever running the real per-row scan that
     /// would populate the keyboard buffer - a single-row model always read $FF (nothing pressed)
     /// for that combined check regardless of what was actually held, silently dropping every

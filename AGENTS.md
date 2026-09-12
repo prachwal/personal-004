@@ -11,6 +11,16 @@
 - Use compiled bindings and explicit `x:DataType` declarations in XAML. Put shared UI colors in `App.axaml` resources and reference them with `DynamicResource`.
 - The Avalonia previewer may load the Desktop assembly from a temporary directory. ROM lookup also checks the working directory; set `PET_EMULATOR_ROMS` when using a custom ROM location.
 
+## Documentation layout
+
+- Keep the `docs/` root as an index only; update `docs/README.md` when adding or moving documentation.
+- PET/CBM documentation belongs in `docs/pet/`; VIC-20 documentation belongs in `docs/vic20/`.
+- Desktop, Avalonia, audio and monitoring documentation belongs in `docs/desktop/`.
+- Shared component and chip contracts, maps, checklists and coverage requirements belong in `docs/chips/`, with one Markdown file per chip where practical.
+- Architecture decisions belong in `docs/architecture/`; implementation plans remain in `docs/plans/`, and repository scans remain in `docs/scan/`.
+- Every documentation subfolder should have a local `README.md` when it contains more than one document.
+- Do not duplicate chip implementation checklists in PET/VIC-20 machine documents. Keep machine documents focused on address mapping, wiring, integration and machine-specific limitations; link to `docs/chips/` for chip contracts and tests.
+
 ## Codex local setup
 
 - Optional machine-local defaults may be kept in `.codex/config.toml`; the file is ignored by Git and must not contain credentials or machine-specific trust/MCP configuration.

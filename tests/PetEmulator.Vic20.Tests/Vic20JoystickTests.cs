@@ -20,4 +20,16 @@ public sealed class Vic20JoystickTests
         joystick.Up.Should().BeFalse();
         changes.Should().Be(2);
     }
+
+    [Test]
+    public void ImplementsReadOnlyJoystickSource()
+    {
+        IJoystickSource source = new Vic20Joystick();
+
+        source.Up.Should().BeFalse();
+        source.Down.Should().BeFalse();
+        source.Left.Should().BeFalse();
+        source.Right.Should().BeFalse();
+        source.Fire.Should().BeFalse();
+    }
 }

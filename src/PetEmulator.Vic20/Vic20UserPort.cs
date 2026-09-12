@@ -11,6 +11,12 @@ public sealed class Vic20UserPort
 
     public event Action? InputChanged;
 
+    /// <summary>Raised after the VIA changes the byte driven onto User Port pins.</summary>
+    public event Action? OutputChanged;
+
+    /// <summary>Raised after the VIA changes the User Port data-direction register.</summary>
+    public event Action? DirectionChanged;
+
     public byte Input
     {
         get => _input;
@@ -24,7 +30,29 @@ public sealed class Vic20UserPort
         }
     }
 
-    public byte Output { get; internal set; }
+    public byte Output
+    {
+        get;
+        internal set
+        {
+            if (field == value)
+                return;
 
-    public byte Direction { get; internal set; }
+            field = value;
+            OutputChanged?.Invoke();
+        }
+    }
+
+    public byte Direction
+    {
+        get;
+        internal set
+        {
+            if (field == value)
+                return;
+
+            field = value;
+            DirectionChanged?.Invoke();
+        }
+    }
 }
