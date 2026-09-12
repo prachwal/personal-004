@@ -6,11 +6,9 @@
         x:Class="PetEmulator.Desktop.Views.MainWindow"
         x:Name="RootWindow"
         x:DataType="viewModels:MainWindowViewModel"
-         Title="{Binding CurrentModule.WindowTitle}"
+        Title="{Binding CurrentModule.WindowTitle}"
         Width="960" Height="640"
-        Background="{DynamicResource WindowBackgroundBrush}"
-        KeyDown="OnKeyDown"
-        KeyUp="OnKeyUp">
+        Background="{DynamicResource WindowBackgroundBrush}">
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">

@@ -149,6 +149,7 @@ processor is debuggable:
 
 ```text
 trace-log <count> <path>              # InstructionTracer.Run(count) then writes Render() to path
+superpet-diagnose [count]              # Reset Waterloo 6809, report ROM ranges/vector and trace startup
 disk-stall-check <max> [stallWindow]  # RunUntilOrStalled against IeeeByteTransferCount, default window 50,000
 ```
 
@@ -162,6 +163,21 @@ type LOAD"HELLO",8␊
 disk-stall-check 3000000 50000
 trace-log 8000 /tmp/load-trace.log
 ```
+
+## Walidacja procesora 6809
+
+Test binarny `tests/PetEmulator.Cpu6809.Tests/TestData/schwotzer-cputest.bin` pochodzi ze źródła
+`MC6809 CPU Emulation Validation` W. Schwotzera, dostępnego w repozytorium flexemu:
+`https://github.com/aladur/flexemu/blob/master/src/tools/cputest.txt`.
+
+- obraz jest surowym programem ładowanym od `$8100`;
+- test zastępuje procedury FLEX `PSTRNG`, `PUTCHR` i `WARMS` minimalnymi atrapami;
+- sukces oznacza powrót przez `WARMS` oraz `ERRFLG == 0`;
+- test uruchamia się razem z `PetEmulator.Cpu6809.Tests` i obejmuje również ścieżki EXG,
+  DAA, SEX, LBSR oraz indeksowanie `[n16]`.
+
+Źródło zostało złożone do formatu raw asemblerem LWTOOLS `lwasm` w trybie 6809. Zmiana obrazu
+lub assemblera wymaga ponownego sprawdzenia adresu ładowania i oczekiwanego wektora powrotu.
 
 ## What's still missing
 

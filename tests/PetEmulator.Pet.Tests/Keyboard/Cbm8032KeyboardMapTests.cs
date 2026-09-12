@@ -70,6 +70,22 @@ public sealed class Cbm8032KeyboardMapTests
     }
 
     [Test]
+    public void Cursor_keys_use_the_business_keyboard_shift_cell()
+    {
+        var map = new Cbm8032KeyboardMap();
+
+        Assert.That(map.Translate("Down", HostKeyEventKind.Press), Is.EqualTo(new[] { new MatrixAction(1, 6, true) }));
+        Assert.That(map.Translate("Right", HostKeyEventKind.Press), Is.EqualTo(new[]
+        {
+            new MatrixAction(6, 0, true), new MatrixAction(0, 7, true)
+        }));
+        Assert.That(map.Translate("Right", HostKeyEventKind.Release), Is.EqualTo(new[]
+        {
+            new MatrixAction(0, 7, false), new MatrixAction(6, 0, false)
+        }));
+    }
+
+    [Test]
     public void Plus_sequence_drives_a_real_matrix_correctly_through_the_shift_right_interlock()
     {
         var map = new Cbm8032KeyboardMap();

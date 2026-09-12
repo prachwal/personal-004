@@ -212,6 +212,27 @@ public class AddressingTests
     }
 
     [Test]
+    public void FiveBitNegativeOffset_DoesNotBecomeIndirectAddressing()
+    {
+        var memory = new RamMemoryBus(0x10000);
+        memory.Write(0xFFFE, 0x00);
+        memory.Write(0xFFFF, 0x00);
+        var cpu = new M6809Cpu(memory);
+        cpu.Reset();
+        cpu.State.S = 0x0220;
+        cpu.State.PC = 0x1000;
+
+        // LEAS -7,S: postbyte $79 is a signed 5-bit offset, not indirect.
+        memory.Write(0x1000, 0x32);
+        memory.Write(0x1001, 0x79);
+
+        cpu.Step();
+
+        cpu.State.S.Should().Be(0x0219);
+        cpu.State.PC.Should().Be(0x1002);
+    }
+
+    [Test]
     public void PCRelativEightBit_UsesOffsetFromPC()
     {
         var memory = new RamMemoryBus(0x10000);

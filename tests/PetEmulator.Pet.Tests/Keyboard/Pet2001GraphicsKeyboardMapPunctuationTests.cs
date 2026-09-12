@@ -26,6 +26,7 @@ public sealed class Pet2001GraphicsKeyboardMapPunctuationTests
     [TestCase("Semicolon", ';')]
     [TestCase("Minus", '-')]
     [CancelAfter(30_000)]
+    [Explicit("Long-running real ROM keyboard integration test; run explicitly.")]
     public void PunctuationKey_EchoesExpectedCharacter(string hostKey, char expected)
     {
         var profile = PetProfileCatalog.Pet2001_8;

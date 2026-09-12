@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Pet.Roms;
+using PetEmulator.Pet.Profiles;
 
 namespace PetEmulator.Pet.Tests.Roms;
 
@@ -124,6 +125,34 @@ public sealed class PetProfileCatalogTests
         PetProfileCatalog.SuperPet6809.InitialProcessor.Should().Be(SuperPetProcessor.Motorola6809);
         PetProfileCatalog.SuperPet6502.Id.Should().NotBe(PetProfileCatalog.SuperPet6809.Id);
         PetProfileCatalog.SuperPet.Should().BeSameAs(PetProfileCatalog.SuperPet6809);
+    }
+
+    [Test]
+    public void EveryProfileDefinition_IsAnnotatedAndRegisteredInTheRuntimeCatalog()
+    {
+        var runtimeProfiles = PetProfileCatalog.All.Concat(PetProfileCatalog.Planned).ToDictionary(profile => profile.Id);
+        var definitions = typeof(PetProfileDefinition).Assembly
+            .GetTypes()
+            .Where(type => !type.IsAbstract && typeof(PetProfileDefinition).IsAssignableFrom(type))
+            .Select(type =>
+            {
+                var definition = (PetProfileDefinition)Activator.CreateInstance(type)!;
+                return (Definition: definition, Attribute: type.GetCustomAttributes(typeof(PetProfileAttribute), false).SingleOrDefault() as PetProfileAttribute);
+        })
+            .ToArray();
+
+        definitions.Should().HaveCount(19);
+        definitions.Select(item => item.Attribute).Should().NotContainNulls();
+        definitions.Select(item => item.Attribute!.Id).Should().OnlyHaveUniqueItems();
+
+        foreach (var item in definitions)
+        {
+            var metadata = item.Attribute!;
+            runtimeProfiles.Should().ContainKey(metadata.Id);
+            item.Definition.Profile.Id.Should().Be(metadata.Id);
+            item.Definition.Profile.Name.Should().Be(metadata.Name);
+            item.Definition.Profile.Status.Should().Be(metadata.Status);
+        }
     }
 
     [TestCaseSource(nameof(Profiles))]

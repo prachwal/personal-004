@@ -16,6 +16,7 @@ namespace PetEmulator.Pet.Tests.CbmDos;
 /// cross-check against a second, separately-loaded D64Image - never a peek into CbmDosEngine's
 /// own internals.
 /// </summary>
+[Explicit("Long-running real PET disk integration tests; run explicitly.")]
 public sealed class PetDiskEndToEndTests
 {
     private static readonly byte[] ReadyBytes = [0x12, 0x05, 0x01, 0x04, 0x19, 0x2E]; // "READY."

@@ -13,7 +13,9 @@ Dokument główny: [io-ports.md](io-ports.md).
 ## Kod
 
 - Maszyna i magistrala: `src/PetEmulator.Pet/PetMachine.cs`, `src/PetEmulator.Pet/PetMemoryBus.cs`.
-- Profile: `src/PetEmulator.Pet/PetProfile.cs`, `src/PetEmulator.Pet/PetProfileCatalog.cs`.
+- Profile runtime model: `src/PetEmulator.Pet/PetProfile.cs`, `src/PetEmulator.Pet/PetProfileCatalog.cs`.
+- Profile definitions: `src/PetEmulator.Pet/Profiles/` — każda klasa profilu ma adnotację
+  `[PetProfile(...)]` i buduje jeden predefiniowany `PetProfile` runtime.
 - Układy wspólne: [../chips/README.md](../chips/README.md).
 
 ## Testy

@@ -13,4 +13,8 @@
     <PackageReference Include="FluentAssertions" />
     <ProjectReference Include="../../lib/PetEmulator.Cpu6809/PetEmulator.Cpu6809.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="TestData/schwotzer-cputest.bin" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

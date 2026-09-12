@@ -57,6 +57,22 @@ public sealed class PetDebuggerSessionTests
     }
 
     [Test]
+    public void SuperPetDiagnose_ReportsWaterlooResetAndInstructionTrace()
+    {
+        var session = new PetDebuggerSession();
+        session.Execute("profile superpet");
+        session.Execute($"roms {RomsRoot()}");
+
+        var report = session.Execute("superpet-diagnose 4");
+
+        report.Should().Contain("processor=Motorola6809")
+            .And.Contain("reset-vector=$")
+            .And.Contain("firmware=$A000-$BFFF")
+            .And.Contain("trace:")
+            .And.Contain("[0] PC=$");
+    }
+
+    [Test]
     public void Devices_ReportsTheDatasetteEvenBeforeATapeIsLoaded()
     {
         var session = new PetDebuggerSession();

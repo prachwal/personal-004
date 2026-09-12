@@ -3,7 +3,7 @@ using PetEmulator.Core;
 namespace PetEmulator.Cpu6809;
 
 /// <summary>Motorola 6809 CPU emulator with dual stacks and complex addressing modes.</summary>
-public class M6809Cpu : IProcessor
+public class M6809Cpu : IProcessor, IDebuggableProcessor
 {
     private readonly IMemoryBus Mmu;
     protected Func<int>[] OpcodeTable = null!;
@@ -12,6 +12,22 @@ public class M6809Cpu : IProcessor
     public ulong CycleCount => (ulong)State.Cycles;
     public ulong InstructionCount { get; private set; }
     public bool Halted => State.Halted;
+
+    /// <summary>Registers by name for the shared debugger and Desktop status bar.</summary>
+    public IReadOnlyDictionary<string, ulong> GetRegisters() => new Dictionary<string, ulong>
+    {
+        ["PC"] = State.PC,
+        ["A"] = State.A,
+        ["B"] = State.B,
+        ["X"] = State.X,
+        ["Y"] = State.Y,
+        ["U"] = State.U,
+        ["S"] = State.S,
+        // The shared Desktop status view names the active stack pointer SP.
+        ["SP"] = State.S,
+        ["DP"] = State.DP,
+        ["P"] = State.Flags.ToByte(),
+    };
 
 
 
@@ -456,7 +472,9 @@ public class M6809Cpu : IProcessor
     {
         byte postbyte = Fetch();
         extraCycles = 0;
-        bool indirect = (postbyte & 0x10) != 0;
+        // Bit 4 is the sign bit for the compact 5-bit form (0RRnnnnn).
+        // It becomes the indirect selector only in the extended 1RR mode.
+        bool indirect = (postbyte & 0x80) != 0 && (postbyte & 0x10) != 0;
         int rr = (postbyte & 0x60) >> 5;
         ushort baseReg = GetIndexReg(rr);
 
@@ -550,6 +568,11 @@ public class M6809Cpu : IProcessor
                     ea = (ushort)(State.PC + (short)n16);
                     extraCycles = 5;
                 }
+                break;
+
+            case 0x0F: // [n16]
+                ea = Fetch16();
+                extraCycles = 4;
                 break;
 
             default:
@@ -982,15 +1005,15 @@ public class M6809Cpu : IProcessor
     {
         byte a = State.A;
         byte result = a;
+        var carry = State.Flags.C || a > 0x99;
         if (State.Flags.H || (a & 0x0F) > 0x09)
             result = (byte)(a + 0x06);
-        if (State.Flags.C || (result & 0xF0) > 0x90)
+        if (carry)
             result = (byte)(result + 0x60);
         State.Flags.N = (result & 0x80) != 0;
         State.Flags.Z = result == 0;
         State.Flags.V = false;
-        if ((result & 0xF0) > 0x90)
-            State.Flags.C = true;
+        State.Flags.C = carry;
         State.A = result;
         return 2;
     }
@@ -1018,7 +1041,8 @@ public class M6809Cpu : IProcessor
         else
             State.A = 0x00;
         State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
+        // SEX affects N/Z from the resulting 16-bit D register, not A alone.
+        State.Flags.Z = State.D == 0;
         return 2;
     }
 
@@ -1219,7 +1243,8 @@ public class M6809Cpu : IProcessor
 
     private int Lbsr(ushort offset)
     {
-        PushU16(State.PC);
+        // BSR/LBSR use the hardware stack; the U stack is reserved for PSHU/PULU.
+        PushS16(State.PC);
         State.PC = (ushort)(State.PC + (short)offset);
         return 9;
     }

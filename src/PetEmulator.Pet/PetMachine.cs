@@ -4,6 +4,7 @@ using PetEmulator.Core;
 using PetEmulator.Core.Serial;
 using PetEmulator.Pet.CbmDos;
 using PetEmulator.Chips;
+using PetEmulator.Pet.Diagnostics;
 using PetEmulator.Pet.Devices;
 using PetEmulator.Pet.Ieee488;
 using PetEmulator.Pet.Keyboard;
@@ -254,6 +255,72 @@ public sealed class PetMachine : IMachine
     public MOS6702? SuperPetProtectionDongle => _superPetProtectionDongle;
 
     public IMemoryBus Memory => _activeMemory;
+
+    /// <summary>
+    /// Resets the Waterloo side, executes a bounded startup trace and returns the reset vector,
+    /// firmware ranges and per-instruction CPU progress. The machine is left after the captured
+    /// trace so the caller can continue inspecting the exact failing state.
+    /// </summary>
+    public SuperPetStartupDiagnostics DiagnoseSuperPet6809Startup(int instructionCount = 16)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(instructionCount);
+        if (_superPet6809Cpu is null || _superPet6809Memory is null || _profile.ExpansionRomManifest is null)
+            throw new InvalidOperationException("The selected machine has no Waterloo 6809 board.");
+
+        SelectProcessor(SuperPetProcessor.Motorola6809);
+        Reset();
+
+        var resetVector = (ushort)((_superPet6809Memory.Read(0xFFFE) << 8) | _superPet6809Memory.Read(0xFFFF));
+        var trace = new List<SuperPetInstructionDiagnostic>(instructionCount);
+        var deviceAccesses = new List<SuperPetBusAccessDiagnostic>();
+        ushort currentProgramCounter = _superPet6809Cpu.State.PC;
+        _superPet6809Memory.Observer = access =>
+        {
+            if (access.Address is >= 0xE800 and < 0xF000)
+                deviceAccesses.Add(new SuperPetBusAccessDiagnostic(currentProgramCounter, access.IsWrite, access.Address, access.Value));
+        };
+        var initialProgramCounter = _superPet6809Cpu.State.PC;
+
+        for (var sequence = 0; sequence < instructionCount && !_superPet6809Cpu.Halted; sequence++)
+        {
+            var programCounter = _superPet6809Cpu.State.PC;
+            currentProgramCounter = programCounter;
+            var opcode = _superPet6809Memory.Read(programCounter);
+            var cyclesBefore = _superPet6809Cpu.CycleCount;
+            StepInstruction();
+            trace.Add(new SuperPetInstructionDiagnostic(
+                sequence,
+                programCounter,
+                opcode,
+                _superPet6809Cpu.State.PC,
+                checked((int)(_superPet6809Cpu.CycleCount - cyclesBefore)),
+                _superPet6809Cpu.InstructionCount,
+                _superPet6809Cpu.Halted,
+                _superPet6809Cpu.State.A,
+                _superPet6809Cpu.State.B,
+                _superPet6809Cpu.State.X,
+                _superPet6809Cpu.State.Y,
+                _superPet6809Cpu.State.U,
+                _superPet6809Cpu.State.S,
+                _superPet6809Cpu.State.DP,
+                _superPet6809Cpu.State.Flags.ToByte()));
+        }
+
+        _superPet6809Memory.Observer = null;
+        return new SuperPetStartupDiagnostics(
+            _profile.Id,
+            SelectedProcessor,
+            _profile.ExpansionRomManifest.Select(requirement =>
+                $"${requirement.Address:X4}-${requirement.Address + requirement.Length - 1:X4} {requirement.Path}").ToArray(),
+            resetVector,
+            initialProgramCounter,
+            _superPet6809Cpu.State.PC,
+            _superPet6809Cpu.CycleCount,
+            _superPet6809Cpu.InstructionCount,
+            _superPet6809Cpu.Halted,
+            trace,
+            deviceAccesses);
+    }
 
     /// <summary>Changes the physical SuperPET CPU switch between 6502 and 6809.</summary>
     public void SelectProcessor(SuperPetProcessor processor)

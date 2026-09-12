@@ -82,10 +82,16 @@ public sealed class PetRasterDisplay
             for (var col = 0; col < _profile.Columns; col++)
             {
                 var screenCode = _memory.Read((ushort)(_profile.VideoRamStart + row * _profile.Columns + col));
-                var invert = _cursorVisible && cursor is { } c && c.Row == row && c.Column == col;
+                var isReverse = _profile.ScreenCharacterEncoding == PetScreenCharacterEncoding.PetScreenCode
+                    && (screenCode & 0x80) != 0;
+                var invert = isReverse
+                    || (_cursorVisible && cursor is { } c && c.Row == row && c.Column == col);
+                var characterCode = _profile.ScreenCharacterEncoding == PetScreenCharacterEncoding.Ascii
+                    ? 0x100 + screenCode
+                    : screenCode & 0x7F;
                 for (var glyphRow = 0; glyphRow < _font.GlyphHeight; glyphRow++)
                 {
-                    var bits = _font.GetGlyphRow(screenCode, glyphRow);
+                    var bits = _font.GetGlyphRow(characterCode, glyphRow);
                     if (invert)
                         bits = (byte)~bits;
                     var pixelRowOffset = (row * _font.GlyphHeight + glyphRow) * PixelWidth + col * _font.GlyphWidth;

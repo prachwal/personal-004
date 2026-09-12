@@ -23,6 +23,13 @@ public enum PetVideoHardware
     Crtc
 }
 
+/// <summary>Encoding written to video RAM by the machine firmware.</summary>
+public enum PetScreenCharacterEncoding
+{
+    PetScreenCode,
+    Ascii
+}
+
 public enum PetKeyboardRevision
 {
     Pet2001Graphics,
@@ -88,6 +95,8 @@ public sealed record PetProfile(
 {
     public bool IsImplemented => Status == PetProfileStatus.Implemented;
 
+    public PetScreenCharacterEncoding ScreenCharacterEncoding { get; internal set; } = PetScreenCharacterEncoding.PetScreenCode;
+
     /// <summary>Explicit video-hardware classification derived from the profile's I/O model.</summary>
     public PetVideoHardware VideoHardware => RequiresCrtc ? PetVideoHardware.Crtc : PetVideoHardware.Discrete;
 
@@ -95,28 +104,28 @@ public sealed record PetProfile(
 
     /// <summary>Optional shared ROM-set folder. This is used when several hardware models use
     /// the same verified BASIC/editor/KERNAL images but differ in RAM capacity.</summary>
-    public string? RomDirectoryOverride { get; init; }
+    public string? RomDirectoryOverride { get; internal set; }
 
-    public PetKeyboardRevision KeyboardRevision { get; init; } = PetKeyboardRevision.Unverified;
+    public PetKeyboardRevision KeyboardRevision { get; internal set; } = PetKeyboardRevision.Unverified;
 
-    public PetCassetteConfiguration CassetteConfiguration { get; init; } = PetCassetteConfiguration.Unverified;
+    public PetCassetteConfiguration CassetteConfiguration { get; internal set; } = PetCassetteConfiguration.Unverified;
 
-    public PetConnectorConfiguration ConnectorConfiguration { get; init; } = PetConnectorConfiguration.Unverified;
+    public PetConnectorConfiguration ConnectorConfiguration { get; internal set; } = PetConnectorConfiguration.Unverified;
 
-    public PetMemoryExpansion? MemoryExpansion { get; init; }
+    public PetMemoryExpansion? MemoryExpansion { get; internal set; }
 
     /// <summary>Subfolder name under <c>roms/pet/</c> holding this profile's ROM set.</summary>
     public string RomDirectory => RomDirectoryOverride ?? Id;
 
     /// <summary>Optional firmware for an expansion processor or banked board. It is declared for
     /// inventory and validation; SuperPET maps its Waterloo images through the 6809 bus.</summary>
-    public IReadOnlyList<PetRomRequirement>? ExpansionRomManifest { get; init; }
+    public IReadOnlyList<PetRomRequirement>? ExpansionRomManifest { get; internal set; }
 
     /// <summary>Optional ACIA base address for an expansion profile, such as SuperPET.</summary>
-    public ushort? AciaBaseAddress { get; init; }
+    public ushort? AciaBaseAddress { get; internal set; }
 
     /// <summary>Processor selected by the physical SuperPET mode switch at power-on.</summary>
-    public SuperPetProcessor? InitialProcessor { get; init; }
+    public SuperPetProcessor? InitialProcessor { get; internal set; }
 
     /// <summary>
     /// Physical width:height ratio of one on-screen pixel on real PET/CBM hardware - pixels are

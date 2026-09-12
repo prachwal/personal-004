@@ -12,6 +12,7 @@ public sealed class PetCrtcIntegrationTests
     [TestCase("cbm-4032")]
     [TestCase("cbm-8032")]
     [CancelAfter(30_000)]
+    [Explicit("Long-running real ROM/CRTC integration test; run explicitly.")]
     public void RealRomBoot_InitializesCrtcAndRendersScreen(string profileId)
     {
         var profile = PetProfileCatalog.Find(profileId);

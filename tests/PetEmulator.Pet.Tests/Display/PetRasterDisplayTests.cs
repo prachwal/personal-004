@@ -75,6 +75,43 @@ public class PetRasterDisplayTests
     }
 
     [Test]
+    public void Render_ReverseBit_UsesLowSevenBitsAndInvertsGlyph()
+    {
+        var font = LoadRealFont();
+        var profile = PetProfileCatalog.Pet2001_8;
+        var memory = new FakeMemoryBus();
+        const int cellCol = 5;
+        const int cellRow = 1;
+        memory.Write((ushort)(profile.VideoRamStart + cellRow * profile.Columns + cellCol),
+            (byte)(LetterAScreenCode | 0x80));
+        var display = new PetRasterDisplay(profile, memory, font);
+        var frame = new uint[display.PixelWidth * display.PixelHeight];
+
+        display.Render(frame);
+
+        var cell = CellPixels(frame, display.PixelWidth, font, cellCol, cellRow).ToArray();
+        cell[0].Should().Be(0xFF8DFF72u, "the first pixel of A is clear normally and set in reverse video");
+        cell.Should().Contain(0xFF102810u, "reverse video must still preserve the glyph's clear pixels");
+    }
+
+    [Test]
+    public void Render_SuperPetAscii_UsesTheSecondCharacterRomBank()
+    {
+        var font = new PetCharacterRomLoader().Load(Path.Combine(
+            RomLocator.Directory("cbm-8032", "characters.901640-01.bin"),
+            "characters.901640-01.bin"));
+        var profile = PetProfileCatalog.SuperPet6809;
+        var memory = new FakeMemoryBus();
+        memory.Write((ushort)profile.VideoRamStart, (byte)'W');
+        var display = new PetRasterDisplay(profile, memory, font);
+        var frame = new uint[display.PixelWidth * display.PixelHeight];
+
+        display.Render(frame);
+
+        CellPixels(frame, display.PixelWidth, font, 0, 0).Should().Contain(0xFF8DFF72u);
+    }
+
+    [Test]
     public void Render_WrongSizedBuffer_Throws()
     {
         var font = LoadRealFont();

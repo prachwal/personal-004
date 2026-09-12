@@ -10,9 +10,10 @@ public interface IGlyphFont
     int GlyphHeight { get; }
 
     /// <summary>
-    /// One row of the glyph for <paramref name="characterCode"/> (the raw screen/character-ROM
-    /// index, not ASCII), MSB = leftmost pixel. Must never throw — out-of-range
+    /// One row of the glyph for <paramref name="characterCode"/> (a character-ROM index; values
+    /// above 255 address the second 2 KB bank of a 4 KB PET character ROM), MSB = leftmost pixel.
+    /// Must never throw — out-of-range
     /// <paramref name="characterCode"/> or <paramref name="row"/> return a blank (0) row.
     /// </summary>
-    byte GetGlyphRow(byte characterCode, int row);
+    byte GetGlyphRow(int characterCode, int row);
 }

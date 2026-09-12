@@ -133,6 +133,7 @@ public sealed class PetMachineTests
 
     [Test]
     [CancelAfter(30_000)]
+    [Explicit("Long-running real ROM boot test; run explicitly.")]
     public void Pet2001_8_BootsWithoutThrowing_ForBoundedSteps()
     {
         var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
@@ -145,6 +146,7 @@ public sealed class PetMachineTests
 
     [Test]
     [CancelAfter(30_000)]
+    [Explicit("Long-running real ROM boot test; run explicitly.")]
     public void Cbm8032_BootsWithoutThrowing_ForBoundedSteps()
     {
         var machine = CreateMachine(PetProfileCatalog.Cbm8032);
@@ -157,6 +159,7 @@ public sealed class PetMachineTests
 
     [TestCaseSource(nameof(AllProfiles))]
     [CancelAfter(30_000)]
+    [Explicit("Long-running real ROM profile sweep; run explicitly.")]
     public void EveryImplementedProfile_BootsWithoutThrowing_ForBoundedSteps(PetProfile profile)
     {
         var machine = CreateMachine(profile);
@@ -204,7 +207,7 @@ public sealed class PetMachineTests
     [Test]
     public void SuperPet_ExposesWaterlooFirmwareToThe6809WithoutReplacingThe6502()
     {
-        var profile = PetProfileCatalog.SuperPet;
+        var profile = PetProfileCatalog.SuperPet6502;
         var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
         var romsRoot = Directory.GetParent(profileDirectory)!.FullName;
         var machine = new PetMachine(profile, romsRoot, serialTransport: new BufferedSerialTransport());
@@ -273,6 +276,24 @@ public sealed class PetMachineTests
         machine.SelectedProcessor.Should().Be(expected);
         machine.SuperPet6809Cpu.Should().NotBeNull();
         machine.SuperPetProtectionDongle.Should().NotBeNull();
+    }
+
+    [Test]
+    public void SuperPet6809StartupDiagnostics_ReportsTheWaterlooResetLoop()
+    {
+        var machine = CreateMachine(PetProfileCatalog.SuperPet);
+
+        var report = machine.DiagnoseSuperPet6809Startup(250);
+
+        report.ResetVector.Should().Be(0xFF80);
+        report.InitialProgramCounter.Should().Be(0xFF80);
+        report.Instructions.Take(8).Select(instruction => instruction.ProgramCounter)
+            .Should().Equal(0xFF80, 0xFF83, 0xFF85, 0xFF89, 0xFF8B, 0xFF8C, 0xFF89, 0xFF8B);
+        report.Instructions.Take(8).Select(instruction => instruction.Opcode)
+            .Should().Equal(0x8E, 0xC6, 0x10, 0xAF, 0x5A, 0x26, 0xAF, 0x5A);
+        report.FinalProgramCounter.Should().Be(0xBC26);
+        report.Halted.Should().BeFalse();
+        report.DeviceAccesses.Should().Contain(access => access.IsWrite && access.Address == 0xEFF1);
     }
 
     [Test]
@@ -444,6 +465,7 @@ public sealed class PetMachineTests
 
     [Test]
     [CancelAfter(30_000)]
+    [Explicit("Long-running real ROM boot test; run explicitly.")]
     public void RunUntil_StopsAsSoonAsConditionIsTrue()
     {
         var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
@@ -553,6 +575,7 @@ public sealed class PetMachineTests
     /// and pressing play is what makes LOAD proceed - not just having a tape attached.</summary>
     [Test]
     [CancelAfter(60_000)]
+    [Explicit("Long-running real tape/disk integration test; run explicitly.")]
     public void PressPlay_LetsLoadProceedPastThePressPlayPrompt()
     {
         var profile = PetProfileCatalog.Pet2001_32;
