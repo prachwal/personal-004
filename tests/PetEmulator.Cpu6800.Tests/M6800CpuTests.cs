@@ -105,6 +105,36 @@ public class M6800CpuTests
         cpu.State.A.Should().Be(0x77);
     }
 
+    [Test]
+    public void DerivedCpu_CanDispatchThroughSuppliedOpcodeMetadata()
+    {
+        var memory = new TestMemoryBus();
+        var invoked = false;
+        var table = new M6800OpcodeTable();
+        table.Set(new M6800OpcodeDefinition(
+            0x42,
+            "CUSTOM",
+            M6800AddressingMode.Inherent,
+            1,
+            5,
+            (_, _) =>
+            {
+                invoked = true;
+                return 5;
+            }));
+        var cpu = new MetadataTableCpu(memory, table);
+
+        memory.Write(0xFFFE, 0x10);
+        memory.Write(0xFFFF, 0x00);
+        memory.Write(0x1000, 0x42);
+
+        cpu.Reset();
+        cpu.StepInstruction();
+
+        invoked.Should().BeTrue();
+        cpu.CycleCount.Should().Be(5);
+    }
+
     private sealed class TestCpu(IMemoryBus memory) : M6800Cpu(memory, new M6800State(), CreateTable())
     {
         public byte LastOpcode { get; private set; }
@@ -119,6 +149,9 @@ public class M6800CpuTests
 
         private static M6800OpcodeTable CreateTable() => new();
     }
+
+    private sealed class MetadataTableCpu(IMemoryBus memory, M6800OpcodeTable table)
+        : M6800Cpu(memory, new M6800State(), table);
 
     private sealed class TestMemoryBus : IMemoryBus
     {

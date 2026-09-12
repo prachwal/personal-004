@@ -6,15 +6,23 @@ namespace PetEmulator.Cpu6800;
 public partial class M6800Cpu : IProcessor, IDebuggableProcessor
 {
     protected readonly IMemoryBus Mmu;
+    // The compiled table is used by the concrete MC6800. Family variants can
+    // supply metadata instead and then dispatch through Opcodes below.
     private readonly Func<int>[]? _defaultOpcodeTable;
 
     public M6800OpcodeTable Opcodes { get; }
 
+    /// <summary>Creates a concrete MC6800 CPU with its standard opcode table.</summary>
     public M6800Cpu(IMemoryBus memory)
         : this(memory, new M6800State(), null)
     {
     }
 
+    /// <summary>
+    /// Initializes a 6800-family CPU. A null opcode table builds the standard
+    /// MC6800 dispatch table; a supplied table enables metadata-based dispatch
+    /// for derived processors such as MC6809.
+    /// </summary>
     protected M6800Cpu(IMemoryBus memory, M6800State state, M6800OpcodeTable? opcodes)
     {
         Mmu = memory ?? throw new ArgumentNullException(nameof(memory));

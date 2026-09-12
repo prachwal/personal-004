@@ -42,4 +42,4 @@
   `objcopy -I ihex -O binary mc6800_regression_test.ihx mc6800-functional-test.bin`
 - Program ładuje się pod `$0100`, kończy `WAI`, a kod błędu zapisuje pod `$0200`; `0` oznacza sukces.
 
-Stan kontynuacji: zakończony; regresja MC6800 gotowa; solution build, Cpu6800 `10/10`, Cpu6809 `91/91`.
+Stan kontynuacji: zakończony; regresja MC6800 gotowa; solution build, Cpu6800 `11/11`, Cpu6809 `91/91`.
