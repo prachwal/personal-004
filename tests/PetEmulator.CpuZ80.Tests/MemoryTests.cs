@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using PetEmulator.Core;
 using PetEmulator.CpuZ80.Bus;
 using PetEmulator.CpuZ80.Memory;
 

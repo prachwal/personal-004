@@ -1,4 +1,4 @@
-using PetEmulator.CpuZ80.Bus;
+using PetEmulator.Core;
 
 namespace PetEmulator.CpuZ80.Memory;
 
