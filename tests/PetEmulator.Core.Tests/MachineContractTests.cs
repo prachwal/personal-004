@@ -20,6 +20,34 @@ public sealed class MachineContractTests
         machine.CycleCount.Should().Be(3);
     }
 
+    [Test]
+    public void Shared_clock_is_monotonic_and_resettable()
+    {
+        var clock = new EmulationClock();
+
+        clock.Advance(4);
+        clock.Advance(7);
+
+        clock.CycleCount.Should().Be(11);
+        clock.Reset();
+        clock.CycleCount.Should().Be(0);
+    }
+
+    [Test]
+    public void Optional_capabilities_remain_separate_from_processor_lifecycle()
+    {
+        IPortBus ports = new TestPortBus();
+        IInterruptLines lines = new TestInterruptLines();
+        IWaitLine wait = new TestInterruptLines();
+        IFirqProcessor firq = new TestFirqProcessor();
+
+        ports.Read(0x12).Should().Be(0xA5);
+        lines.IntAsserted.Should().BeFalse();
+        lines.NmiAsserted.Should().BeFalse();
+        wait.WaitAsserted.Should().BeFalse();
+        firq.SetFIRQ(true);
+    }
+
     private sealed class TestMachine : IMachine
     {
         public string Name => "test";
@@ -54,5 +82,23 @@ public sealed class MachineContractTests
     {
         public byte Read(ushort address) => 0;
         public void Write(ushort address, byte value) { }
+    }
+
+    private sealed class TestPortBus : IPortBus
+    {
+        public byte Read(ushort port) => 0xA5;
+        public void Write(ushort port, byte value) { }
+    }
+
+    private sealed class TestInterruptLines : IInterruptLines, IWaitLine
+    {
+        public bool IntAsserted => false;
+        public bool NmiAsserted => false;
+        public bool WaitAsserted => false;
+    }
+
+    private sealed class TestFirqProcessor : IFirqProcessor
+    {
+        public void SetFIRQ(bool active) { }
     }
 }
