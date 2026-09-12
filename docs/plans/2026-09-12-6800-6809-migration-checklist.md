@@ -19,3 +19,16 @@
 - aktualny etap: zakończony
 - ostatnia weryfikacja: GitNexus up-to-date; detect-changes all: No changes detected
 - uwagi: plan migracji znajduje się w 2026-09-12-gitnexus-plan-6800-6809-core-migration.md
+
+## Kontynuacja: pełny zestaw instrukcji w Cpu6800
+
+- [x] Wspólne ALU A/B — `M6800Alu.cs`
+- [x] Wspólne unaryczne RMW — `M6800Unary.cs`
+- [x] Wspólne branche krótkie oraz `BSR/RTS` — `M6800Branches.cs`
+- [x] Wspólne `LDA/LDB/STA/STB` — `M6800LoadStore.cs`
+- [x] Wspólne instrukcje rejestru `X` — `M6800IndexRegister.cs`
+- [ ] Przenieść pozostałe instrukcje MC6800 i usunąć shims z `M6809Cpu`
+- [ ] Zbudować niezależną tablicę opcode’ów i procesor MC6800
+- [ ] Dodać pełną regresję instrukcji MC6800
+
+Stan kontynuacji: w toku; ostatni commit `448b253`; CPU6809 `91/91` po ostatnim podetapie.
