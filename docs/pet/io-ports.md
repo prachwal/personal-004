@@ -330,11 +330,14 @@ adresie i rozmiarze. Runtime testy zostały potwierdzone po uruchomieniu VSTest 
   - [x] Przenieść testy stanu, adresowania, opcode, prefixów, IRQ/NMI, sweepów
         i programów integracyjnych; 84 testy przechodzą.
 - [x] Podłączyć dodatkowy procesor 6809 do osobnej mapy adresowej SuperPET,
-      z nakładką Waterloo ROM i ACIA `$EFF0-$EFF3`; 6502 pozostaje głównym
-      procesorem PET do czasu modelu przełącznika SuperPET.
+      z nakładką Waterloo ROM, bankowanym RAM-em 16 × 4 KiB pod `$9000-$9FFF`
+      i ACIA `$EFF0-$EFF3`.
   - [x] Zweryfikować na rzeczywistym firmware Waterloo wektor resetu oraz
         wykonanie pierwszych 16 instrukcji przez rdzeń 6809.
-  - [ ] Dodać przełączanie procesora i pozostałe urządzenia SuperPET/SP9000.
-  - [ ] Każdy dodatkowy układ powinien mieć własną mapę adresów i test boot/diagnostic.
+  - [x] Dodać przełączanie procesora 6502/6809; aktywny procesor i jego mapa są
+        zwracane przez `IMachine.Processor`/`IMachine.Memory`.
+  - [x] Dodać własną mapę bankowania SuperPET oraz test diagnostyczny ROM/RAM.
+  - [x] Dodać funkcjonalny model MOS 6702 pod `$EFE0-$EFE3` oraz test sekwencji
+        even→odd; profile innych wariantów dongla pozostają niezweryfikowane.
 - [x] Rozszerzyć Desktop/CLI o wybór zweryfikowanego profilu SuperPET po testach
       ROM i magistrali; profile CBM 8096/8296 nadal pozostają ukryte jako placeholdery.

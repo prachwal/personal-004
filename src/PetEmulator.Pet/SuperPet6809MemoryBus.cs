@@ -11,23 +11,44 @@ namespace PetEmulator.Pet;
 /// </summary>
 public sealed class SuperPet6809MemoryBus : IMemoryBus
 {
+    private const int ExpansionRamSize = SuperPetMemoryMap.BankCount * SuperPetMemoryMap.ExpansionRamWindowLength;
     private readonly IMemoryBus _petBus;
     private readonly IReadOnlyList<PetRomImage> _firmware;
     private readonly MOS6551 _acia;
     private readonly ushort _aciaBaseAddress;
+    private readonly MOS6702 _protectionDongle;
+    private readonly byte[] _expansionRam = new byte[ExpansionRamSize];
+    private byte _selectedBank;
 
-    public SuperPet6809MemoryBus(IMemoryBus petBus, IReadOnlyList<PetRomImage> firmware, MOS6551 acia, ushort aciaBaseAddress)
+    public SuperPet6809MemoryBus(IMemoryBus petBus, IReadOnlyList<PetRomImage> firmware, MOS6551 acia, ushort aciaBaseAddress, MOS6702 protectionDongle)
     {
         _petBus = petBus ?? throw new ArgumentNullException(nameof(petBus));
         _firmware = firmware ?? throw new ArgumentNullException(nameof(firmware));
         _acia = acia ?? throw new ArgumentNullException(nameof(acia));
         _aciaBaseAddress = aciaBaseAddress;
+        _protectionDongle = protectionDongle ?? throw new ArgumentNullException(nameof(protectionDongle));
+    }
+
+    /// <summary>Currently selected 4 KiB SuperPET expansion-RAM bank.</summary>
+    public byte SelectedBank => _selectedBank;
+
+    public void Reset()
+    {
+        Array.Clear(_expansionRam);
+        _selectedBank = 0;
+        _protectionDongle.Reset();
     }
 
     public byte Read(ushort address)
     {
+        if (address == SuperPetMemoryMap.BankSelectRegister)
+            return _selectedBank;
+        if (InRange(address, SuperPetMemoryMap.ProtectionDongleBaseAddress, SuperPetMemoryMap.ProtectionDongleLength))
+            return _protectionDongle.Read(address);
         if (InRange(address, _aciaBaseAddress, _acia.Length))
             return _acia.Read(address);
+        if (InRange(address, SuperPetMemoryMap.ExpansionRamWindow, SuperPetMemoryMap.ExpansionRamWindowLength))
+            return _expansionRam[ExpansionOffset(address)];
         return TryFindFirmware(address, out var image)
             ? image.Data[address - image.Requirement.Address]
             : _petBus.Read(address);
@@ -35,9 +56,25 @@ public sealed class SuperPet6809MemoryBus : IMemoryBus
 
     public void Write(ushort address, byte value)
     {
+        if (address == SuperPetMemoryMap.BankSelectRegister)
+        {
+            _selectedBank = (byte)(value & (SuperPetMemoryMap.BankCount - 1));
+            return;
+        }
+        if (InRange(address, SuperPetMemoryMap.ProtectionDongleBaseAddress, SuperPetMemoryMap.ProtectionDongleLength))
+        {
+            _protectionDongle.Write(address, value);
+            return;
+        }
         if (InRange(address, _aciaBaseAddress, _acia.Length))
         {
             _acia.Write(address, value);
+            return;
+        }
+
+        if (InRange(address, SuperPetMemoryMap.ExpansionRamWindow, SuperPetMemoryMap.ExpansionRamWindowLength))
+        {
+            _expansionRam[ExpansionOffset(address)] = value;
             return;
         }
 
@@ -65,4 +102,8 @@ public sealed class SuperPet6809MemoryBus : IMemoryBus
 
     private static bool InRange(ushort address, ushort baseAddress, uint length) =>
         address >= baseAddress && address < baseAddress + length;
+
+    private int ExpansionOffset(ushort address) =>
+        (_selectedBank * SuperPetMemoryMap.ExpansionRamWindowLength) +
+        (address - SuperPetMemoryMap.ExpansionRamWindow);
 }

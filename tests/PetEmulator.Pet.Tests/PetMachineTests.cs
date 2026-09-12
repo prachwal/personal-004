@@ -238,6 +238,80 @@ public sealed class PetMachineTests
     }
 
     [Test]
+    public void SuperPet_CpuSwitchSelectsTheMatchingProcessorAndMemoryMap()
+    {
+        var profile = PetProfileCatalog.SuperPet;
+        var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
+        var machine = new PetMachine(profile, Directory.GetParent(profileDirectory)!.FullName,
+            serialTransport: new BufferedSerialTransport());
+        var petMemory = machine.Memory;
+
+        machine.SelectedProcessor.Should().Be(SuperPetProcessor.Mos6502);
+        machine.Memory.Should().BeSameAs(petMemory);
+
+        machine.SelectProcessor(SuperPetProcessor.Motorola6809);
+
+        machine.SelectedProcessor.Should().Be(SuperPetProcessor.Motorola6809);
+        machine.Processor.Should().BeSameAs(machine.SuperPet6809Cpu);
+        machine.Memory.Should().BeSameAs(machine.SuperPet6809Memory);
+        machine.Memory.Read(0xA000).Should().Be(machine.SuperPet6809Memory!.Read(0xA000));
+
+        machine.SelectProcessor(SuperPetProcessor.Mos6502);
+
+        machine.SelectedProcessor.Should().Be(SuperPetProcessor.Mos6502);
+        machine.Processor.Should().NotBeSameAs(machine.SuperPet6809Cpu);
+        machine.Memory.Should().BeSameAs(petMemory);
+    }
+
+    [Test]
+    public void SuperPet_ExpansionRamUsesIndependentBanksThroughEffc()
+    {
+        var profile = PetProfileCatalog.SuperPet;
+        var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
+        var machine = new PetMachine(profile, Directory.GetParent(profileDirectory)!.FullName,
+            serialTransport: new BufferedSerialTransport());
+        machine.SelectProcessor(SuperPetProcessor.Motorola6809);
+
+        machine.Memory.Write(SuperPetMemoryMap.BankSelectRegister, 2);
+        machine.Memory.Write(SuperPetMemoryMap.ExpansionRamWindow, 0xA2);
+        machine.Memory.Write(SuperPetMemoryMap.BankSelectRegister, 7);
+        machine.Memory.Write(SuperPetMemoryMap.ExpansionRamWindow, 0xA7);
+
+        machine.Memory.Read(SuperPetMemoryMap.ExpansionRamWindow).Should().Be(0xA7);
+        machine.Memory.Write(SuperPetMemoryMap.BankSelectRegister, 2);
+        machine.Memory.Read(SuperPetMemoryMap.ExpansionRamWindow).Should().Be(0xA2);
+        ((SuperPet6809MemoryBus)machine.SuperPet6809Memory!).SelectedBank.Should().Be(2);
+    }
+
+    [Test]
+    public void SuperPet_MapsThe6702DongleAtEfe0ThroughEfe3()
+    {
+        var profile = PetProfileCatalog.SuperPet;
+        var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
+        var machine = new PetMachine(profile, Directory.GetParent(profileDirectory)!.FullName,
+            serialTransport: new BufferedSerialTransport());
+        machine.SelectProcessor(SuperPetProcessor.Motorola6809);
+
+        machine.Memory.Read(SuperPetMemoryMap.ProtectionDongleBaseAddress).Should().Be(0xD6);
+        machine.Memory.Write(SuperPetMemoryMap.ProtectionDongleBaseAddress, 0x12);
+        machine.Memory.Write((ushort)(SuperPetMemoryMap.ProtectionDongleBaseAddress + 3), 0x35);
+
+        machine.Memory.Read((ushort)(SuperPetMemoryMap.ProtectionDongleBaseAddress + 2)).Should().Be(0xD6);
+        machine.SuperPetProtectionDongle.Should().NotBeNull();
+    }
+
+    [Test]
+    public void NonSuperPet_RejectsSelectingThe6809Processor()
+    {
+        var machine = CreateMachine(PetProfileCatalog.Cbm8032);
+
+        var act = () => machine.SelectProcessor(SuperPetProcessor.Motorola6809);
+
+        act.Should().Throw<InvalidOperationException>();
+        machine.SelectedProcessor.Should().Be(SuperPetProcessor.Mos6502);
+    }
+
+    [Test]
     public void Reset_ZeroesRamAndRestartsCpuAtResetVector()
     {
         var machine = CreateMachine(PetProfileCatalog.Pet2001_8);

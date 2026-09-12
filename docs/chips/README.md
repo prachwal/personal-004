@@ -11,6 +11,7 @@ Ten katalog zawiera pełne checklisty i informacje per układ, wydzielone z doku
 - [MT6545](MT6545.md) — 8.6 `MT6545` — CRTC.
 - [MC146818](MC146818.md) — 8.7 `MC146818` — RTC.
 - [MOS6551](MOS6551.md) — 8.8 `MOS6551` — ACIA SuperPET.
+- [MOS6702](MOS6702.md) — 8.9 `MOS6702` — dongle ochrony SuperPET.
 
 ## Wspólne kryteria
 
@@ -47,8 +48,9 @@ osiągnięcie liczby procentowej, lecz jednoczesne pokrycie:
 6. [ ] `MOS6560` — VIC-I, timing PAL/NTSC i audio.
 7. [ ] `MC146818` — pełny kontrakt RTC albo formalnie ograniczony kontrakt kartridża.
 8. [x] `MOS6551` — model ACIA, transport bajtowy, mapowanie SuperPET i test IRQ;
-   rdzeń 6809 jest wydzielony i ma testowaną nakładkę SuperPET z firmware Waterloo;
-   pełny boot oraz przełączanie procesora pozostają otwarte.
+   rdzeń 6809 jest wydzielony i ma testowaną nakładkę SuperPET z firmware Waterloo,
+   przełączaniem CPU, bankowanym RAM-em i modelem MOS 6702; warianty dongla
+   wymagające innych sekwencji pozostają otwarte.
 9. [ ] Testy integracyjne PET/VIC-20 i testy ROM/diagnostic.
 
 Każdy dodatkowy układ powinien mieć własną mapę adresów oraz test boot/diagnostic.
@@ -60,4 +62,6 @@ dotnet test tests/PetEmulator.Chips.Tests/PetEmulator.Chips.Tests.csproj --no-re
 dotnet test tests/PetEmulator.Chips.Tests/PetEmulator.Chips.Tests.csproj --no-restore --collect:"XPlat Code Coverage"
 ```
 
-`MOS6551` jest podłączony do mapy SuperPET `$EFF0-$EFF3` i transportu bajtowego. Test firmware Waterloo na 6809 pozostaje otwarty, ponieważ repozytorium nie ma jeszcze rdzenia 6809.
+`MOS6551` jest podłączony do mapy SuperPET `$EFF0-$EFF3` i transportu bajtowego.
+MOS6702 jest podłączony do mapy 6809 `$EFE0-$EFE3`; przełączanie CPU, bankowany
+RAM i test resetu firmware Waterloo są już dostępne.

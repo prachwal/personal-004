@@ -17,7 +17,7 @@ if [[ -z "$report" ]]; then
   exit 1
 fi
 
-chips=(MC146818 MOS2114 MOS6522 MOS6560 MT6520 MT6545)
+chips=(MC146818 MOS2114 MOS6522 MOS6560 MOS6702 MT6520 MT6545)
 for chip in "${chips[@]}"; do
   class="$(awk -v chip="$chip" '
     $0 ~ "<class name=\"PetEmulator.Chips." chip "\"" { inside=1 }

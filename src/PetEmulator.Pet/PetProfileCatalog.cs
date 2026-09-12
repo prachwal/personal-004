@@ -82,7 +82,7 @@ public static class PetProfileCatalog
     {
         RomDirectoryOverride = Cbm8032.RomDirectory,
         ExpansionRomManifest = PetRomManifest.SuperPetWaterloo50Hz,
-        AciaBaseAddress = 0xEFF0
+        AciaBaseAddress = SuperPetMemoryMap.AciaBaseAddress
     };
 
     public static IReadOnlyList<PetProfile> Planned { get; } = [Cbm8096French, Cbm8296, SuperPet];

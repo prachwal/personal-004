@@ -27,8 +27,11 @@ public sealed class PetMachine : IMachine
     private readonly MOS6522 _via;
     private readonly MT6545? _crtc;
     private readonly MOS6551? _acia;
+    private readonly MOS6702? _superPetProtectionDongle;
     private readonly SuperPet6809MemoryBus? _superPet6809Memory;
     private readonly M6809Cpu? _superPet6809Cpu;
+    private IProcessor _activeProcessor;
+    private IMemoryBus _activeMemory;
     private readonly PetDatasette _datasette;
     private readonly PetDatasette2 _datasette2;
     private readonly PetIeeeBus _ieeeBus;
@@ -64,14 +67,19 @@ public sealed class PetMachine : IMachine
         _acia = profile.AciaBaseAddress is { } aciaBase
             ? new MOS6551(aciaTransport!, baseAddress: aciaBase)
             : null;
+        _superPetProtectionDongle = profile.Id == PetProfileCatalog.SuperPet.Id
+            ? new MOS6702(SuperPetMemoryMap.ProtectionDongleBaseAddress)
+            : null;
 
         _memoryBus = new PetMemoryBus(profile, roms, _pia1, _pia2, _via, _crtc, _acia, profile.AciaBaseAddress);
         _cpu = new Cpu6502Classic(_memoryBus);
+        _activeProcessor = _cpu;
+        _activeMemory = _memoryBus;
 
         if (profile.Id == PetProfileCatalog.SuperPet.Id && profile.ExpansionRomManifest is { Count: > 0 } expansionManifest)
         {
             var firmware = PetRomLoader.Load(Path.Combine(romsRoot, profile.RomDirectory), expansionManifest);
-            _superPet6809Memory = new SuperPet6809MemoryBus(_memoryBus, firmware, _acia!, profile.AciaBaseAddress!.Value);
+            _superPet6809Memory = new SuperPet6809MemoryBus(_memoryBus, firmware, _acia!, profile.AciaBaseAddress!.Value, _superPetProtectionDongle!);
             _superPet6809Cpu = new M6809Cpu(_superPet6809Memory);
             _superPet6809Cpu.Reset();
         }
@@ -224,17 +232,42 @@ public sealed class PetMachine : IMachine
 
     public bool IsReady => true;
 
-    public ulong CycleCount => Processor.CycleCount;
+    public ulong CycleCount => _activeProcessor.CycleCount;
 
-    public IProcessor Processor => _cpu;
+    public IProcessor Processor => _activeProcessor;
 
-    /// <summary>Optional Waterloo 6809 side of a SuperPET. It is stepped explicitly; the 6502
-    /// remains the active machine processor until the real SuperPET CPU switch is modeled.</summary>
+    public SuperPetProcessor SelectedProcessor =>
+        ReferenceEquals(_activeProcessor, _superPet6809Cpu)
+            ? SuperPetProcessor.Motorola6809
+            : SuperPetProcessor.Mos6502;
+
+    /// <summary>Optional Waterloo 6809 side of a SuperPET. It is selected with
+    /// <see cref="SelectProcessor"/> when the emulated hardware switch is set to 6809.</summary>
     public M6809Cpu? SuperPet6809Cpu => _superPet6809Cpu;
 
     public IMemoryBus? SuperPet6809Memory => _superPet6809Memory;
 
-    public IMemoryBus Memory => _memoryBus;
+    public MOS6702? SuperPetProtectionDongle => _superPetProtectionDongle;
+
+    public IMemoryBus Memory => _activeMemory;
+
+    /// <summary>Changes the physical SuperPET CPU switch between 6502 and 6809.</summary>
+    public void SelectProcessor(SuperPetProcessor processor)
+    {
+        if (processor == SuperPetProcessor.Mos6502)
+        {
+            _activeProcessor = _cpu;
+            _activeMemory = _memoryBus;
+            return;
+        }
+
+        if (_superPet6809Cpu is null || _superPet6809Memory is null)
+            throw new InvalidOperationException("The selected machine has no SuperPET 6809 board.");
+
+        _activeProcessor = _superPet6809Cpu;
+        _activeMemory = _superPet6809Memory;
+        _activeProcessor.SetIRQ(_pia1.IRQ || _pia2.IRQ || _via.IRQ || (_acia?.Irq ?? false));
+    }
 
     public void Reset()
     {
@@ -246,6 +279,8 @@ public sealed class PetMachine : IMachine
         _via.Reset();
         _crtc?.Reset();
         _acia?.Reset();
+        _superPetProtectionDongle?.Reset();
+        _superPet6809Memory?.Reset();
         _superPet6809Cpu?.Reset();
         _datasette.Reset();
         _datasette2.Reset();
@@ -274,9 +309,10 @@ public sealed class PetMachine : IMachine
 
     public void StepInstruction()
     {
-        var cyclesBefore = _cpu.CycleCount;
-        _cpu.StepInstruction();
-        var cycles = _cpu.CycleCount - cyclesBefore;
+        var cpu = _activeProcessor;
+        var cyclesBefore = cpu.CycleCount;
+        cpu.StepInstruction();
+        var cycles = cpu.CycleCount - cyclesBefore;
 
         _pia1.Tick(cycles);
         _pia2.Tick(cycles);
@@ -291,7 +327,7 @@ public sealed class PetMachine : IMachine
             _ieeeBusBinding.Tick();
         }
 
-        _cpu.SetIRQ(_pia1.IRQ || _pia2.IRQ || _via.IRQ || (_acia?.Irq ?? false));
+        cpu.SetIRQ(_pia1.IRQ || _pia2.IRQ || _via.IRQ || (_acia?.Irq ?? false));
     }
 
     public void Run(ulong instructionCount)

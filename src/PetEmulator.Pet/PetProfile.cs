@@ -109,8 +109,7 @@ public sealed record PetProfile(
     public string RomDirectory => RomDirectoryOverride ?? Id;
 
     /// <summary>Optional firmware for an expansion processor or banked board. It is declared for
-    /// inventory and validation now; the current PET bus does not map it until that hardware is
-    /// implemented.</summary>
+    /// inventory and validation; SuperPET maps its Waterloo images through the 6809 bus.</summary>
     public IReadOnlyList<PetRomRequirement>? ExpansionRomManifest { get; init; }
 
     /// <summary>Optional ACIA base address for an expansion profile, such as SuperPET.</summary>
