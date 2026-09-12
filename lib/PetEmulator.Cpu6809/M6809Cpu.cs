@@ -315,98 +315,98 @@ public class M6809Cpu : M6800Cpu
         OpcodeTable[0x7F] = () => base.Clr(FetchExtended());
 
         // A-column ALU (0x80-0x8F)
-        OpcodeTable[0x80] = () => SubA(Fetch()); OpcodeTable[0x81] = () => CmpA(Fetch());
-        OpcodeTable[0x82] = () => SbcA(Fetch()); OpcodeTable[0x83] = () => SubD(Fetch16());
-        OpcodeTable[0x84] = () => AndA(Fetch()); OpcodeTable[0x85] = () => BitA(Fetch());
-        OpcodeTable[0x86] = () => LdaI(Fetch()); OpcodeTable[0x87] = () => 2;
-        OpcodeTable[0x88] = () => EorA(Fetch()); OpcodeTable[0x89] = () => AdcA(Fetch());
-        OpcodeTable[0x8A] = () => OraA(Fetch()); OpcodeTable[0x8B] = () => AddA(Fetch());
+        OpcodeTable[0x80] = () => base.SubA(Fetch()); OpcodeTable[0x81] = () => base.CmpA(Fetch());
+        OpcodeTable[0x82] = () => base.SbcA(Fetch()); OpcodeTable[0x83] = () => SubD(Fetch16());
+        OpcodeTable[0x84] = () => base.AndA(Fetch()); OpcodeTable[0x85] = () => base.BitA(Fetch());
+        OpcodeTable[0x86] = () => base.LdaI(Fetch()); OpcodeTable[0x87] = () => 2;
+        OpcodeTable[0x88] = () => base.EorA(Fetch()); OpcodeTable[0x89] = () => base.AdcA(Fetch());
+        OpcodeTable[0x8A] = () => base.OraA(Fetch()); OpcodeTable[0x8B] = () => base.AddA(Fetch());
         OpcodeTable[0x8C] = () => base.CmpX(Fetch16()); OpcodeTable[0x8D] = () => base.Bsr(FetchSigned());
         OpcodeTable[0x8E] = () => base.LdxI(Fetch16()); OpcodeTable[0x8F] = () => 2;
 
         // A-column dir (0x90-0x9F)
-        OpcodeTable[0x90] = () => SubA(LdDirect()); OpcodeTable[0x91] = () => CmpA(LdDirect());
-        OpcodeTable[0x92] = () => SbcA(LdDirect()); OpcodeTable[0x93] = () => SubD(Ld16Direct());
-        OpcodeTable[0x94] = () => AndA(LdDirect()); OpcodeTable[0x95] = () => BitA(LdDirect());
+        OpcodeTable[0x90] = () => base.SubA(LdDirect()); OpcodeTable[0x91] = () => base.CmpA(LdDirect());
+        OpcodeTable[0x92] = () => base.SbcA(LdDirect()); OpcodeTable[0x93] = () => SubD(Ld16Direct());
+        OpcodeTable[0x94] = () => base.AndA(LdDirect()); OpcodeTable[0x95] = () => base.BitA(LdDirect());
         OpcodeTable[0x96] = () => base.LoadA(FetchDirectAddress(), 4); OpcodeTable[0x97] = () => base.StoreA(FetchDirectAddress(), 4);
-        OpcodeTable[0x98] = () => EorA(LdDirect()); OpcodeTable[0x99] = () => AdcA(LdDirect());
-        OpcodeTable[0x9A] = () => OraA(LdDirect()); OpcodeTable[0x9B] = () => AddA(LdDirect());
+        OpcodeTable[0x98] = () => base.EorA(LdDirect()); OpcodeTable[0x99] = () => base.AdcA(LdDirect());
+        OpcodeTable[0x9A] = () => base.OraA(LdDirect()); OpcodeTable[0x9B] = () => base.AddA(LdDirect());
         OpcodeTable[0x9C] = () => base.CmpX(Ld16Direct()); OpcodeTable[0x9D] = JsrD;
         OpcodeTable[0x9E] = () => base.LoadX(FetchDirectAddress(), 5); OpcodeTable[0x9F] = () => base.StoreX(FetchDirectAddress(), 5);
 
         // A-column indexed (0xA0-0xAF)
-        OpcodeTable[0xA0] = () => SubA(LdIndexed(out int exA0)) + exA0;
-        OpcodeTable[0xA1] = () => CmpA(LdIndexed(out int exA1)) + exA1;
-        OpcodeTable[0xA2] = () => SbcA(LdIndexed(out int exA2)) + exA2;
+        OpcodeTable[0xA0] = () => base.SubA(LdIndexed(out int exA0)) + exA0;
+        OpcodeTable[0xA1] = () => base.CmpA(LdIndexed(out int exA1)) + exA1;
+        OpcodeTable[0xA2] = () => base.SbcA(LdIndexed(out int exA2)) + exA2;
         OpcodeTable[0xA3] = () => SubD(Ld16Indexed(out int exA3)) + exA3;
-        OpcodeTable[0xA4] = () => AndA(LdIndexed(out int exA4)) + exA4;
-        OpcodeTable[0xA5] = () => BitA(LdIndexed(out int exA5)) + exA5;
+        OpcodeTable[0xA4] = () => base.AndA(LdIndexed(out int exA4)) + exA4;
+        OpcodeTable[0xA5] = () => base.BitA(LdIndexed(out int exA5)) + exA5;
         OpcodeTable[0xA6] = () => base.LoadA(FetchIndexed(out int exA6), 4 + exA6);
         OpcodeTable[0xA7] = () => base.StoreA(FetchIndexed(out int exA7), 4 + exA7);
-        OpcodeTable[0xA8] = () => EorA(LdIndexed(out int exA8)) + exA8;
-        OpcodeTable[0xA9] = () => AdcA(LdIndexed(out int exA9)) + exA9;
-        OpcodeTable[0xAA] = () => OraA(LdIndexed(out int exAA)) + exAA;
-        OpcodeTable[0xAB] = () => AddA(LdIndexed(out int exAB)) + exAB;
+        OpcodeTable[0xA8] = () => base.EorA(LdIndexed(out int exA8)) + exA8;
+        OpcodeTable[0xA9] = () => base.AdcA(LdIndexed(out int exA9)) + exA9;
+        OpcodeTable[0xAA] = () => base.OraA(LdIndexed(out int exAA)) + exAA;
+        OpcodeTable[0xAB] = () => base.AddA(LdIndexed(out int exAB)) + exAB;
         OpcodeTable[0xAC] = () => base.CmpX(Ld16Indexed(out int exAC)) + exAC;
         OpcodeTable[0xAD] = JsrIdx;
         OpcodeTable[0xAE] = () => base.LoadX(FetchIndexed(out int exAE), 5 + exAE);
         OpcodeTable[0xAF] = () => base.StoreX(FetchIndexed(out int exAF), 5 + exAF);
 
         // A-column extended (0xB0-0xBF)
-        OpcodeTable[0xB0] = () => SubA(LdExtended()); OpcodeTable[0xB1] = () => CmpA(LdExtended());
-        OpcodeTable[0xB2] = () => SbcA(LdExtended()); OpcodeTable[0xB3] = () => SubD(Ld16Extended());
-        OpcodeTable[0xB4] = () => AndA(LdExtended()); OpcodeTable[0xB5] = () => BitA(LdExtended());
+        OpcodeTable[0xB0] = () => base.SubA(LdExtended()); OpcodeTable[0xB1] = () => base.CmpA(LdExtended());
+        OpcodeTable[0xB2] = () => base.SbcA(LdExtended()); OpcodeTable[0xB3] = () => SubD(Ld16Extended());
+        OpcodeTable[0xB4] = () => base.AndA(LdExtended()); OpcodeTable[0xB5] = () => base.BitA(LdExtended());
         OpcodeTable[0xB6] = () => base.LoadA(FetchExtended(), 5); OpcodeTable[0xB7] = () => base.StoreA(FetchExtended(), 5);
-        OpcodeTable[0xB8] = () => EorA(LdExtended()); OpcodeTable[0xB9] = () => AdcA(LdExtended());
-        OpcodeTable[0xBA] = () => OraA(LdExtended()); OpcodeTable[0xBB] = () => AddA(LdExtended());
+        OpcodeTable[0xB8] = () => base.EorA(LdExtended()); OpcodeTable[0xB9] = () => base.AdcA(LdExtended());
+        OpcodeTable[0xBA] = () => base.OraA(LdExtended()); OpcodeTable[0xBB] = () => base.AddA(LdExtended());
         OpcodeTable[0xBC] = () => base.CmpX(Ld16Extended()); OpcodeTable[0xBD] = JsrExt;
         OpcodeTable[0xBE] = () => base.LoadX(FetchExtended(), 6); OpcodeTable[0xBF] = () => base.StoreX(FetchExtended(), 6);
 
         // B-column ALU (0xC0-0xCF)
-        OpcodeTable[0xC0] = () => SubB(Fetch()); OpcodeTable[0xC1] = () => CmpB(Fetch());
-        OpcodeTable[0xC2] = () => SbcB(Fetch()); OpcodeTable[0xC3] = () => AddD(Fetch16());
-        OpcodeTable[0xC4] = () => AndB(Fetch()); OpcodeTable[0xC5] = () => BitB(Fetch());
-        OpcodeTable[0xC6] = () => LdbI(Fetch()); OpcodeTable[0xC7] = () => 2;
-        OpcodeTable[0xC8] = () => EorB(Fetch()); OpcodeTable[0xC9] = () => AdcB(Fetch());
-        OpcodeTable[0xCA] = () => OraB(Fetch()); OpcodeTable[0xCB] = () => AddB(Fetch());
+        OpcodeTable[0xC0] = () => base.SubB(Fetch()); OpcodeTable[0xC1] = () => base.CmpB(Fetch());
+        OpcodeTable[0xC2] = () => base.SbcB(Fetch()); OpcodeTable[0xC3] = () => AddD(Fetch16());
+        OpcodeTable[0xC4] = () => base.AndB(Fetch()); OpcodeTable[0xC5] = () => base.BitB(Fetch());
+        OpcodeTable[0xC6] = () => base.LdbI(Fetch()); OpcodeTable[0xC7] = () => 2;
+        OpcodeTable[0xC8] = () => base.EorB(Fetch()); OpcodeTable[0xC9] = () => base.AdcB(Fetch());
+        OpcodeTable[0xCA] = () => base.OraB(Fetch()); OpcodeTable[0xCB] = () => base.AddB(Fetch());
         OpcodeTable[0xCC] = () => LddI(Fetch16()); OpcodeTable[0xCD] = () => 2;
         OpcodeTable[0xCE] = () => LduI(Fetch16()); OpcodeTable[0xCF] = () => 2;
 
         // B-column dir (0xD0-0xDF)
-        OpcodeTable[0xD0] = () => SubB(LdDirect()); OpcodeTable[0xD1] = () => CmpB(LdDirect());
-        OpcodeTable[0xD2] = () => SbcB(LdDirect()); OpcodeTable[0xD3] = () => AddD(Ld16Direct());
-        OpcodeTable[0xD4] = () => AndB(LdDirect()); OpcodeTable[0xD5] = () => BitB(LdDirect());
+        OpcodeTable[0xD0] = () => base.SubB(LdDirect()); OpcodeTable[0xD1] = () => base.CmpB(LdDirect());
+        OpcodeTable[0xD2] = () => base.SbcB(LdDirect()); OpcodeTable[0xD3] = () => AddD(Ld16Direct());
+        OpcodeTable[0xD4] = () => base.AndB(LdDirect()); OpcodeTable[0xD5] = () => base.BitB(LdDirect());
         OpcodeTable[0xD6] = () => base.LoadB(FetchDirectAddress(), 4); OpcodeTable[0xD7] = () => base.StoreB(FetchDirectAddress(), 4);
-        OpcodeTable[0xD8] = () => EorB(LdDirect()); OpcodeTable[0xD9] = () => AdcB(LdDirect());
-        OpcodeTable[0xDA] = () => OraB(LdDirect()); OpcodeTable[0xDB] = () => AddB(LdDirect());
+        OpcodeTable[0xD8] = () => base.EorB(LdDirect()); OpcodeTable[0xD9] = () => base.AdcB(LdDirect());
+        OpcodeTable[0xDA] = () => base.OraB(LdDirect()); OpcodeTable[0xDB] = () => base.AddB(LdDirect());
         OpcodeTable[0xDC] = LddD; OpcodeTable[0xDD] = StdD;
         OpcodeTable[0xDE] = LduD; OpcodeTable[0xDF] = StuD;
 
         // B-column indexed (0xE0-0xEF)
-        OpcodeTable[0xE0] = () => SubB(LdIndexed(out int exE0)) + exE0;
-        OpcodeTable[0xE1] = () => CmpB(LdIndexed(out int exE1)) + exE1;
-        OpcodeTable[0xE2] = () => SbcB(LdIndexed(out int exE2)) + exE2;
+        OpcodeTable[0xE0] = () => base.SubB(LdIndexed(out int exE0)) + exE0;
+        OpcodeTable[0xE1] = () => base.CmpB(LdIndexed(out int exE1)) + exE1;
+        OpcodeTable[0xE2] = () => base.SbcB(LdIndexed(out int exE2)) + exE2;
         OpcodeTable[0xE3] = () => AddD(Ld16Indexed(out int exE3)) + exE3;
-        OpcodeTable[0xE4] = () => AndB(LdIndexed(out int exE4)) + exE4;
-        OpcodeTable[0xE5] = () => BitB(LdIndexed(out int exE5)) + exE5;
+        OpcodeTable[0xE4] = () => base.AndB(LdIndexed(out int exE4)) + exE4;
+        OpcodeTable[0xE5] = () => base.BitB(LdIndexed(out int exE5)) + exE5;
         OpcodeTable[0xE6] = () => base.LoadB(FetchIndexed(out int exE6), 4 + exE6);
         OpcodeTable[0xE7] = () => base.StoreB(FetchIndexed(out int exE7), 4 + exE7);
-        OpcodeTable[0xE8] = () => EorB(LdIndexed(out int exE8)) + exE8;
-        OpcodeTable[0xE9] = () => AdcB(LdIndexed(out int exE9)) + exE9;
-        OpcodeTable[0xEA] = () => OraB(LdIndexed(out int exEA)) + exEA;
-        OpcodeTable[0xEB] = () => AddB(LdIndexed(out int exEB)) + exEB;
+        OpcodeTable[0xE8] = () => base.EorB(LdIndexed(out int exE8)) + exE8;
+        OpcodeTable[0xE9] = () => base.AdcB(LdIndexed(out int exE9)) + exE9;
+        OpcodeTable[0xEA] = () => base.OraB(LdIndexed(out int exEA)) + exEA;
+        OpcodeTable[0xEB] = () => base.AddB(LdIndexed(out int exEB)) + exEB;
         OpcodeTable[0xEC] = LddIdx;
         OpcodeTable[0xED] = StdIdx;
         OpcodeTable[0xEE] = LduIdx;
         OpcodeTable[0xEF] = StuIdx;
 
         // B-column extended (0xF0-0xFF)
-        OpcodeTable[0xF0] = () => SubB(LdExtended()); OpcodeTable[0xF1] = () => CmpB(LdExtended());
-        OpcodeTable[0xF2] = () => SbcB(LdExtended()); OpcodeTable[0xF3] = () => AddD(Ld16Extended());
-        OpcodeTable[0xF4] = () => AndB(LdExtended()); OpcodeTable[0xF5] = () => BitB(LdExtended());
+        OpcodeTable[0xF0] = () => base.SubB(LdExtended()); OpcodeTable[0xF1] = () => base.CmpB(LdExtended());
+        OpcodeTable[0xF2] = () => base.SbcB(LdExtended()); OpcodeTable[0xF3] = () => AddD(Ld16Extended());
+        OpcodeTable[0xF4] = () => base.AndB(LdExtended()); OpcodeTable[0xF5] = () => base.BitB(LdExtended());
         OpcodeTable[0xF6] = () => base.LoadB(FetchExtended(), 5); OpcodeTable[0xF7] = () => base.StoreB(FetchExtended(), 5);
-        OpcodeTable[0xF8] = () => EorB(LdExtended()); OpcodeTable[0xF9] = () => AdcB(LdExtended());
-        OpcodeTable[0xFA] = () => OraB(LdExtended()); OpcodeTable[0xFB] = () => AddB(LdExtended());
+        OpcodeTable[0xF8] = () => base.EorB(LdExtended()); OpcodeTable[0xF9] = () => base.AdcB(LdExtended());
+        OpcodeTable[0xFA] = () => base.OraB(LdExtended()); OpcodeTable[0xFB] = () => base.AddB(LdExtended());
         OpcodeTable[0xFC] = LddExt; OpcodeTable[0xFD] = StdExt;
         OpcodeTable[0xFE] = LduExt; OpcodeTable[0xFF] = StuExt;
     }
@@ -646,351 +646,10 @@ public class M6809Cpu : M6800Cpu
 
     #region Instruction Implementations
 
-    // RMW operations on memory
-    private new int Neg(ushort addr)
-    {
-        byte val = Mmu.Read(addr);
-        byte result = (byte)(-(int)val);
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.V = result == 0x80;
-        State.Flags.C = result != 0;
-        Mmu.Write(addr, result);
-        return 6;
-    }
-
-    private new int Com(ushort addr)
-    {
-        byte val = Mmu.Read(addr);
-        byte result = (byte)~val;
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.V = false;
-        State.Flags.C = true;
-        Mmu.Write(addr, result);
-        return 6;
-    }
-
-    private new int Lsr(ushort addr)
-    {
-        byte val = Mmu.Read(addr);
-        byte result = (byte)(val >> 1);
-        State.Flags.N = false;
-        State.Flags.Z = result == 0;
-        State.Flags.C = (val & 0x01) != 0;
-        Mmu.Write(addr, result);
-        return 6;
-    }
-
-    private new int Ror(ushort addr)
-    {
-        byte val = Mmu.Read(addr);
-        byte result = (byte)((val >> 1) | (State.Flags.C ? 0x80 : 0));
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.C = (val & 0x01) != 0;
-        Mmu.Write(addr, result);
-        return 6;
-    }
-
-    private new int Asr(ushort addr)
-    {
-        byte val = Mmu.Read(addr);
-        byte result = (byte)((val >> 1) | (val & 0x80));
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.C = (val & 0x01) != 0;
-        Mmu.Write(addr, result);
-        return 6;
-    }
-
-    private new int Asl(ushort addr)
-    {
-        byte val = Mmu.Read(addr);
-        byte result = (byte)(val << 1);
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.V = ((val & 0x80) != 0) != ((result & 0x80) != 0);
-        State.Flags.C = (val & 0x80) != 0;
-        Mmu.Write(addr, result);
-        return 6;
-    }
-
-    private new int Rol(ushort addr)
-    {
-        byte val = Mmu.Read(addr);
-        byte result = (byte)((val << 1) | (State.Flags.C ? 1 : 0));
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.V = ((val & 0x80) != 0) != ((result & 0x80) != 0);
-        State.Flags.C = (val & 0x80) != 0;
-        Mmu.Write(addr, result);
-        return 6;
-    }
-
-    private new int Dec(ushort addr)
-    {
-        byte val = Mmu.Read(addr);
-        byte result = (byte)(val - 1);
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.V = result == 0x7F;
-        Mmu.Write(addr, result);
-        return 6;
-    }
-
-    private new int Inc(ushort addr)
-    {
-        byte val = Mmu.Read(addr);
-        byte result = (byte)(val + 1);
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.V = result == 0x80;
-        Mmu.Write(addr, result);
-        return 6;
-    }
-
-    private new int Tst(ushort addr)
-    {
-        byte val = Mmu.Read(addr);
-        State.Flags.N = (val & 0x80) != 0;
-        State.Flags.Z = val == 0;
-        State.Flags.V = false;
-        // TST leaves C unchanged (differs from 6800)
-        return 6;
-    }
-
     private int Jmp(ushort addr)
     {
         State.PC = addr;
         return 3;
-    }
-
-    private new int Clr(ushort addr)
-    {
-        Mmu.Write(addr, 0);
-        State.Flags.N = false;
-        State.Flags.Z = true;
-        State.Flags.V = false;
-        State.Flags.C = false;
-        return 6;
-    }
-
-    // Accumulator RMW
-    private new int NegA()
-    {
-        State.A = (byte)(-State.A);
-        State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
-        State.Flags.V = State.A == 0x80;
-        State.Flags.C = State.A != 0;
-        return 2;
-    }
-
-    private new int ComA()
-    {
-        State.A = (byte)~State.A;
-        State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
-        State.Flags.V = false;
-        State.Flags.C = true;
-        return 2;
-    }
-
-    private new int LsrA()
-    {
-        byte c = (byte)(State.A & 0x01);
-        State.A >>= 1;
-        State.Flags.N = false;
-        State.Flags.Z = State.A == 0;
-        State.Flags.C = c != 0;
-        return 2;
-    }
-
-    private new int RorA()
-    {
-        byte c = (byte)(State.A & 0x01);
-        State.A = (byte)((State.A >> 1) | (State.Flags.C ? 0x80 : 0));
-        State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
-        State.Flags.C = c != 0;
-        return 2;
-    }
-
-    private new int AsrA()
-    {
-        byte c = (byte)(State.A & 0x01);
-        State.A = (byte)((State.A >> 1) | (State.A & 0x80));
-        State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
-        State.Flags.C = c != 0;
-        return 2;
-    }
-
-    private new int AslA()
-    {
-        byte c = (byte)((State.A & 0x80) != 0 ? 1 : 0);
-        State.A <<= 1;
-        State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
-        State.Flags.V = ((~(State.A >> 1)) & (State.A) & 0x80) != 0;
-        State.Flags.C = c != 0;
-        return 2;
-    }
-
-    private new int RolA()
-    {
-        byte c = (byte)((State.A & 0x80) != 0 ? 1 : 0);
-        State.A = (byte)((State.A << 1) | (State.Flags.C ? 1 : 0));
-        State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
-        State.Flags.V = ((~(State.A >> 1)) & (State.A) & 0x80) != 0;
-        State.Flags.C = c != 0;
-        return 2;
-    }
-
-    private new int DecA()
-    {
-        State.A--;
-        State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
-        State.Flags.V = State.A == 0x7F;
-        return 2;
-    }
-
-    private new int IncA()
-    {
-        State.A++;
-        State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
-        State.Flags.V = State.A == 0x80;
-        return 2;
-    }
-
-    private new int TstA()
-    {
-        State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
-        State.Flags.V = false;
-        return 2;
-    }
-
-    private new int ClrA()
-    {
-        State.A = 0;
-        State.Flags.N = false;
-        State.Flags.Z = true;
-        State.Flags.V = false;
-        State.Flags.C = false;
-        return 2;
-    }
-
-    private new int NegB()
-    {
-        State.B = (byte)(-State.B);
-        State.Flags.N = (State.B & 0x80) != 0;
-        State.Flags.Z = State.B == 0;
-        State.Flags.V = State.B == 0x80;
-        State.Flags.C = State.B != 0;
-        return 2;
-    }
-
-    private new int ComB()
-    {
-        State.B = (byte)~State.B;
-        State.Flags.N = (State.B & 0x80) != 0;
-        State.Flags.Z = State.B == 0;
-        State.Flags.V = false;
-        State.Flags.C = true;
-        return 2;
-    }
-
-    private new int LsrB()
-    {
-        byte c = (byte)(State.B & 0x01);
-        State.B >>= 1;
-        State.Flags.N = false;
-        State.Flags.Z = State.B == 0;
-        State.Flags.C = c != 0;
-        return 2;
-    }
-
-    private new int RorB()
-    {
-        byte c = (byte)(State.B & 0x01);
-        State.B = (byte)((State.B >> 1) | (State.Flags.C ? 0x80 : 0));
-        State.Flags.N = (State.B & 0x80) != 0;
-        State.Flags.Z = State.B == 0;
-        State.Flags.C = c != 0;
-        return 2;
-    }
-
-    private new int AsrB()
-    {
-        byte c = (byte)(State.B & 0x01);
-        State.B = (byte)((State.B >> 1) | (State.B & 0x80));
-        State.Flags.N = (State.B & 0x80) != 0;
-        State.Flags.Z = State.B == 0;
-        State.Flags.C = c != 0;
-        return 2;
-    }
-
-    private new int AslB()
-    {
-        byte c = (byte)((State.B & 0x80) != 0 ? 1 : 0);
-        State.B <<= 1;
-        State.Flags.N = (State.B & 0x80) != 0;
-        State.Flags.Z = State.B == 0;
-        State.Flags.V = ((~(State.B >> 1)) & (State.B) & 0x80) != 0;
-        State.Flags.C = c != 0;
-        return 2;
-    }
-
-    private new int RolB()
-    {
-        byte c = (byte)((State.B & 0x80) != 0 ? 1 : 0);
-        State.B = (byte)((State.B << 1) | (State.Flags.C ? 1 : 0));
-        State.Flags.N = (State.B & 0x80) != 0;
-        State.Flags.Z = State.B == 0;
-        State.Flags.V = ((~(State.B >> 1)) & (State.B) & 0x80) != 0;
-        State.Flags.C = c != 0;
-        return 2;
-    }
-
-    private new int DecB()
-    {
-        State.B--;
-        State.Flags.N = (State.B & 0x80) != 0;
-        State.Flags.Z = State.B == 0;
-        State.Flags.V = State.B == 0x7F;
-        return 2;
-    }
-
-    private new int IncB()
-    {
-        State.B++;
-        State.Flags.N = (State.B & 0x80) != 0;
-        State.Flags.Z = State.B == 0;
-        State.Flags.V = State.B == 0x80;
-        return 2;
-    }
-
-    private new int TstB()
-    {
-        State.Flags.N = (State.B & 0x80) != 0;
-        State.Flags.Z = State.B == 0;
-        State.Flags.V = false;
-        return 2;
-    }
-
-    private new int ClrB()
-    {
-        State.B = 0;
-        State.Flags.N = false;
-        State.Flags.Z = true;
-        State.Flags.V = false;
-        State.Flags.C = false;
-        return 2;
     }
 
     // Single-byte inherent
@@ -1121,116 +780,6 @@ public class M6809Cpu : M6800Cpu
                 State.DP = (byte)value;
                 break;
         }
-    }
-
-    // Branches (8-bit offset)
-    private new int Bra(byte offset)
-    {
-        State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 3;
-    }
-
-    private new int Brn(byte offset)
-    {
-        return 3;
-    }
-
-    private new int Bhi(byte offset)
-    {
-        if (!State.Flags.C && !State.Flags.Z)
-            State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 3;
-    }
-
-    private new int Bls(byte offset)
-    {
-        if (State.Flags.C || State.Flags.Z)
-            State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 3;
-    }
-
-    private new int Bcc(byte offset)
-    {
-        if (!State.Flags.C)
-            State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 3;
-    }
-
-    private new int Bcs(byte offset)
-    {
-        if (State.Flags.C)
-            State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 3;
-    }
-
-    private new int Bne(byte offset)
-    {
-        if (!State.Flags.Z)
-            State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 3;
-    }
-
-    private new int Beq(byte offset)
-    {
-        if (State.Flags.Z)
-            State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 3;
-    }
-
-    private new int Bvc(byte offset)
-    {
-        if (!State.Flags.V)
-            State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 3;
-    }
-
-    private new int Bvs(byte offset)
-    {
-        if (State.Flags.V)
-            State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 3;
-    }
-
-    private new int Bpl(byte offset)
-    {
-        if (!State.Flags.N)
-            State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 3;
-    }
-
-    private new int Bmi(byte offset)
-    {
-        if (State.Flags.N)
-            State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 3;
-    }
-
-    private new int Bge(byte offset)
-    {
-        if ((State.Flags.N && State.Flags.V) || (!State.Flags.N && !State.Flags.V))
-            State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 3;
-    }
-
-    private new int Blt(byte offset)
-    {
-        if ((State.Flags.N && !State.Flags.V) || (!State.Flags.N && State.Flags.V))
-            State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 3;
-    }
-
-    private new int Bgt(byte offset)
-    {
-        if (!State.Flags.Z && ((State.Flags.N && State.Flags.V) || (!State.Flags.N && !State.Flags.V)))
-            State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 3;
-    }
-
-    private new int Ble(byte offset)
-    {
-        if (State.Flags.Z || ((State.Flags.N && !State.Flags.V) || (!State.Flags.N && State.Flags.V)))
-            State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 3;
     }
 
     // Long branches (16-bit offset)
@@ -1479,12 +1028,6 @@ public class M6809Cpu : M6800Cpu
     }
 
     // Return/jump
-    private new int Rts()
-    {
-        State.PC = PopS16();
-        return 5;
-    }
-
     private int Abx()
     {
         State.X = (ushort)(State.X + State.B);
@@ -1553,13 +1096,6 @@ public class M6809Cpu : M6800Cpu
         return 20;
     }
 
-    // A-column operations (immediate and addressing modes)
-    private new int SubA(byte val) => base.SubA(val);
-
-    private new int CmpA(byte val) => base.CmpA(val);
-
-    private new int SbcA(byte val) => base.SbcA(val);
-
     private int SubD(ushort val)
     {
         ushort result = (ushort)(State.D - val);
@@ -1568,39 +1104,6 @@ public class M6809Cpu : M6800Cpu
         State.Flags.V = ((State.D ^ val) & (State.D ^ result) & 0x8000) != 0;
         State.Flags.C = State.D < val;
         State.D = result;
-        return 4;
-    }
-
-    private new int AndA(byte val) => base.AndA(val);
-
-    private new int BitA(byte val) => base.BitA(val);
-
-    private new int LdaI(byte val) => base.LdaI(val);
-
-    private new int LdxI(ushort val)
-    {
-        State.X = val;
-        State.Flags.N = (val & 0x8000) != 0;
-        State.Flags.Z = val == 0;
-        State.Flags.V = false;
-        return 3;
-    }
-
-    private new int EorA(byte val) => base.EorA(val);
-
-    private new int AdcA(byte val) => base.AdcA(val);
-
-    private new int OraA(byte val) => base.OraA(val);
-
-    private new int AddA(byte val) => base.AddA(val);
-
-    private new int CmpX(ushort val)
-    {
-        ushort result = (ushort)(State.X - val);
-        State.Flags.N = (result & 0x8000) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.V = ((State.X ^ val) & (State.X ^ result) & 0x8000) != 0;
-        State.Flags.C = State.X < val;
         return 4;
     }
 
@@ -1644,13 +1147,6 @@ public class M6809Cpu : M6800Cpu
         return 5;
     }
 
-    private new int Bsr(byte offset)
-    {
-        PushS16(State.PC);
-        State.PC = (ushort)(State.PC + (sbyte)offset);
-        return 7;
-    }
-
     private int JsrD()
     {
         ushort addr = (ushort)(((State.DP) << 8) | Fetch());
@@ -1675,133 +1171,6 @@ public class M6809Cpu : M6800Cpu
         return 8;
     }
 
-    private int LdxD()
-    {
-        ushort addr = (ushort)(((State.DP) << 8) | Fetch());
-        State.X = Read16(addr);
-        State.Flags.N = (State.X & 0x8000) != 0;
-        State.Flags.Z = State.X == 0;
-        State.Flags.V = false;
-        return 5;
-    }
-
-    private int LdxIdx()
-    {
-        ushort val = Ld16Indexed(out int ex);
-        State.X = val;
-        State.Flags.N = (val & 0x8000) != 0;
-        State.Flags.Z = val == 0;
-        State.Flags.V = false;
-        return 5 + ex;
-    }
-
-    private int LdxExt()
-    {
-        ushort val = Ld16Extended();
-        State.X = val;
-        State.Flags.N = (val & 0x8000) != 0;
-        State.Flags.Z = val == 0;
-        State.Flags.V = false;
-        return 6;
-    }
-
-    private int StaD()
-    {
-        ushort addr = (ushort)(((State.DP) << 8) | Fetch());
-        Mmu.Write(addr, State.A);
-        State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
-        State.Flags.V = false;
-        return 4;
-    }
-
-    private int StaIdx()
-    {
-        ushort addr = FetchIndexed(out int ex);
-        Mmu.Write(addr, State.A);
-        State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
-        State.Flags.V = false;
-        return 4 + ex;
-    }
-
-    private int StxD()
-    {
-        ushort addr = (ushort)(((State.DP) << 8) | Fetch());
-        Write16(addr, State.X);
-        State.Flags.N = (State.X & 0x8000) != 0;
-        State.Flags.Z = State.X == 0;
-        State.Flags.V = false;
-        return 5;
-    }
-
-    private int StxIdx()
-    {
-        ushort addr = FetchIndexed(out int ex);
-        Write16(addr, State.X);
-        State.Flags.N = (State.X & 0x8000) != 0;
-        State.Flags.Z = State.X == 0;
-        State.Flags.V = false;
-        return 5 + ex;
-    }
-
-    private int StxExt()
-    {
-        ushort addr = FetchExtended();
-        Write16(addr, State.X);
-        State.Flags.N = (State.X & 0x8000) != 0;
-        State.Flags.Z = State.X == 0;
-        State.Flags.V = false;
-        return 6;
-    }
-
-    private int LdAD()
-    {
-        byte val = LdDirect();
-        State.A = val;
-        State.Flags.N = (val & 0x80) != 0;
-        State.Flags.Z = val == 0;
-        State.Flags.V = false;
-        return 4;
-    }
-
-    private int LdAIdx(out int extraCycles)
-    {
-        byte val = LdIndexed(out extraCycles);
-        State.A = val;
-        State.Flags.N = (val & 0x80) != 0;
-        State.Flags.Z = val == 0;
-        State.Flags.V = false;
-        return 4 + extraCycles;
-    }
-
-    private int LdAExt()
-    {
-        byte val = LdExtended();
-        State.A = val;
-        State.Flags.N = (val & 0x80) != 0;
-        State.Flags.Z = val == 0;
-        State.Flags.V = false;
-        return 5;
-    }
-
-    private int StaExt()
-    {
-        ushort addr = FetchExtended();
-        Mmu.Write(addr, State.A);
-        State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
-        State.Flags.V = false;
-        return 5;
-    }
-
-    // B-column operations
-    private new int SubB(byte val) => base.SubB(val);
-
-    private new int CmpB(byte val) => base.CmpB(val);
-
-    private new int SbcB(byte val) => base.SbcB(val);
-
     private int AddD(ushort val)
     {
         ushort result = (ushort)(State.D + val);
@@ -1813,12 +1182,6 @@ public class M6809Cpu : M6800Cpu
         State.D = result;
         return 4;
     }
-
-    private new int AndB(byte val) => base.AndB(val);
-
-    private new int BitB(byte val) => base.BitB(val);
-
-    private new int LdbI(byte val) => base.LdbI(val);
 
     private int LddI(ushort val)
     {
@@ -1836,46 +1199,6 @@ public class M6809Cpu : M6800Cpu
         State.Flags.Z = val == 0;
         State.Flags.V = false;
         return 3;
-    }
-
-    private new int EorB(byte val) => base.EorB(val);
-
-    private new int AdcB(byte val) => base.AdcB(val);
-
-    private new int OraB(byte val) => base.OraB(val);
-
-    private new int AddB(byte val) => base.AddB(val);
-
-    private new int LdB(byte val) => base.LdB(val);
-
-    private int StbD()
-    {
-        ushort addr = (ushort)(((State.DP) << 8) | Fetch());
-        Mmu.Write(addr, State.B);
-        State.Flags.N = (State.B & 0x80) != 0;
-        State.Flags.Z = State.B == 0;
-        State.Flags.V = false;
-        return 4;
-    }
-
-    private int StbIdx()
-    {
-        ushort addr = FetchIndexed(out int ex);
-        Mmu.Write(addr, State.B);
-        State.Flags.N = (State.B & 0x80) != 0;
-        State.Flags.Z = State.B == 0;
-        State.Flags.V = false;
-        return 4 + ex;
-    }
-
-    private int StbExt()
-    {
-        ushort addr = FetchExtended();
-        Mmu.Write(addr, State.B);
-        State.Flags.N = (State.B & 0x80) != 0;
-        State.Flags.Z = State.B == 0;
-        State.Flags.V = false;
-        return 5;
     }
 
     private int LddD()
