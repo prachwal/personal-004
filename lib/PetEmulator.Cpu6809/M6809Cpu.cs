@@ -207,22 +207,22 @@ public class M6809Cpu : M6800Cpu
         Page11OpcodeTable[0xBC] = () => CmpS(Ld16Extended());
         Page11OpcodeTable[0x3F] = () => Swi3();
 
-        OpcodeTable[0x00] = () => Neg(FetchDirect());
+        OpcodeTable[0x00] = () => base.Neg(FetchDirect());
         OpcodeTable[0x01] = () => 2;
         OpcodeTable[0x02] = () => 2;
-        OpcodeTable[0x03] = () => Com(FetchDirect());
-        OpcodeTable[0x04] = () => Lsr(FetchDirect());
+        OpcodeTable[0x03] = () => base.Com(FetchDirect());
+        OpcodeTable[0x04] = () => base.Lsr(FetchDirect());
         OpcodeTable[0x05] = () => 2;
-        OpcodeTable[0x06] = () => Ror(FetchDirect());
-        OpcodeTable[0x07] = () => Asr(FetchDirect());
-        OpcodeTable[0x08] = () => Asl(FetchDirect());
-        OpcodeTable[0x09] = () => Rol(FetchDirect());
-        OpcodeTable[0x0A] = () => Dec(FetchDirect());
+        OpcodeTable[0x06] = () => base.Ror(FetchDirect());
+        OpcodeTable[0x07] = () => base.Asr(FetchDirect());
+        OpcodeTable[0x08] = () => base.Asl(FetchDirect());
+        OpcodeTable[0x09] = () => base.Rol(FetchDirect());
+        OpcodeTable[0x0A] = () => base.Dec(FetchDirect());
         OpcodeTable[0x0B] = () => 2;
-        OpcodeTable[0x0C] = () => Inc(FetchDirect());
-        OpcodeTable[0x0D] = () => Tst(FetchDirect());
+        OpcodeTable[0x0C] = () => base.Inc(FetchDirect());
+        OpcodeTable[0x0D] = () => base.Tst(FetchDirect());
         OpcodeTable[0x0E] = () => Jmp(FetchExtended());
-        OpcodeTable[0x0F] = () => Clr(FetchDirect());
+        OpcodeTable[0x0F] = () => base.Clr(FetchDirect());
         OpcodeTable[0x10] = () => Page10OpcodeTable[Fetch()]();
         OpcodeTable[0x11] = () => Page11OpcodeTable[Fetch()]();
         OpcodeTable[0x12] = () => 2;
@@ -273,43 +273,43 @@ public class M6809Cpu : M6800Cpu
         OpcodeTable[0x3F] = Swi;
 
         // RMW A (0x40-0x4F)
-        OpcodeTable[0x40] = NegA; OpcodeTable[0x41] = () => 2; OpcodeTable[0x42] = () => 2; OpcodeTable[0x43] = ComA;
-        OpcodeTable[0x44] = LsrA; OpcodeTable[0x45] = () => 2; OpcodeTable[0x46] = RorA; OpcodeTable[0x47] = AsrA;
-        OpcodeTable[0x48] = AslA; OpcodeTable[0x49] = RolA; OpcodeTable[0x4A] = DecA; OpcodeTable[0x4B] = () => 2;
-        OpcodeTable[0x4C] = IncA; OpcodeTable[0x4D] = TstA; OpcodeTable[0x4E] = () => 2; OpcodeTable[0x4F] = ClrA;
+        OpcodeTable[0x40] = base.NegA; OpcodeTable[0x41] = () => 2; OpcodeTable[0x42] = () => 2; OpcodeTable[0x43] = base.ComA;
+        OpcodeTable[0x44] = base.LsrA; OpcodeTable[0x45] = () => 2; OpcodeTable[0x46] = base.RorA; OpcodeTable[0x47] = base.AsrA;
+        OpcodeTable[0x48] = base.AslA; OpcodeTable[0x49] = base.RolA; OpcodeTable[0x4A] = base.DecA; OpcodeTable[0x4B] = () => 2;
+        OpcodeTable[0x4C] = base.IncA; OpcodeTable[0x4D] = base.TstA; OpcodeTable[0x4E] = () => 2; OpcodeTable[0x4F] = base.ClrA;
 
         // RMW B (0x50-0x5F)
-        OpcodeTable[0x50] = NegB; OpcodeTable[0x51] = () => 2; OpcodeTable[0x52] = () => 2; OpcodeTable[0x53] = ComB;
-        OpcodeTable[0x54] = LsrB; OpcodeTable[0x55] = () => 2; OpcodeTable[0x56] = RorB; OpcodeTable[0x57] = AsrB;
-        OpcodeTable[0x58] = AslB; OpcodeTable[0x59] = RolB; OpcodeTable[0x5A] = DecB; OpcodeTable[0x5B] = () => 2;
-        OpcodeTable[0x5C] = IncB; OpcodeTable[0x5D] = TstB; OpcodeTable[0x5E] = () => 2; OpcodeTable[0x5F] = ClrB;
+        OpcodeTable[0x50] = base.NegB; OpcodeTable[0x51] = () => 2; OpcodeTable[0x52] = () => 2; OpcodeTable[0x53] = base.ComB;
+        OpcodeTable[0x54] = base.LsrB; OpcodeTable[0x55] = () => 2; OpcodeTable[0x56] = base.RorB; OpcodeTable[0x57] = base.AsrB;
+        OpcodeTable[0x58] = base.AslB; OpcodeTable[0x59] = base.RolB; OpcodeTable[0x5A] = base.DecB; OpcodeTable[0x5B] = () => 2;
+        OpcodeTable[0x5C] = base.IncB; OpcodeTable[0x5D] = base.TstB; OpcodeTable[0x5E] = () => 2; OpcodeTable[0x5F] = base.ClrB;
 
         // Indexed RMW (0x60-0x6F)
-        OpcodeTable[0x60] = () => Neg(FetchIndexed(out int ex60)) + ex60;
+        OpcodeTable[0x60] = () => base.Neg(FetchIndexed(out int ex60)) + ex60;
         OpcodeTable[0x61] = () => 2; OpcodeTable[0x62] = () => 2;
-        OpcodeTable[0x63] = () => Com(FetchIndexed(out int ex63)) + ex63;
-        OpcodeTable[0x64] = () => Lsr(FetchIndexed(out int ex64)) + ex64;
+        OpcodeTable[0x63] = () => base.Com(FetchIndexed(out int ex63)) + ex63;
+        OpcodeTable[0x64] = () => base.Lsr(FetchIndexed(out int ex64)) + ex64;
         OpcodeTable[0x65] = () => 2;
-        OpcodeTable[0x66] = () => Ror(FetchIndexed(out int ex66)) + ex66;
-        OpcodeTable[0x67] = () => Asr(FetchIndexed(out int ex67)) + ex67;
-        OpcodeTable[0x68] = () => Asl(FetchIndexed(out int ex68)) + ex68;
-        OpcodeTable[0x69] = () => Rol(FetchIndexed(out int ex69)) + ex69;
-        OpcodeTable[0x6A] = () => Dec(FetchIndexed(out int ex6A)) + ex6A;
+        OpcodeTable[0x66] = () => base.Ror(FetchIndexed(out int ex66)) + ex66;
+        OpcodeTable[0x67] = () => base.Asr(FetchIndexed(out int ex67)) + ex67;
+        OpcodeTable[0x68] = () => base.Asl(FetchIndexed(out int ex68)) + ex68;
+        OpcodeTable[0x69] = () => base.Rol(FetchIndexed(out int ex69)) + ex69;
+        OpcodeTable[0x6A] = () => base.Dec(FetchIndexed(out int ex6A)) + ex6A;
         OpcodeTable[0x6B] = () => 2;
-        OpcodeTable[0x6C] = () => Inc(FetchIndexed(out int ex6C)) + ex6C;
-        OpcodeTable[0x6D] = () => Tst(FetchIndexed(out int ex6D)) + ex6D;
+        OpcodeTable[0x6C] = () => base.Inc(FetchIndexed(out int ex6C)) + ex6C;
+        OpcodeTable[0x6D] = () => base.Tst(FetchIndexed(out int ex6D)) + ex6D;
         OpcodeTable[0x6E] = () => Jmp(FetchIndexed(out int ex6E)) + ex6E;
-        OpcodeTable[0x6F] = () => Clr(FetchIndexed(out int ex6F)) + ex6F;
+        OpcodeTable[0x6F] = () => base.Clr(FetchIndexed(out int ex6F)) + ex6F;
 
         // Extended RMW (0x70-0x7F)
-        OpcodeTable[0x70] = () => Neg(FetchExtended()); OpcodeTable[0x71] = () => 2; OpcodeTable[0x72] = () => 2;
-        OpcodeTable[0x73] = () => Com(FetchExtended()); OpcodeTable[0x74] = () => Lsr(FetchExtended());
-        OpcodeTable[0x75] = () => 2; OpcodeTable[0x76] = () => Ror(FetchExtended());
-        OpcodeTable[0x77] = () => Asr(FetchExtended()); OpcodeTable[0x78] = () => Asl(FetchExtended());
-        OpcodeTable[0x79] = () => Rol(FetchExtended()); OpcodeTable[0x7A] = () => Dec(FetchExtended());
-        OpcodeTable[0x7B] = () => 2; OpcodeTable[0x7C] = () => Inc(FetchExtended());
-        OpcodeTable[0x7D] = () => Tst(FetchExtended()); OpcodeTable[0x7E] = () => Jmp(FetchExtended());
-        OpcodeTable[0x7F] = () => Clr(FetchExtended());
+        OpcodeTable[0x70] = () => base.Neg(FetchExtended()); OpcodeTable[0x71] = () => 2; OpcodeTable[0x72] = () => 2;
+        OpcodeTable[0x73] = () => base.Com(FetchExtended()); OpcodeTable[0x74] = () => base.Lsr(FetchExtended());
+        OpcodeTable[0x75] = () => 2; OpcodeTable[0x76] = () => base.Ror(FetchExtended());
+        OpcodeTable[0x77] = () => base.Asr(FetchExtended()); OpcodeTable[0x78] = () => base.Asl(FetchExtended());
+        OpcodeTable[0x79] = () => base.Rol(FetchExtended()); OpcodeTable[0x7A] = () => base.Dec(FetchExtended());
+        OpcodeTable[0x7B] = () => 2; OpcodeTable[0x7C] = () => base.Inc(FetchExtended());
+        OpcodeTable[0x7D] = () => base.Tst(FetchExtended()); OpcodeTable[0x7E] = () => Jmp(FetchExtended());
+        OpcodeTable[0x7F] = () => base.Clr(FetchExtended());
 
         // A-column ALU (0x80-0x8F)
         OpcodeTable[0x80] = () => SubA(Fetch()); OpcodeTable[0x81] = () => CmpA(Fetch());
