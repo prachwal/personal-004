@@ -20,11 +20,12 @@ public sealed class MainWindowViewModelTests
     }
 
     [Test]
-    public void ModuleChoices_ExposeValidatedSuperPetProfile()
+    public void ModuleChoices_ExposeBothSuperPetProcessorModes()
     {
         using var viewModel = new MainWindowViewModel(new StubFilePickerService());
 
-        viewModel.ModuleChoices.Should().Contain(choice => choice.Label == PetProfileCatalog.SuperPet.Name);
+        viewModel.ModuleChoices.Should().Contain(choice => choice.Label == PetProfileCatalog.SuperPet6502.Name);
+        viewModel.ModuleChoices.Should().Contain(choice => choice.Label == PetProfileCatalog.SuperPet6809.Name);
     }
 
     private sealed class StubFilePickerService : IFilePickerService

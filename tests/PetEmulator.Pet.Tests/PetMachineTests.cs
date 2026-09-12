@@ -240,7 +240,7 @@ public sealed class PetMachineTests
     [Test]
     public void SuperPet_CpuSwitchSelectsTheMatchingProcessorAndMemoryMap()
     {
-        var profile = PetProfileCatalog.SuperPet;
+        var profile = PetProfileCatalog.SuperPet6502;
         var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
         var machine = new PetMachine(profile, Directory.GetParent(profileDirectory)!.FullName,
             serialTransport: new BufferedSerialTransport());
@@ -261,6 +261,18 @@ public sealed class PetMachineTests
         machine.SelectedProcessor.Should().Be(SuperPetProcessor.Mos6502);
         machine.Processor.Should().NotBeSameAs(machine.SuperPet6809Cpu);
         machine.Memory.Should().BeSameAs(petMemory);
+    }
+
+    [TestCase(SuperPetProcessor.Mos6502, "superpet-6502")]
+    [TestCase(SuperPetProcessor.Motorola6809, "superpet")]
+    public void SuperPetProfile_SelectsItsProcessorModeAtPowerOn(SuperPetProcessor expected, string profileId)
+    {
+        var profile = PetProfileCatalog.Find(profileId);
+        var machine = CreateMachine(profile);
+
+        machine.SelectedProcessor.Should().Be(expected);
+        machine.SuperPet6809Cpu.Should().NotBeNull();
+        machine.SuperPetProtectionDongle.Should().NotBeNull();
     }
 
     [Test]

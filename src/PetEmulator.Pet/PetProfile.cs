@@ -115,6 +115,9 @@ public sealed record PetProfile(
     /// <summary>Optional ACIA base address for an expansion profile, such as SuperPET.</summary>
     public ushort? AciaBaseAddress { get; init; }
 
+    /// <summary>Processor selected by the physical SuperPET mode switch at power-on.</summary>
+    public SuperPetProcessor? InitialProcessor { get; init; }
+
     /// <summary>
     /// Physical width:height ratio of one on-screen pixel on real PET/CBM hardware - pixels are
     /// not square. 40-column models are 5:6 (slightly taller than wide); 80-column models double

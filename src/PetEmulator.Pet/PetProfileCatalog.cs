@@ -78,19 +78,31 @@ public static class PetProfileCatalog
         RomDirectoryOverride = Cbm8032.RomDirectory, MemoryExpansion = new PetMemoryExpansion(0xFFF0, 0x10000), KeyboardRevision = PetKeyboardRevision.Cbm8000Business, CassetteConfiguration = PetCassetteConfiguration.ExternalOnly, ConnectorConfiguration = PetConnectorConfiguration.Cbm8000
     };
 
-    public static PetProfile SuperPet { get; } = new("superpet", "SuperPET / Waterloo 6809 / 80x25 / placeholder", "BASIC 4", 80, 25, 0x8000, 0x8000, 0x0800, true, "characters.901640-01.bin", PetRomManifest.Cbm8032, PetProfileStatus.Placeholder, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm8032)
+    public static PetProfile SuperPet6502 { get; } = new("superpet-6502", "SuperPET / 6502 mode / 80x25 / placeholder", "BASIC 4", 80, 25, 0x8000, 0x8000, 0x0800, true, "characters.901640-01.bin", PetRomManifest.Cbm8032, PetProfileStatus.Placeholder, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm8032)
     {
         RomDirectoryOverride = Cbm8032.RomDirectory,
         ExpansionRomManifest = PetRomManifest.SuperPetWaterloo50Hz,
-        AciaBaseAddress = SuperPetMemoryMap.AciaBaseAddress
+        AciaBaseAddress = SuperPetMemoryMap.AciaBaseAddress,
+        InitialProcessor = SuperPetProcessor.Mos6502
     };
 
-    public static IReadOnlyList<PetProfile> Planned { get; } = [Cbm8096French, Cbm8296, SuperPet];
+    public static PetProfile SuperPet6809 { get; } = new("superpet", "SuperPET / Waterloo 6809 / 80x25 / placeholder", "BASIC 4", 80, 25, 0x8000, 0x8000, 0x0800, true, "characters.901640-01.bin", PetRomManifest.Cbm8032, PetProfileStatus.Placeholder, PetCursorTracking.Basic2Convention, PetKeyboardLayout.Cbm8032)
+    {
+        RomDirectoryOverride = Cbm8032.RomDirectory,
+        ExpansionRomManifest = PetRomManifest.SuperPetWaterloo50Hz,
+        AciaBaseAddress = SuperPetMemoryMap.AciaBaseAddress,
+        InitialProcessor = SuperPetProcessor.Motorola6809
+    };
+
+    /// <summary>Legacy alias for the default CLI profile, which represents 6809 mode.</summary>
+    public static PetProfile SuperPet => SuperPet6809;
+
+    public static IReadOnlyList<PetProfile> Planned { get; } = [Cbm8096French, Cbm8296, SuperPet6502, SuperPet6809];
 
     public static IReadOnlyList<PetProfile> All { get; } = [Pet2001_8, Pet2001_32, Cbm3008, Cbm3016, Cbm3032, Cbm4008Crtc40N60, Cbm4016Crtc40N60, Cbm4032, Cbm4032Crtc40N50, Cbm4032Crtc40B50, Cbm4032Crtc40B60, Cbm8032, Cbm8032Crtc80B50, Cbm8016Converted80N50, Converted80NUnknown];
 
     /// <summary>Profiles that passed the ROM and memory-bus checks and may be selected by a host.</summary>
-    public static IReadOnlyList<PetProfile> Available { get; } = [.. All, SuperPet];
+    public static IReadOnlyList<PetProfile> Available { get; } = [.. All, SuperPet6502, SuperPet6809];
 
     /// <summary>Looks up a profile by <see cref="PetProfile.Id"/> (e.g. "pet-2001-32") - the
     /// string form a script/CLI command line points at, as opposed to <see cref="All"/>'s typed

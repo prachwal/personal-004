@@ -6,7 +6,8 @@ Dokument główny: [io-ports.md](io-ports.md).
 
 - profile PET 2001, CBM 3000/4000/8000 oraz profile rozszerzone;
 - PIA1/PIA2, VIA, IEEE-488, kaseta, klawiatura i CRTC;
-- SuperPET: MOS6551 ACIA pod adresem `$EFF0-$EFF3`, transport bajtowy i IRQ;
+- SuperPET: dwa profile przełącznika CPU (6502 oraz Waterloo 6809), MOS6551 ACIA
+  pod adresem `$EFF0-$EFF3`, transport bajtowy i IRQ;
 - ROM manifesty, mapowanie pamięci, profile Desktop i CLI.
 
 ## Kod

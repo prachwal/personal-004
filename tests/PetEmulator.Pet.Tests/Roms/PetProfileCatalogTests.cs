@@ -99,20 +99,31 @@ public sealed class PetProfileCatalogTests
     [Test]
     public void ExpandedPetProfiles_ArePlaceholdersUntilTheirAdditionalHardwareIsImplemented()
     {
-        PetProfileCatalog.Planned.Should().HaveCount(3);
+        PetProfileCatalog.Planned.Should().HaveCount(4);
         PetProfileCatalog.Planned.Should().OnlyContain(profile => profile.Status == PetProfileStatus.Placeholder);
         PetProfileCatalog.Cbm8096French.RomManifest.Should().ContainSingle(requirement => requirement.Path == "edit-french.bin");
         PetProfileCatalog.Cbm8296.RomManifest.Should().ContainSingle(requirement => requirement.Path == "edit-50hz-324243-02b.bin");
-        PetProfileCatalog.SuperPet.ExpansionRomManifest.Should().HaveCount(3);
+        PetProfileCatalog.SuperPet6502.ExpansionRomManifest.Should().HaveCount(3);
+        PetProfileCatalog.SuperPet6809.ExpansionRomManifest.Should().HaveCount(3);
     }
 
     [Test]
     public void AvailableProfiles_IncludeOnlyProfilesValidatedForHostSelection()
     {
-        PetProfileCatalog.Available.Should().Contain(PetProfileCatalog.SuperPet);
+        PetProfileCatalog.Available.Should().Contain(PetProfileCatalog.SuperPet6502);
+        PetProfileCatalog.Available.Should().Contain(PetProfileCatalog.SuperPet6809);
         PetProfileCatalog.Available.Should().Contain(PetProfileCatalog.Cbm8032);
         PetProfileCatalog.Available.Should().NotContain(PetProfileCatalog.Cbm8096French);
         PetProfileCatalog.Available.Should().NotContain(PetProfileCatalog.Cbm8296);
+    }
+
+    [Test]
+    public void SuperPetProfilesRepresentTheTwoPhysicalProcessorModes()
+    {
+        PetProfileCatalog.SuperPet6502.InitialProcessor.Should().Be(SuperPetProcessor.Mos6502);
+        PetProfileCatalog.SuperPet6809.InitialProcessor.Should().Be(SuperPetProcessor.Motorola6809);
+        PetProfileCatalog.SuperPet6502.Id.Should().NotBe(PetProfileCatalog.SuperPet6809.Id);
+        PetProfileCatalog.SuperPet.Should().BeSameAs(PetProfileCatalog.SuperPet6809);
     }
 
     [TestCaseSource(nameof(Profiles))]

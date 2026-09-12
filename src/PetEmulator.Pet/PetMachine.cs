@@ -67,7 +67,8 @@ public sealed class PetMachine : IMachine
         _acia = profile.AciaBaseAddress is { } aciaBase
             ? new MOS6551(aciaTransport!, baseAddress: aciaBase)
             : null;
-        _superPetProtectionDongle = profile.Id == PetProfileCatalog.SuperPet.Id
+        var hasSuperPetBoard = profile.ExpansionRomManifest is { Count: > 0 } && profile.AciaBaseAddress is not null;
+        _superPetProtectionDongle = hasSuperPetBoard
             ? new MOS6702(SuperPetMemoryMap.ProtectionDongleBaseAddress)
             : null;
 
@@ -76,7 +77,7 @@ public sealed class PetMachine : IMachine
         _activeProcessor = _cpu;
         _activeMemory = _memoryBus;
 
-        if (profile.Id == PetProfileCatalog.SuperPet.Id && profile.ExpansionRomManifest is { Count: > 0 } expansionManifest)
+        if (hasSuperPetBoard && profile.ExpansionRomManifest is { Count: > 0 } expansionManifest)
         {
             var firmware = PetRomLoader.Load(Path.Combine(romsRoot, profile.RomDirectory), expansionManifest);
             _superPet6809Memory = new SuperPet6809MemoryBus(_memoryBus, firmware, _acia!, profile.AciaBaseAddress!.Value, _superPetProtectionDongle!);
@@ -130,6 +131,9 @@ public sealed class PetMachine : IMachine
         _via.Ca2OutputChanged = output => UserPort.HandshakeOutput = output;
 
         _ieeeBusBinding = new PetIeeeBusBinding(_pia2, _via, _ieeeBus);
+
+        if (profile.InitialProcessor is { } initialProcessor)
+            SelectProcessor(initialProcessor);
 
         Reset();
     }
