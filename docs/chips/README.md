@@ -12,6 +12,7 @@ Ten katalog zawiera pełne checklisty i informacje per układ, wydzielone z doku
 - [MC146818](MC146818.md) — 8.7 `MC146818` — RTC.
 - [MOS6551](MOS6551.md) — 8.8 `MOS6551` — ACIA SuperPET.
 - [MOS6702](MOS6702.md) — 8.9 `MOS6702` — dongle ochrony SuperPET.
+- [FD1793](FD1793.md) — kontroler dyskietek WD/FD179x.
 
 ## Wspólne kryteria
 
