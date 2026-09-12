@@ -129,12 +129,21 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
         => OpcodeKey.Base(FetchByte(true));
 
     protected override OpcodeDefinition<Z80Registers> DecodeOpcode(OpcodeKey key)
-        => throw new NotSupportedException("The legacy Z80 dispatcher is still active during the staged Core migration.");
+        => Opcodes.TryGet(key, out var definition)
+            ? definition!
+            : throw new NotSupportedException($"Unsupported Z80 opcode {key.Page:X2}:{key.Opcode:X2}.");
 
     protected override CpuStepResult ExecuteOpcode(OpcodeDefinition<Z80Registers> definition)
         => definition.Execute(Registers, ExecutionContext);
 
-    protected new virtual void InitializeOpcodes()
+    /// <summary>
+    /// Compatibility extension point for existing Z80 test and machine
+    /// specializations. New implementations should override
+    /// <see cref="ConfigureOpcodes"/>.
+    /// </summary>
+    protected override void InitializeOpcodes() => ConfigureOpcodes(Opcodes);
+
+    protected override void ConfigureOpcodes(OpcodeTable<Z80Registers> table)
     {
         RegisterOpcode(0x00, () => 4);
         RegisterOpcode(0x08, ExchangeAf);
@@ -363,6 +372,13 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
         {
             var subOpcode = (byte)cbOpcode;
             RegisterPageOpcode(0xCB, subOpcode, () => ExecuteCbOpcode(subOpcode));
+        }
+
+        for (var indexedOpcode = 0; indexedOpcode <= byte.MaxValue; indexedOpcode++)
+        {
+            var subOpcode = (byte)indexedOpcode;
+            RegisterPageOpcode(0xDD, subOpcode, () => ExecuteIndexedOpcode(false, subOpcode));
+            RegisterPageOpcode(0xFD, subOpcode, () => ExecuteIndexedOpcode(true, subOpcode));
         }
     }
 
@@ -667,13 +683,18 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
             : 8;
     }
 
-    private int ExecuteDd() => ExecuteIndexed(false);
+    private int ExecuteDd() => ExecuteIndexedPrefix(false);
 
-    private int ExecuteFd() => ExecuteIndexed(true);
+    private int ExecuteFd() => ExecuteIndexedPrefix(true);
 
-    private int ExecuteIndexed(bool iy)
+    private int ExecuteIndexedPrefix(bool iy)
     {
         var opcode = FetchByte(true);
+        return ExecuteRegistered(new OpcodeKey(iy ? (byte)0xFD : (byte)0xDD, opcode));
+    }
+
+    private int ExecuteIndexedOpcode(bool iy, byte opcode)
+    {
         var index = iy ? Registers.IY : Registers.IX;
 
         if ((opcode & 0xC0) == 0x40 && opcode != 0x76)
@@ -784,9 +805,9 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
                 return ExecuteIndexedCb(iy);
             default:
                 if (opcode == 0xDD)
-                    return ExecuteIndexed(false) + 4;
+                    return ExecuteIndexedPrefix(false) + 4;
                 if (opcode == 0xFD)
-                    return ExecuteIndexed(true) + 4;
+                    return ExecuteIndexedPrefix(true) + 4;
                 return ExecuteRegistered(OpcodeKey.Base(opcode)) + 4;
         }
     }
