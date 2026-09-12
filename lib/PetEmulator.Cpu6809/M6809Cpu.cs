@@ -328,7 +328,7 @@ public class M6809Cpu : M6800Cpu
         OpcodeTable[0x90] = () => SubA(LdDirect()); OpcodeTable[0x91] = () => CmpA(LdDirect());
         OpcodeTable[0x92] = () => SbcA(LdDirect()); OpcodeTable[0x93] = () => SubD(Ld16Direct());
         OpcodeTable[0x94] = () => AndA(LdDirect()); OpcodeTable[0x95] = () => BitA(LdDirect());
-        OpcodeTable[0x96] = LdAD; OpcodeTable[0x97] = StaD;
+        OpcodeTable[0x96] = () => base.LoadA(FetchDirectAddress(), 4); OpcodeTable[0x97] = () => base.StoreA(FetchDirectAddress(), 4);
         OpcodeTable[0x98] = () => EorA(LdDirect()); OpcodeTable[0x99] = () => AdcA(LdDirect());
         OpcodeTable[0x9A] = () => OraA(LdDirect()); OpcodeTable[0x9B] = () => AddA(LdDirect());
         OpcodeTable[0x9C] = () => CmpX(Ld16Direct()); OpcodeTable[0x9D] = JsrD;
@@ -341,8 +341,8 @@ public class M6809Cpu : M6800Cpu
         OpcodeTable[0xA3] = () => SubD(Ld16Indexed(out int exA3)) + exA3;
         OpcodeTable[0xA4] = () => AndA(LdIndexed(out int exA4)) + exA4;
         OpcodeTable[0xA5] = () => BitA(LdIndexed(out int exA5)) + exA5;
-        OpcodeTable[0xA6] = () => LdAIdx(out int exA6) + exA6;
-        OpcodeTable[0xA7] = StaIdx;
+        OpcodeTable[0xA6] = () => base.LoadA(FetchIndexed(out int exA6), 4 + exA6);
+        OpcodeTable[0xA7] = () => base.StoreA(FetchIndexed(out int exA7), 4 + exA7);
         OpcodeTable[0xA8] = () => EorA(LdIndexed(out int exA8)) + exA8;
         OpcodeTable[0xA9] = () => AdcA(LdIndexed(out int exA9)) + exA9;
         OpcodeTable[0xAA] = () => OraA(LdIndexed(out int exAA)) + exAA;
@@ -356,7 +356,7 @@ public class M6809Cpu : M6800Cpu
         OpcodeTable[0xB0] = () => SubA(LdExtended()); OpcodeTable[0xB1] = () => CmpA(LdExtended());
         OpcodeTable[0xB2] = () => SbcA(LdExtended()); OpcodeTable[0xB3] = () => SubD(Ld16Extended());
         OpcodeTable[0xB4] = () => AndA(LdExtended()); OpcodeTable[0xB5] = () => BitA(LdExtended());
-        OpcodeTable[0xB6] = LdAExt; OpcodeTable[0xB7] = StaExt;
+        OpcodeTable[0xB6] = () => base.LoadA(FetchExtended(), 5); OpcodeTable[0xB7] = () => base.StoreA(FetchExtended(), 5);
         OpcodeTable[0xB8] = () => EorA(LdExtended()); OpcodeTable[0xB9] = () => AdcA(LdExtended());
         OpcodeTable[0xBA] = () => OraA(LdExtended()); OpcodeTable[0xBB] = () => AddA(LdExtended());
         OpcodeTable[0xBC] = () => CmpX(Ld16Extended()); OpcodeTable[0xBD] = JsrExt;
@@ -376,7 +376,7 @@ public class M6809Cpu : M6800Cpu
         OpcodeTable[0xD0] = () => SubB(LdDirect()); OpcodeTable[0xD1] = () => CmpB(LdDirect());
         OpcodeTable[0xD2] = () => SbcB(LdDirect()); OpcodeTable[0xD3] = () => AddD(Ld16Direct());
         OpcodeTable[0xD4] = () => AndB(LdDirect()); OpcodeTable[0xD5] = () => BitB(LdDirect());
-        OpcodeTable[0xD6] = () => LdB(LdDirect()); OpcodeTable[0xD7] = StbD;
+        OpcodeTable[0xD6] = () => base.LoadB(FetchDirectAddress(), 4); OpcodeTable[0xD7] = () => base.StoreB(FetchDirectAddress(), 4);
         OpcodeTable[0xD8] = () => EorB(LdDirect()); OpcodeTable[0xD9] = () => AdcB(LdDirect());
         OpcodeTable[0xDA] = () => OraB(LdDirect()); OpcodeTable[0xDB] = () => AddB(LdDirect());
         OpcodeTable[0xDC] = LddD; OpcodeTable[0xDD] = StdD;
@@ -389,8 +389,8 @@ public class M6809Cpu : M6800Cpu
         OpcodeTable[0xE3] = () => AddD(Ld16Indexed(out int exE3)) + exE3;
         OpcodeTable[0xE4] = () => AndB(LdIndexed(out int exE4)) + exE4;
         OpcodeTable[0xE5] = () => BitB(LdIndexed(out int exE5)) + exE5;
-        OpcodeTable[0xE6] = () => LdB(LdIndexed(out int exE6)) + exE6;
-        OpcodeTable[0xE7] = StbIdx;
+        OpcodeTable[0xE6] = () => base.LoadB(FetchIndexed(out int exE6), 4 + exE6);
+        OpcodeTable[0xE7] = () => base.StoreB(FetchIndexed(out int exE7), 4 + exE7);
         OpcodeTable[0xE8] = () => EorB(LdIndexed(out int exE8)) + exE8;
         OpcodeTable[0xE9] = () => AdcB(LdIndexed(out int exE9)) + exE9;
         OpcodeTable[0xEA] = () => OraB(LdIndexed(out int exEA)) + exEA;
@@ -404,7 +404,7 @@ public class M6809Cpu : M6800Cpu
         OpcodeTable[0xF0] = () => SubB(LdExtended()); OpcodeTable[0xF1] = () => CmpB(LdExtended());
         OpcodeTable[0xF2] = () => SbcB(LdExtended()); OpcodeTable[0xF3] = () => AddD(Ld16Extended());
         OpcodeTable[0xF4] = () => AndB(LdExtended()); OpcodeTable[0xF5] = () => BitB(LdExtended());
-        OpcodeTable[0xF6] = () => LdB(LdExtended()); OpcodeTable[0xF7] = StbExt;
+        OpcodeTable[0xF6] = () => base.LoadB(FetchExtended(), 5); OpcodeTable[0xF7] = () => base.StoreB(FetchExtended(), 5);
         OpcodeTable[0xF8] = () => EorB(LdExtended()); OpcodeTable[0xF9] = () => AdcB(LdExtended());
         OpcodeTable[0xFA] = () => OraB(LdExtended()); OpcodeTable[0xFB] = () => AddB(LdExtended());
         OpcodeTable[0xFC] = LddExt; OpcodeTable[0xFD] = StdExt;

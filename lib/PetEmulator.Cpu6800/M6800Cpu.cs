@@ -87,6 +87,8 @@ public abstract partial class M6800Cpu : IProcessor, IDebuggableProcessor
 
     protected virtual ushort ResolveDirectAddress(byte offset) => offset;
 
+    protected ushort FetchDirectAddress() => ResolveDirectAddress(Fetch());
+
     protected byte Fetch()
     {
         byte value = Mmu.Read(State.PC);
