@@ -9,7 +9,7 @@
 - [x] Etap 7: migracja wspólnych instrukcji i adresowania — wspólne direct/extended load helpers; 6809 zachowuje DP przez hook; CPU6809 90/90
 - [x] Etap 8: integracja tablic 6800/6809 i jawne nielegalne opcode'y — metadata page-0/page-10/page-11; unsupported prefixed entries są jawne, zachowane 2 cykle
 - [x] Etap 9: regresja SuperPET i testy integracyjne — PET 255 aktywnych przypadków bez błędów; przypadki long-running pozostają skipped
-- [x] Etap 10: pełne testy MC6800 — Cpu6800.Tests 5/5
+- [x] Etap 10: pełne testy MC6800 — Cpu6800.Tests 10/10, w tym test skompilowanego programu binarnego
 - [x] Etap 11: końcowa analiza GitNexus i przegląd diffu — indeks aktualny; detect-changes all: No changes detected
 - [x] Etap 12: Definition of Done i przekazanie — build/testy/regresja zakończone; branch gotowy do przeglądu
 
@@ -29,6 +29,17 @@
 - [x] Wspólne instrukcje rejestru `X` — `M6800IndexRegister.cs`
 - [x] Przenieść pozostałe instrukcje MC6800 i usunąć shims z `M6809Cpu` — usunięto duplikaty ALU, RMW, branch, RTS oraz A/B/X load/store; CPU6809 wskazuje na bazowe implementacje Cpu6800
 - [x] Zbudować niezależną tablicę opcode’ów i procesor MC6800 — konkretna `M6800Cpu` posiada bazową tablicę wykonawczą i pełną mapę metadanych 256 opcode’ów
-- [x] Dodać pełną regresję instrukcji MC6800 — sweep wszystkich zaimplementowanych opcode’ów oraz testy adresowania; Cpu6800 `9/9`
+- [x] Dodać pełną regresję instrukcji MC6800 — sweep wszystkich zaimplementowanych opcode’ów oraz testy adresowania; Cpu6800 `10/10`
 
-Stan kontynuacji: zakończony; `M6800Processor` i regresja MC6800 gotowe; solution build, Cpu6800 `9/9`, Cpu6809 `91/91`.
+### Test binarny MC6800
+
+- Źródło: `tests/PetEmulator.Cpu6800.Tests/TestData/mc6800_regression_test.asm`
+- Binarium: `tests/PetEmulator.Cpu6800.Tests/TestData/mc6800-functional-test.bin`
+- Test harness: `tests/PetEmulator.Cpu6800.Tests/M6800BinaryTests.cs`
+- Kompilacja:
+  `sdas6808 -lo mc6800_regression_test.asm`
+  `sdld6808 -i -b CODE=0x0100 mc6800_regression_test`
+  `objcopy -I ihex -O binary mc6800_regression_test.ihx mc6800-functional-test.bin`
+- Program ładuje się pod `$0100`, kończy `WAI`, a kod błędu zapisuje pod `$0200`; `0` oznacza sukces.
+
+Stan kontynuacji: zakończony; regresja MC6800 gotowa; solution build, Cpu6800 `10/10`, Cpu6809 `91/91`.

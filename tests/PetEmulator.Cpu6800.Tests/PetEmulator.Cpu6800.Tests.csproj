@@ -13,4 +13,9 @@
     <PackageReference Include="FluentAssertions" />
     <ProjectReference Include="../../lib/PetEmulator.Cpu6800/PetEmulator.Cpu6800.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="TestData/mc6800-functional-test.bin" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestData/mc6800_regression_test.asm" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
