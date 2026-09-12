@@ -47,7 +47,8 @@ osiągnięcie liczby procentowej, lecz jednoczesne pokrycie:
 6. [ ] `MOS6560` — VIC-I, timing PAL/NTSC i audio.
 7. [ ] `MC146818` — pełny kontrakt RTC albo formalnie ograniczony kontrakt kartridża.
 8. [x] `MOS6551` — model ACIA, transport bajtowy, mapowanie SuperPET i test IRQ;
-   integracja z 6809/firmware pozostaje otwarta.
+   rdzeń 6809 jest wydzielony i ma testowaną nakładkę SuperPET z firmware Waterloo;
+   pełny boot oraz przełączanie procesora pozostają otwarte.
 9. [ ] Testy integracyjne PET/VIC-20 i testy ROM/diagnostic.
 
 Każdy dodatkowy układ powinien mieć własną mapę adresów oraz test boot/diagnostic.

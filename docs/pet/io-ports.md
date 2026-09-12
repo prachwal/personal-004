@@ -48,7 +48,7 @@ walidacji.
 | PET/CBM 3000 i wczesne 4000 / 3032 | klawiatura, IEEE-488, kasety, User Port, rozszerzenie | j.w. | ◐ profile 3008/3016/3032 i jawna rewizja rodziny 3000 | potwierdzenie niestandardowych płyt |
 | CBM 4032 / 40 kolumn | klawiatura, IEEE-488, kasety, User Port, rozszerzenie; wariant CRTC zależny od rewizji | j.w.; CRTC `$E880-$E881` w rewizjach z CRTC | ◐ profil `cbm-4032`, warianty CRTC, klawiatura 4000 i metadane złączy | potwierdzenie niestandardowych płyt |
 | CBM 8032 / seria 8000 | klawiatura, IEEE-488, kasety, User Port, rozszerzenie, CRTC; 80×25 | j.w. + CRTC `$E880-$E881` | ◐ profil `cbm-8032`, klawiatura business 8000 i metadane złączy | aktywacja 8096/8296 po weryfikacji ROM |
-| 8096 / 8296 / SuperPET / SP9000 | porty PET/CBM oraz — zależnie od modelu — bankowane RAM, dodatkowy procesor, ACIA/RS-232 lub inne rozszerzenia | PET I/O j.w.; SuperPET ACIA `$EFF0-$EFF3`, 8096/8296 rejestr bankowania `$FFF0` | ◐ profile `Placeholder`, manifesty ROM, MOS6551 i model bankowanego RAM; bez 6809 | cały dodatkowy sprzęt i aktywacja profili po weryfikacji ROM |
+| 8096 / 8296 / SuperPET / SP9000 | porty PET/CBM oraz — zależnie od modelu — bankowane RAM, dodatkowy procesor, ACIA/RS-232 lub inne rozszerzenia | PET I/O j.w.; SuperPET ACIA `$EFF0-$EFF3`, 8096/8296 rejestr bankowania `$FFF0` | ◐ profile `Placeholder`, manifesty ROM, MOS6551, model bankowanego RAM i osobny rdzeń 6809 | mapa 6809, przełączanie procesora i boot firmware Waterloo |
 | VIC-20 bez rozszerzenia | VIC-I, dwa VIA, joystick/paddle, User Port, kaseta, IEC serial, cartridge/expansion | `$9000-$900F`, `$9110-$911F`, `$9120-$912F`, `$9400-$97FF` | ◐ VIC-I, VIA1/VIA2, klawiatura, joystick, User Port, kaseta, IEC, Color RAM, CRT i pluginy cartridge | fizyczne źródło paddle/light-pen, adapter RS-232 |
 | VIC-20 +3K / +8K / +16K / +24K / All | te same porty zewnętrzne; dodatkowo odpowiedni blok RAM | jak wyżej; pamięć bloków `$0400`, `$2000`, `$4000`, `$6000`, `$A000` | ◐ profile pamięci i pluginy DLL mają jawne zasoby oraz walidację konfliktów | bardziej złożone multi-cartridge i pełne warianty sprzętowe |
 
@@ -323,9 +323,18 @@ adresie i rozmiarze. Runtime testy zostały potwierdzone po uruchomieniu VSTest 
       transportu bajtowego używanego przez terminal/RS-232.
   - [x] Dodać test integracyjny z istniejącym 6502: zapis/odczyt danych oraz
         propagacja IRQ odbioru.
-- [ ] Dopiero potem dodać dodatkowy procesor 6809 i pozostałe urządzenia
-      SuperPET/SP9000.
-  - [ ] Zweryfikować testem rzeczywisty firmware Waterloo uruchomiony na rdzeniu 6809.
+- [x] Dodać niezależny rdzeń Motorola 6809 z kontraktem `IProcessor` i osobnym
+      projektem `PetEmulator.Cpu6809`.
+  - [x] Zaadaptować pełną implementację z `cpu-vibe-008` bez zależności od
+        `CpuBase`/`IMemoryBus` tamtego repozytorium.
+  - [x] Przenieść testy stanu, adresowania, opcode, prefixów, IRQ/NMI, sweepów
+        i programów integracyjnych; 84 testy przechodzą.
+- [x] Podłączyć dodatkowy procesor 6809 do osobnej mapy adresowej SuperPET,
+      z nakładką Waterloo ROM i ACIA `$EFF0-$EFF3`; 6502 pozostaje głównym
+      procesorem PET do czasu modelu przełącznika SuperPET.
+  - [x] Zweryfikować na rzeczywistym firmware Waterloo wektor resetu oraz
+        wykonanie pierwszych 16 instrukcji przez rdzeń 6809.
+  - [ ] Dodać przełączanie procesora i pozostałe urządzenia SuperPET/SP9000.
   - [ ] Każdy dodatkowy układ powinien mieć własną mapę adresów i test boot/diagnostic.
 - [x] Rozszerzyć Desktop/CLI o wybór zweryfikowanego profilu SuperPET po testach
       ROM i magistrali; profile CBM 8096/8296 nadal pozostają ukryte jako placeholdery.

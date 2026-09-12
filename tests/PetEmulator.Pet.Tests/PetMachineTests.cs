@@ -6,6 +6,7 @@ using PetEmulator.Chips;
 using PetEmulator.Pet.Keyboard;
 using PetEmulator.Pet.Tape;
 using PetEmulator.Pet.Tests.Roms;
+using PetEmulator.Pet.Roms;
 
 namespace PetEmulator.Pet.Tests;
 
@@ -198,6 +199,42 @@ public sealed class PetMachineTests
         machine.Acia.Should().NotBeNull();
         machine.Acia!.Irq.Should().BeTrue();
         machine.Memory.Read(0xEFF0).Should().Be(0x5A);
+    }
+
+    [Test]
+    public void SuperPet_ExposesWaterlooFirmwareToThe6809WithoutReplacingThe6502()
+    {
+        var profile = PetProfileCatalog.SuperPet;
+        var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
+        var romsRoot = Directory.GetParent(profileDirectory)!.FullName;
+        var machine = new PetMachine(profile, romsRoot, serialTransport: new BufferedSerialTransport());
+
+        machine.SuperPet6809Cpu.Should().NotBeNull();
+        machine.SuperPet6809Memory.Should().NotBeNull();
+        machine.SuperPet6809Cpu!.State.PC.Should().Be(
+            (ushort)((machine.SuperPet6809Memory!.Read(0xFFFE) << 8) | machine.SuperPet6809Memory.Read(0xFFFF)));
+        machine.Processor.Should().NotBe(machine.SuperPet6809Cpu);
+
+        var firmwareFirstByte = PetRomLoader.Load(
+            Path.Combine(romsRoot, profile.RomDirectory), profile.ExpansionRomManifest!)[0].Data[0];
+        machine.SuperPet6809Memory.Read(0xA000).Should().Be(firmwareFirstByte);
+    }
+
+    [Test]
+    public void SuperPet_6809ExecutesTheWaterlooResetRoutine()
+    {
+        var profile = PetProfileCatalog.SuperPet;
+        var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
+        var machine = new PetMachine(
+            profile,
+            Directory.GetParent(profileDirectory)!.FullName,
+            serialTransport: new BufferedSerialTransport());
+
+        for (var instruction = 0; instruction < 16; instruction++)
+            machine.SuperPet6809Cpu!.StepInstruction();
+
+        machine.SuperPet6809Cpu!.Halted.Should().BeFalse();
+        machine.SuperPet6809Cpu.InstructionCount.Should().Be(16);
     }
 
     [Test]

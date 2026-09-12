@@ -25,6 +25,7 @@ Dokument główny: [io-ports.md](io-ports.md).
 ## Otwarte punkty
 
 - drugi datasette, pełny User Port i bankowanie 8096/8296;
-- rdzeń 6809 i uruchomienie rzeczywistego firmware Waterloo;
+- przełączanie 6502/6809 oraz pełne uruchomienie firmware Waterloo (mapa ROM,
+  wektor resetu i pierwsze 16 instrukcji są już zweryfikowane);
 - rzeczywisty transport TCP/terminal dla ACIA;
 - testy boot/diagnostic dla każdego dodatkowego układu.

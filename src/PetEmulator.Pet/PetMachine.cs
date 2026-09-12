@@ -1,4 +1,5 @@
 using PetEmulator.Cpu6502.Variants;
+using PetEmulator.Cpu6809;
 using PetEmulator.Core;
 using PetEmulator.Core.Serial;
 using PetEmulator.Pet.CbmDos;
@@ -26,6 +27,8 @@ public sealed class PetMachine : IMachine
     private readonly MOS6522 _via;
     private readonly MT6545? _crtc;
     private readonly MOS6551? _acia;
+    private readonly SuperPet6809MemoryBus? _superPet6809Memory;
+    private readonly M6809Cpu? _superPet6809Cpu;
     private readonly PetDatasette _datasette;
     private readonly PetDatasette2 _datasette2;
     private readonly PetIeeeBus _ieeeBus;
@@ -64,6 +67,14 @@ public sealed class PetMachine : IMachine
 
         _memoryBus = new PetMemoryBus(profile, roms, _pia1, _pia2, _via, _crtc, _acia, profile.AciaBaseAddress);
         _cpu = new Cpu6502Classic(_memoryBus);
+
+        if (profile.Id == PetProfileCatalog.SuperPet.Id && profile.ExpansionRomManifest is { Count: > 0 } expansionManifest)
+        {
+            var firmware = PetRomLoader.Load(Path.Combine(romsRoot, profile.RomDirectory), expansionManifest);
+            _superPet6809Memory = new SuperPet6809MemoryBus(_memoryBus, firmware, _acia!, profile.AciaBaseAddress!.Value);
+            _superPet6809Cpu = new M6809Cpu(_superPet6809Memory);
+            _superPet6809Cpu.Reset();
+        }
 
         _datasette = new PetDatasette(_pia1);
         _datasette2 = new PetDatasette2(_pia1, _via);
@@ -217,6 +228,12 @@ public sealed class PetMachine : IMachine
 
     public IProcessor Processor => _cpu;
 
+    /// <summary>Optional Waterloo 6809 side of a SuperPET. It is stepped explicitly; the 6502
+    /// remains the active machine processor until the real SuperPET CPU switch is modeled.</summary>
+    public M6809Cpu? SuperPet6809Cpu => _superPet6809Cpu;
+
+    public IMemoryBus? SuperPet6809Memory => _superPet6809Memory;
+
     public IMemoryBus Memory => _memoryBus;
 
     public void Reset()
@@ -229,6 +246,7 @@ public sealed class PetMachine : IMachine
         _via.Reset();
         _crtc?.Reset();
         _acia?.Reset();
+        _superPet6809Cpu?.Reset();
         _datasette.Reset();
         _datasette2.Reset();
         _ieeeBusBinding.Reset();
