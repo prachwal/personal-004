@@ -3,28 +3,8 @@ using PetEmulator.Core;
 namespace PetEmulator.Cpu6800;
 
 /// <summary>Concrete Motorola MC6800 processor with its own opcode map.</summary>
-public sealed class M6800Processor : M6800Cpu
+public partial class M6800Cpu
 {
-    private readonly Func<int>[] _opcodeTable;
-
-    public M6800OpcodeTable OpcodeMetadata { get; }
-
-    public M6800Processor(IMemoryBus memory)
-        : this(memory, new M6800State())
-    {
-    }
-
-    public M6800Processor(IMemoryBus memory, M6800State state)
-        : base(memory, state, new M6800OpcodeTable())
-    {
-        _opcodeTable = BuildOpcodeTable(out var metadata);
-        OpcodeMetadata = metadata;
-    }
-
-    protected override int ExecuteOpcode(byte opcode) => _opcodeTable[opcode]();
-
-    protected override ushort ResolveDirectAddress(byte offset) => offset;
-
     private Func<int>[] BuildOpcodeTable(out M6800OpcodeTable metadata)
     {
         metadata = new M6800OpcodeTable();

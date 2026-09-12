@@ -1,6 +1,6 @@
 namespace PetEmulator.Cpu6800;
 
-public abstract partial class M6800Cpu
+public partial class M6800Cpu
 {
     protected int Neg(ushort address) => MemoryUnary(address, UnaryOperation.Neg);
     protected int Com(ushort address) => MemoryUnary(address, UnaryOperation.Com);

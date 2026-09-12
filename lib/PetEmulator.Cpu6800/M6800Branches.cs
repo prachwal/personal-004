@@ -1,6 +1,6 @@
 namespace PetEmulator.Cpu6800;
 
-public abstract partial class M6800Cpu
+public partial class M6800Cpu
 {
     protected virtual int ShortBranchCycles => 4;
     protected virtual int BranchSubroutineCycles => 8;

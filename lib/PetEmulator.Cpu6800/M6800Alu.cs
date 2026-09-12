@@ -1,6 +1,6 @@
 namespace PetEmulator.Cpu6800;
 
-public abstract partial class M6800Cpu
+public partial class M6800Cpu
 {
     protected int SubA(byte value) => SubByte(value, true);
     protected int CmpA(byte value) => CompareByte(State.A, value);

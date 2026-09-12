@@ -3,16 +3,25 @@ using PetEmulator.Core;
 namespace PetEmulator.Cpu6800;
 
 /// <summary>Base execution lifecycle for Motorola 6800-family processors.</summary>
-public abstract partial class M6800Cpu : IProcessor, IDebuggableProcessor
+public partial class M6800Cpu : IProcessor, IDebuggableProcessor
 {
     protected readonly IMemoryBus Mmu;
-    protected readonly M6800OpcodeTable Opcodes;
+    private readonly Func<int>[]? _defaultOpcodeTable;
 
-    protected M6800Cpu(IMemoryBus memory, M6800State state, M6800OpcodeTable opcodes)
+    public M6800OpcodeTable Opcodes { get; }
+
+    public M6800Cpu(IMemoryBus memory)
+        : this(memory, new M6800State(), null)
+    {
+    }
+
+    protected M6800Cpu(IMemoryBus memory, M6800State state, M6800OpcodeTable? opcodes)
     {
         Mmu = memory ?? throw new ArgumentNullException(nameof(memory));
         State = state ?? throw new ArgumentNullException(nameof(state));
-        Opcodes = opcodes ?? throw new ArgumentNullException(nameof(opcodes));
+        if (opcodes is null)
+            _defaultOpcodeTable = BuildOpcodeTable(out opcodes);
+        Opcodes = opcodes;
     }
 
     public M6800State State { get; }
@@ -65,7 +74,10 @@ public abstract partial class M6800Cpu : IProcessor, IDebuggableProcessor
     {
     }
 
-    protected abstract int ExecuteOpcode(byte opcode);
+    protected virtual int ExecuteOpcode(byte opcode) =>
+        _defaultOpcodeTable is not null
+            ? _defaultOpcodeTable[opcode]()
+            : Opcodes[opcode].Handler(this, opcode);
 
     public virtual byte FetchDirect()
     {

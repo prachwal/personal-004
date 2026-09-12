@@ -60,19 +60,19 @@ public class M6800CpuTests
     [Test]
     public void Mc6800OpcodeMetadata_DefinesCompleteByteMap()
     {
-        var cpu = new M6800Processor(new TestMemoryBus());
+        var cpu = new M6800Cpu(new TestMemoryBus());
 
-        cpu.OpcodeMetadata.Definitions.Should().HaveCount(256);
-        cpu.OpcodeMetadata.Definitions.Count(definition => definition.IsImplemented).Should().BeGreaterThan(100);
+        cpu.Opcodes.Definitions.Should().HaveCount(256);
+        cpu.Opcodes.Definitions.Count(definition => definition.IsImplemented).Should().BeGreaterThan(100);
     }
 
     [Test]
     public void Mc6800ImplementedOpcodes_ExecuteWithoutDispatchFailures()
     {
         var memory = new TestMemoryBus();
-        var cpu = new M6800Processor(memory);
+        var cpu = new M6800Cpu(memory);
 
-        foreach (var definition in cpu.OpcodeMetadata.Definitions.Where(definition => definition.IsImplemented))
+        foreach (var definition in cpu.Opcodes.Definitions.Where(definition => definition.IsImplemented))
         {
             memory.Write(0xFFFE, 0x01);
             memory.Write(0xFFFF, 0x00);
@@ -88,7 +88,7 @@ public class M6800CpuTests
     public void Mc6800ImmediateAndIndexedInstructions_Use6800Addressing()
     {
         var memory = new TestMemoryBus();
-        var cpu = new M6800Processor(memory);
+        var cpu = new M6800Cpu(memory);
         memory.Write(0xFFFE, 0x01);
         memory.Write(0xFFFF, 0x00);
         memory.Write(0x0100, 0x86); // LDAA #$42
