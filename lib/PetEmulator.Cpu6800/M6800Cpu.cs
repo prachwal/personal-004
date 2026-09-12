@@ -3,7 +3,7 @@ using PetEmulator.Core;
 namespace PetEmulator.Cpu6800;
 
 /// <summary>Base execution lifecycle for Motorola 6800-family processors.</summary>
-public abstract class M6800Cpu : IProcessor, IDebuggableProcessor
+public abstract partial class M6800Cpu : IProcessor, IDebuggableProcessor
 {
     protected readonly IMemoryBus Mmu;
     protected readonly M6800OpcodeTable Opcodes;
@@ -19,6 +19,8 @@ public abstract class M6800Cpu : IProcessor, IDebuggableProcessor
     public ulong CycleCount => checked((ulong)State.Cycles);
     public ulong InstructionCount { get; protected set; }
     public bool Halted => State.Halted;
+
+    protected virtual M6800Flags ConditionCodes => State.Flags;
 
     public virtual IReadOnlyDictionary<string, ulong> GetRegisters() => new Dictionary<string, ulong>
     {

@@ -43,9 +43,25 @@ public class M6800CpuTests
         cpu.Ld16Extended().Should().Be(0x1234);
     }
 
+    [Test]
+    public void CommonAlu_UsesBaseStateAndFlags()
+    {
+        var cpu = new TestCpu(new TestMemoryBus());
+        cpu.State.A = 0x7F;
+
+        cpu.ExecuteAddA(0x01).Should().Be(2);
+
+        cpu.State.A.Should().Be(0x80);
+        cpu.State.Flags.N.Should().BeTrue();
+        cpu.State.Flags.V.Should().BeTrue();
+        cpu.State.Flags.C.Should().BeFalse();
+    }
+
     private sealed class TestCpu(IMemoryBus memory) : M6800Cpu(memory, new M6800State(), CreateTable())
     {
         public byte LastOpcode { get; private set; }
+
+        public int ExecuteAddA(byte value) => AddA(value);
 
         protected override int ExecuteOpcode(byte opcode)
         {

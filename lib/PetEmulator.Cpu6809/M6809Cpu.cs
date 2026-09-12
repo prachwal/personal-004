@@ -439,6 +439,7 @@ public class M6809Cpu : M6800Cpu
     private int UnsupportedOpcode() => 2;
 
     protected override ushort ResolveDirectAddress(byte offset) => (ushort)((State.DP << 8) | offset);
+    protected override M6800Flags ConditionCodes => State.Flags;
 
     #region Addressing Modes
 
@@ -1550,38 +1551,11 @@ public class M6809Cpu : M6800Cpu
     }
 
     // A-column operations (immediate and addressing modes)
-    private int SubA(byte val)
-    {
-        byte result = (byte)(State.A - val);
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.V = ((State.A ^ val) & (State.A ^ result) & 0x80) != 0;
-        State.Flags.C = State.A < val;
-        State.A = result;
-        return 2;
-    }
+    private int SubA(byte val) => base.SubA(val);
 
-    private int CmpA(byte val)
-    {
-        byte result = (byte)(State.A - val);
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.V = ((State.A ^ val) & (State.A ^ result) & 0x80) != 0;
-        State.Flags.C = State.A < val;
-        return 2;
-    }
+    private int CmpA(byte val) => base.CmpA(val);
 
-    private int SbcA(byte val)
-    {
-        int borrow = State.Flags.C ? 1 : 0;
-        byte result = (byte)(State.A - val - borrow);
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.V = ((State.A ^ val) & (State.A ^ result) & 0x80) != 0;
-        State.Flags.C = (State.A < val) || (State.A == val && borrow != 0);
-        State.A = result;
-        return 2;
-    }
+    private int SbcA(byte val) => base.SbcA(val);
 
     private int SubD(ushort val)
     {
@@ -1594,32 +1568,11 @@ public class M6809Cpu : M6800Cpu
         return 4;
     }
 
-    private int AndA(byte val)
-    {
-        State.A &= val;
-        State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
-        State.Flags.V = false;
-        return 2;
-    }
+    private int AndA(byte val) => base.AndA(val);
 
-    private int BitA(byte val)
-    {
-        byte result = (byte)(State.A & val);
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.V = false;
-        return 2;
-    }
+    private int BitA(byte val) => base.BitA(val);
 
-    private int LdaI(byte val)
-    {
-        State.A = val;
-        State.Flags.N = (val & 0x80) != 0;
-        State.Flags.Z = val == 0;
-        State.Flags.V = false;
-        return 2;
-    }
+    private int LdaI(byte val) => base.LdaI(val);
 
     private int LdxI(ushort val)
     {
@@ -1630,48 +1583,13 @@ public class M6809Cpu : M6800Cpu
         return 3;
     }
 
-    private int EorA(byte val)
-    {
-        State.A ^= val;
-        State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
-        State.Flags.V = false;
-        return 2;
-    }
+    private int EorA(byte val) => base.EorA(val);
 
-    private int AdcA(byte val)
-    {
-        int carry = State.Flags.C ? 1 : 0;
-        int result = State.A + val + carry;
-        State.Flags.H = ((State.A ^ val ^ (byte)result) & 0x10) != 0;
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = (result & 0xFF) == 0;
-        State.Flags.V = ((State.A ^ val ^ 0x80) & (State.A ^ (byte)result) & 0x80) != 0;
-        State.Flags.C = result > 0xFF;
-        State.A = (byte)result;
-        return 2;
-    }
+    private int AdcA(byte val) => base.AdcA(val);
 
-    private int OraA(byte val)
-    {
-        State.A |= val;
-        State.Flags.N = (State.A & 0x80) != 0;
-        State.Flags.Z = State.A == 0;
-        State.Flags.V = false;
-        return 2;
-    }
+    private int OraA(byte val) => base.OraA(val);
 
-    private int AddA(byte val)
-    {
-        int result = State.A + val;
-        State.Flags.H = ((State.A ^ val ^ (byte)result) & 0x10) != 0;
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = (result & 0xFF) == 0;
-        State.Flags.V = ((State.A ^ val ^ 0x80) & (State.A ^ (byte)result) & 0x80) != 0;
-        State.Flags.C = result > 0xFF;
-        State.A = (byte)result;
-        return 2;
-    }
+    private int AddA(byte val) => base.AddA(val);
 
     private int CmpX(ushort val)
     {
@@ -1875,38 +1793,11 @@ public class M6809Cpu : M6800Cpu
     }
 
     // B-column operations
-    private int SubB(byte val)
-    {
-        byte result = (byte)(State.B - val);
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.V = ((State.B ^ val) & (State.B ^ result) & 0x80) != 0;
-        State.Flags.C = State.B < val;
-        State.B = result;
-        return 2;
-    }
+    private int SubB(byte val) => base.SubB(val);
 
-    private int CmpB(byte val)
-    {
-        byte result = (byte)(State.B - val);
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.V = ((State.B ^ val) & (State.B ^ result) & 0x80) != 0;
-        State.Flags.C = State.B < val;
-        return 2;
-    }
+    private int CmpB(byte val) => base.CmpB(val);
 
-    private int SbcB(byte val)
-    {
-        int borrow = State.Flags.C ? 1 : 0;
-        byte result = (byte)(State.B - val - borrow);
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.V = ((State.B ^ val) & (State.B ^ result) & 0x80) != 0;
-        State.Flags.C = (State.B < val) || (State.B == val && borrow != 0);
-        State.B = result;
-        return 2;
-    }
+    private int SbcB(byte val) => base.SbcB(val);
 
     private int AddD(ushort val)
     {
@@ -1920,32 +1811,11 @@ public class M6809Cpu : M6800Cpu
         return 4;
     }
 
-    private int AndB(byte val)
-    {
-        State.B &= val;
-        State.Flags.N = (State.B & 0x80) != 0;
-        State.Flags.Z = State.B == 0;
-        State.Flags.V = false;
-        return 2;
-    }
+    private int AndB(byte val) => base.AndB(val);
 
-    private int BitB(byte val)
-    {
-        byte result = (byte)(State.B & val);
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = result == 0;
-        State.Flags.V = false;
-        return 2;
-    }
+    private int BitB(byte val) => base.BitB(val);
 
-    private int LdbI(byte val)
-    {
-        State.B = val;
-        State.Flags.N = (val & 0x80) != 0;
-        State.Flags.Z = val == 0;
-        State.Flags.V = false;
-        return 2;
-    }
+    private int LdbI(byte val) => base.LdbI(val);
 
     private int LddI(ushort val)
     {
@@ -1965,57 +1835,15 @@ public class M6809Cpu : M6800Cpu
         return 3;
     }
 
-    private int EorB(byte val)
-    {
-        State.B ^= val;
-        State.Flags.N = (State.B & 0x80) != 0;
-        State.Flags.Z = State.B == 0;
-        State.Flags.V = false;
-        return 2;
-    }
+    private int EorB(byte val) => base.EorB(val);
 
-    private int AdcB(byte val)
-    {
-        int carry = State.Flags.C ? 1 : 0;
-        int result = State.B + val + carry;
-        State.Flags.H = ((State.B ^ val ^ (byte)result) & 0x10) != 0;
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = (result & 0xFF) == 0;
-        State.Flags.V = ((State.B ^ val ^ 0x80) & (State.B ^ (byte)result) & 0x80) != 0;
-        State.Flags.C = result > 0xFF;
-        State.B = (byte)result;
-        return 2;
-    }
+    private int AdcB(byte val) => base.AdcB(val);
 
-    private int OraB(byte val)
-    {
-        State.B |= val;
-        State.Flags.N = (State.B & 0x80) != 0;
-        State.Flags.Z = State.B == 0;
-        State.Flags.V = false;
-        return 2;
-    }
+    private int OraB(byte val) => base.OraB(val);
 
-    private int AddB(byte val)
-    {
-        int result = State.B + val;
-        State.Flags.H = ((State.B ^ val ^ (byte)result) & 0x10) != 0;
-        State.Flags.N = (result & 0x80) != 0;
-        State.Flags.Z = (result & 0xFF) == 0;
-        State.Flags.V = ((State.B ^ val ^ 0x80) & (State.B ^ (byte)result) & 0x80) != 0;
-        State.Flags.C = result > 0xFF;
-        State.B = (byte)result;
-        return 2;
-    }
+    private int AddB(byte val) => base.AddB(val);
 
-    private int LdB(byte val)
-    {
-        State.B = val;
-        State.Flags.N = (val & 0x80) != 0;
-        State.Flags.Z = val == 0;
-        State.Flags.V = false;
-        return 2;
-    }
+    private int LdB(byte val) => base.LdB(val);
 
     private int StbD()
     {
