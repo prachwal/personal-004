@@ -17,4 +17,14 @@ public abstract class CpuState
 
     /// <summary>Returns the family-specific architectural register view for debugging.</summary>
     public abstract IReadOnlyDictionary<string, ulong> GetRegisters();
+
+    /// <summary>Captures architectural state for debugging or time-travel integrations.</summary>
+    public virtual CpuStateSnapshot CaptureSnapshot()
+        => new(new Dictionary<string, ulong>(GetRegisters()), Halted);
+
+    /// <summary>
+    /// Restores architectural state. CPU families override this when they support restore.
+    /// </summary>
+    public virtual void RestoreSnapshot(CpuStateSnapshot snapshot)
+        => throw new NotSupportedException($"{GetType().Name} does not support state restore.");
 }

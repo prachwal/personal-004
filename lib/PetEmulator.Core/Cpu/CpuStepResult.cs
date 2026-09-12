@@ -5,7 +5,9 @@ public readonly record struct CpuStepResult(
     ulong Cycles,
     bool InstructionCompleted,
     bool InterruptServiced = false,
-    bool Waiting = false)
+    bool Waiting = false,
+    bool BreakpointHit = false,
+    bool WatchpointHit = false)
 {
     public static CpuStepResult Completed(ulong cycles)
         => new(cycles, InstructionCompleted: true);
@@ -15,4 +17,7 @@ public readonly record struct CpuStepResult(
 
     public static CpuStepResult Interrupt(ulong cycles)
         => new(cycles, InstructionCompleted: false, InterruptServiced: true);
+
+    public static CpuStepResult Breakpoint()
+        => new(0, InstructionCompleted: false, BreakpointHit: true);
 }

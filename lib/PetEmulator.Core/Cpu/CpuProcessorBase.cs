@@ -6,6 +6,10 @@ namespace PetEmulator.Core;
 public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcessor
     where TState : CpuState
 {
+    private OpcodeKey? _currentOpcode;
+    private string? _currentMnemonic;
+    private bool _watchpointHit;
+
     protected CpuProcessorBase(TState state, IMemoryBus memory, IClock? clock = null, IPortBus? ports = null)
     {
         State = state ?? throw new ArgumentNullException(nameof(state));
@@ -13,6 +17,9 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
         Clock = clock ?? new EmulationClock();
         ExecutionContext = new CpuExecutionContext(Memory, Clock, ports);
         Opcodes = new OpcodeTable<TState>();
+
+        if (Memory is IMemoryAccessObservable observable)
+            observable.Accessed += OnMemoryAccess;
     }
 
     protected TState State { get; }
@@ -37,6 +44,9 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
 
     public ulong InstructionCount { get; private set; }
 
+    /// <summary>Optional debugger or monitoring integration.</summary>
+    public ICpuExecutionObserver? ExecutionObserver { get; set; }
+
     public void Reset()
     {
         State.Reset();
@@ -45,13 +55,54 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
         OnReset();
     }
 
+    /// <summary>Captures state, clock and instruction count for debugging or restore.</summary>
+    public CpuDebugSnapshot CaptureSnapshot()
+        => new(State.CaptureSnapshot(), CycleCount, InstructionCount);
+
+    /// <summary>Restores state, clock and instruction count from a previous snapshot.</summary>
+    public void RestoreSnapshot(CpuDebugSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        State.RestoreSnapshot(snapshot.State);
+        Clock.Reset();
+        Clock.Advance(snapshot.CycleCount);
+        InstructionCount = snapshot.InstructionCount;
+    }
+
     /// <summary>Executes one lifecycle step and preserves the public IProcessor contract.</summary>
     public void StepInstruction()
     {
-        var result = ExecuteStep();
+        var before = CaptureSnapshot();
+        _currentOpcode = null;
+        _currentMnemonic = null;
+        _watchpointHit = false;
+
+        if (ExecutionObserver?.ShouldBreak(before) == true)
+        {
+            var breakpoint = CpuStepResult.Breakpoint();
+            ExecutionObserver.OnStepCompleted(new CpuStepTrace(before, CaptureSnapshot(), null, null, breakpoint));
+            return;
+        }
+
+        CpuStepResult result;
+        try
+        {
+            result = ExecuteStep();
+        }
+        catch (Exception exception)
+        {
+            ExecutionObserver?.OnStepFailed(before, exception);
+            throw;
+        }
+
+        if (_watchpointHit)
+            result = result with { WatchpointHit = true };
 
         if (result.InstructionCompleted)
             InstructionCount++;
+
+        ExecutionObserver?.OnStepCompleted(
+            new CpuStepTrace(before, CaptureSnapshot(), _currentOpcode, _currentMnemonic, result));
     }
 
     /// <summary>Convenience alias used by processor-facing code.</summary>
@@ -82,7 +133,9 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
             return CompleteStep(waitResult);
 
         var opcode = FetchOpcode();
+        _currentOpcode = opcode;
         var definition = DecodeOpcode(opcode);
+        _currentMnemonic = definition.Mnemonic;
         return CompleteStep(ExecuteOpcode(definition));
     }
 
@@ -120,5 +173,18 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
     {
         Clock.Advance(result.Cycles);
         return result;
+    }
+
+    /// <summary>Allows family-specific decoders to expose an opcode in custom step flows.</summary>
+    protected void SetCurrentOpcode(OpcodeKey opcode, string? mnemonic = null)
+    {
+        _currentOpcode = opcode;
+        _currentMnemonic = mnemonic;
+    }
+
+    private void OnMemoryAccess(BusAccess access)
+    {
+        if (ExecutionObserver?.ShouldBreakOnMemoryAccess(access) == true)
+            _watchpointHit = true;
     }
 }

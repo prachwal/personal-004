@@ -348,3 +348,24 @@ Definition of Done:
 - Czy wspólny registry ma być publiczny, czy tylko chroniony dla implementacji CPU?
 
 Najbezpieczniejsza decyzja startowa: zachować istniejące publiczne API, wprowadzić bazę addytywnie, migrować 6502 jako wzorzec, następnie 6800→6809, a Z80 na końcu z jego własnymi capability magistrali.
+
+## 14. Warstwa debugowania, snapshotów i monitoringu
+
+Warstwa CPU udostępnia diagnostykę jako opcjonalną capability, bez zależności od konkretnego debuggera lub UI:
+
+- `CpuStateSnapshot` przechowuje architektoniczne rejestry i `Halted`.
+- `CpuDebugSnapshot` dodaje `CycleCount` i `InstructionCount`.
+- `CpuProcessorBase<TState>.CaptureSnapshot()` i `RestoreSnapshot()` obsługują zapis/odtworzenie stanu; rodzina CPU implementuje właściwe odtworzenie rejestrów w swoim `CpuState`.
+- `CpuStepTrace` opisuje stan przed i po kroku, opcode, mnemonic oraz `CpuStepResult`.
+- `ICpuExecutionObserver` obsługuje breakpoint przed wykonaniem, zakończony krok i wyjątek.
+- `IMemoryAccessObservable` oraz `ShouldBreakOnMemoryAccess` dostarczają opcjonalną bazę dla watchpointów przez istniejący `BusAccess`.
+- `CpuStepResult` oznacza `BreakpointHit` i `WatchpointHit` bez narzucania sposobu prezentacji w debuggerze.
+
+Kryteria testowe tej warstwy:
+
+- snapshot obejmuje rejestry, HALT, zegar i licznik instrukcji;
+- restore odtwarza stan, zegar i licznik;
+- observer otrzymuje opcode/mnemonic, breakpoint i wyjątek;
+- obserwowalna magistrala pozwala oznaczyć watchpoint;
+- brak obserwatora nie zmienia wykonania CPU;
+- wszystkie ścieżki przechodzą testy kontraktowe Core.
