@@ -8,6 +8,9 @@ public class M6809Cpu : M6800Cpu
 {
     protected Func<int>[] OpcodeTable = null!;
 
+    protected override int ShortBranchCycles => 3;
+    protected override int BranchSubroutineCycles => 7;
+
     public M6800OpcodeTable OpcodeMetadata { get; private set; } = null!;
     public M6800OpcodeTable Page10OpcodeMetadata { get; private set; } = null!;
     public M6800OpcodeTable Page11OpcodeMetadata { get; private set; } = null!;
@@ -239,22 +242,22 @@ public class M6809Cpu : M6800Cpu
         OpcodeTable[0x1D] = Sex;
         OpcodeTable[0x1E] = () => Exg(Fetch());
         OpcodeTable[0x1F] = () => Tfr(Fetch());
-        OpcodeTable[0x20] = () => Bra(FetchSigned());
-        OpcodeTable[0x21] = () => Brn(FetchSigned());
-        OpcodeTable[0x22] = () => Bhi(FetchSigned());
-        OpcodeTable[0x23] = () => Bls(FetchSigned());
-        OpcodeTable[0x24] = () => Bcc(FetchSigned());
-        OpcodeTable[0x25] = () => Bcs(FetchSigned());
-        OpcodeTable[0x26] = () => Bne(FetchSigned());
-        OpcodeTable[0x27] = () => Beq(FetchSigned());
-        OpcodeTable[0x28] = () => Bvc(FetchSigned());
-        OpcodeTable[0x29] = () => Bvs(FetchSigned());
-        OpcodeTable[0x2A] = () => Bpl(FetchSigned());
-        OpcodeTable[0x2B] = () => Bmi(FetchSigned());
-        OpcodeTable[0x2C] = () => Bge(FetchSigned());
-        OpcodeTable[0x2D] = () => Blt(FetchSigned());
-        OpcodeTable[0x2E] = () => Bgt(FetchSigned());
-        OpcodeTable[0x2F] = () => Ble(FetchSigned());
+        OpcodeTable[0x20] = () => base.Bra(FetchSigned());
+        OpcodeTable[0x21] = () => base.Brn(FetchSigned());
+        OpcodeTable[0x22] = () => base.Bhi(FetchSigned());
+        OpcodeTable[0x23] = () => base.Bls(FetchSigned());
+        OpcodeTable[0x24] = () => base.Bcc(FetchSigned());
+        OpcodeTable[0x25] = () => base.Bcs(FetchSigned());
+        OpcodeTable[0x26] = () => base.Bne(FetchSigned());
+        OpcodeTable[0x27] = () => base.Beq(FetchSigned());
+        OpcodeTable[0x28] = () => base.Bvc(FetchSigned());
+        OpcodeTable[0x29] = () => base.Bvs(FetchSigned());
+        OpcodeTable[0x2A] = () => base.Bpl(FetchSigned());
+        OpcodeTable[0x2B] = () => base.Bmi(FetchSigned());
+        OpcodeTable[0x2C] = () => base.Bge(FetchSigned());
+        OpcodeTable[0x2D] = () => base.Blt(FetchSigned());
+        OpcodeTable[0x2E] = () => base.Bgt(FetchSigned());
+        OpcodeTable[0x2F] = () => base.Ble(FetchSigned());
         OpcodeTable[0x30] = () => Leax(FetchIndexed(out int ex30)) + ex30;
         OpcodeTable[0x31] = () => Leay(FetchIndexed(out int ex31)) + ex31;
         OpcodeTable[0x32] = () => Leas(FetchIndexed(out int ex32)) + ex32;
@@ -264,7 +267,7 @@ public class M6809Cpu : M6800Cpu
         OpcodeTable[0x36] = () => Pshu(Fetch());
         OpcodeTable[0x37] = () => Pulu(Fetch());
         OpcodeTable[0x38] = () => 2;
-        OpcodeTable[0x39] = Rts;
+        OpcodeTable[0x39] = base.Rts;
         OpcodeTable[0x3A] = Abx;
         OpcodeTable[0x3B] = Rti;
         OpcodeTable[0x3C] = () => Cwai(Fetch());
@@ -318,7 +321,7 @@ public class M6809Cpu : M6800Cpu
         OpcodeTable[0x86] = () => LdaI(Fetch()); OpcodeTable[0x87] = () => 2;
         OpcodeTable[0x88] = () => EorA(Fetch()); OpcodeTable[0x89] = () => AdcA(Fetch());
         OpcodeTable[0x8A] = () => OraA(Fetch()); OpcodeTable[0x8B] = () => AddA(Fetch());
-        OpcodeTable[0x8C] = () => CmpX(Fetch16()); OpcodeTable[0x8D] = () => Bsr(FetchSigned());
+        OpcodeTable[0x8C] = () => CmpX(Fetch16()); OpcodeTable[0x8D] = () => base.Bsr(FetchSigned());
         OpcodeTable[0x8E] = () => LdxI(Fetch16()); OpcodeTable[0x8F] = () => 2;
 
         // A-column dir (0x90-0x9F)
