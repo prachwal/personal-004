@@ -20,7 +20,7 @@ public abstract class M6800Cpu : IProcessor, IDebuggableProcessor
     public ulong InstructionCount { get; protected set; }
     public bool Halted => State.Halted;
 
-    public IReadOnlyDictionary<string, ulong> GetRegisters() => new Dictionary<string, ulong>
+    public virtual IReadOnlyDictionary<string, ulong> GetRegisters() => new Dictionary<string, ulong>
     {
         ["PC"] = State.PC,
         ["A"] = State.A,

@@ -1,20 +1,18 @@
+using PetEmulator.Cpu6800;
 using PetEmulator.Core;
 
 namespace PetEmulator.Cpu6809;
 
 /// <summary>Motorola 6809 CPU emulator with dual stacks and complex addressing modes.</summary>
-public class M6809Cpu : IProcessor, IDebuggableProcessor
+public class M6809Cpu : M6800Cpu
 {
-    private readonly IMemoryBus Mmu;
     protected Func<int>[] OpcodeTable = null!;
 
     public long Cycles => State.Cycles;
-    public ulong CycleCount => (ulong)State.Cycles;
-    public ulong InstructionCount { get; private set; }
-    public bool Halted => State.Halted;
+    public new M6809State State => (M6809State)base.State;
 
     /// <summary>Registers by name for the shared debugger and Desktop status bar.</summary>
-    public IReadOnlyDictionary<string, ulong> GetRegisters() => new Dictionary<string, ulong>
+    public override IReadOnlyDictionary<string, ulong> GetRegisters() => new Dictionary<string, ulong>
     {
         ["PC"] = State.PC,
         ["A"] = State.A,
@@ -36,24 +34,18 @@ public class M6809Cpu : IProcessor, IDebuggableProcessor
     protected bool _nmiPending;
     protected bool _nmiArmed;  // set true when S is written, cleared on Reset
 
-    /// <summary>CPU state including registers, flags, and execution counters.</summary>
-    public M6809State State { get; }
-
     protected Func<int>[] Page10OpcodeTable = null!;
     protected Func<int>[] Page11OpcodeTable = null!;
 
     public M6809Cpu(IMemoryBus memory)
+        : this(memory, new M6809State())
     {
-        Mmu = memory;
-        State = new M6809State();
-        FillOpcodeTable();
     }
 
     /// <summary>Constructor for derived classes that use a custom state type.</summary>
     protected M6809Cpu(IMemoryBus memory, M6809State state)
+        : base(memory, state, new M6800OpcodeTable())
     {
-        Mmu = memory;
-        State = state;
         FillOpcodeTable();
     }
 
@@ -76,7 +68,7 @@ public class M6809Cpu : IProcessor, IDebuggableProcessor
     }
 
     /// <summary>Reset CPU: state reset, all latches cleared, PC loaded from 0xFFFE, NMI disarmed.</summary>
-    public void Reset()
+    public override void Reset()
     {
         State.Reset();
         _irqPending = false;
@@ -88,7 +80,7 @@ public class M6809Cpu : IProcessor, IDebuggableProcessor
     }
 
     /// <summary>Execute one instruction or interrupt dispatch; returns cycles elapsed.</summary>
-    public int Step()
+    public override int Step()
     {
         // Step 1: Check NMI (edge-triggered, highest priority, armed only)
         if (_nmiPending && _nmiArmed)
@@ -137,7 +129,7 @@ public class M6809Cpu : IProcessor, IDebuggableProcessor
 
         // Step 5: Normal instruction execution
         byte op = Fetch();
-        int cycles = Execute(op);
+        int cycles = ExecuteOpcode(op);
         InstructionCount++;
         State.Cycles += cycles;
         return cycles;
@@ -409,7 +401,7 @@ public class M6809Cpu : IProcessor, IDebuggableProcessor
         OpcodeTable[0xFE] = LduExt; OpcodeTable[0xFF] = StuExt;
     }
 
-    private int Execute(byte op) => OpcodeTable[op]();
+    protected override int ExecuteOpcode(byte op) => OpcodeTable[op]();
 
     #region Addressing Modes
 
@@ -2393,11 +2385,11 @@ public class M6809Cpu : IProcessor, IDebuggableProcessor
 
     #endregion
 
-    public void StepInstruction() => Step();
+    public override void StepInstruction() => Step();
 
-    public void SetIRQ(bool active) => _irqPending = active;
+    public override void SetIRQ(bool active) => _irqPending = active;
 
-    public void SetNMI(bool active)
+    public override void SetNMI(bool active)
     {
         if (active)
             _nmiPending = true;
@@ -2405,14 +2397,14 @@ public class M6809Cpu : IProcessor, IDebuggableProcessor
 
     #region Helper Methods
 
-    public byte Fetch()
+    public new byte Fetch()
     {
         byte value = Mmu.Read(State.PC);
         State.PC++;
         return value;
     }
 
-    public ushort Fetch16()
+    public new ushort Fetch16()
     {
         byte hi = Fetch();
         byte lo = Fetch();
@@ -2420,7 +2412,7 @@ public class M6809Cpu : IProcessor, IDebuggableProcessor
     }
 
     /// <summary>Read a 16-bit big-endian value from memory (HIGH byte first).</summary>
-    protected ushort Read16(ushort address)
+    protected new ushort Read16(ushort address)
     {
         byte hi = Mmu.Read(address);
         byte lo = Mmu.Read((ushort)(address + 1));
@@ -2428,7 +2420,7 @@ public class M6809Cpu : IProcessor, IDebuggableProcessor
     }
 
     /// <summary>Write a 16-bit big-endian value to memory (HIGH byte first).</summary>
-    protected void Write16(ushort address, ushort value)
+    protected new void Write16(ushort address, ushort value)
     {
         Mmu.Write(address, (byte)(value >> 8));
         Mmu.Write((ushort)(address + 1), (byte)value);

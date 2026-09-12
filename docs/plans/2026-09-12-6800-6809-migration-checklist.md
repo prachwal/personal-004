@@ -5,7 +5,7 @@
 - [x] Etap 3: M6800State i M6800Flags — 3/3 testy stanu i flag przechodzą
 - [x] Etap 4: metadata opcode'ów i tablice instrukcji — M6800AddressingMode, definition i table
 - [x] Etap 5: lifecycle M6800Cpu — fetch/reset/StepInstruction/cycle contract; 4 testy Cpu6800
-- [ ] Etap 6: M6809Cpu dziedziczy po M6800Cpu
+- [x] Etap 6: M6809Cpu dziedziczy po M6800Cpu — build solution OK; CPU6809 90/90; PET 255/255
 - [ ] Etap 7: migracja wspólnych instrukcji i adresowania
 - [ ] Etap 8: integracja tablic 6800/6809 i jawne nielegalne opcode'y
 - [ ] Etap 9: regresja SuperPET i testy integracyjne
@@ -16,6 +16,6 @@
 ## Stan
 
 - branch: refactor/6800-6809-core-architecture
-- aktualny etap: 6
-- ostatnia weryfikacja: Cpu6800.Tests 4/4; solution build po poprzednim etapie 0/0
+- aktualny etap: 7
+- ostatnia weryfikacja: solution build OK; Cpu6800 4/4; CPU6809 90/90; PET 255/255
 - uwagi: plan migracji znajduje się w 2026-09-12-gitnexus-plan-6800-6809-core-migration.md
