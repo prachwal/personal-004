@@ -155,13 +155,6 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
             ? definition!
             : throw new NotSupportedException($"Unsupported Z80 opcode {key.Page:X2}:{key.Opcode:X2}.");
 
-    /// <summary>
-    /// Compatibility extension point for existing Z80 test and machine
-    /// specializations. New implementations should override
-    /// <see cref="ConfigureOpcodes"/>.
-    /// </summary>
-    protected override void InitializeOpcodes() => ConfigureOpcodes(Opcodes);
-
     protected override void ConfigureOpcodes(OpcodeTable<Z80Registers> table)
     {
         RegisterOpcode(0x00, () => 4);

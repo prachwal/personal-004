@@ -36,7 +36,7 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
     /// Registers the current processor's opcode set after its constructor has initialized.
     /// Derived constructors should call this once after their own fields are ready.
     /// </summary>
-    protected virtual void InitializeOpcodes() => ConfigureOpcodes(Opcodes);
+    protected void InitializeOpcodes() => ConfigureOpcodes(Opcodes);
 
     public bool Halted => State.Halted;
 
