@@ -23,6 +23,42 @@ public enum PetVideoHardware
     Crtc
 }
 
+public enum PetKeyboardRevision
+{
+    Pet2001Graphics,
+    Cbm3000Graphics,
+    Cbm4000Graphics,
+    Cbm8000Business,
+    Unverified
+}
+
+public enum PetCassetteConfiguration
+{
+    InternalAndExternal,
+    ExternalOnly,
+    Unverified
+}
+
+public enum PetConnectorConfiguration
+{
+    Pet2001,
+    Cbm3000,
+    Cbm4000,
+    Cbm8000,
+    Unverified
+}
+
+/// <summary>Control-register and RAM capacity of the 8096/8296 expansion board.</summary>
+public sealed record PetMemoryExpansion(ushort ControlRegisterAddress, uint ExpansionRamSize)
+{
+    public const byte Enabled = 0x80;
+    public const byte IoPeekThrough = 0x40;
+    public const byte ScreenPeekThrough = 0x20;
+    public const byte UpperWriteProtect = 0x02;
+    public const byte LowerWriteProtect = 0x01;
+
+}
+
 /// <summary>
 /// A hardware configuration of the Commodore PET/CBM family: BASIC version, screen geometry,
 /// RAM/video RAM layout, and the exact ROM set it needs.
@@ -60,6 +96,14 @@ public sealed record PetProfile(
     /// <summary>Optional shared ROM-set folder. This is used when several hardware models use
     /// the same verified BASIC/editor/KERNAL images but differ in RAM capacity.</summary>
     public string? RomDirectoryOverride { get; init; }
+
+    public PetKeyboardRevision KeyboardRevision { get; init; } = PetKeyboardRevision.Unverified;
+
+    public PetCassetteConfiguration CassetteConfiguration { get; init; } = PetCassetteConfiguration.Unverified;
+
+    public PetConnectorConfiguration ConnectorConfiguration { get; init; } = PetConnectorConfiguration.Unverified;
+
+    public PetMemoryExpansion? MemoryExpansion { get; init; }
 
     /// <summary>Subfolder name under <c>roms/pet/</c> holding this profile's ROM set.</summary>
     public string RomDirectory => RomDirectoryOverride ?? Id;

@@ -20,6 +20,23 @@ public sealed class PetProfileCatalogTests
     }
 
     [Test]
+    public void Profiles_DeclareKeyboardCassetteAndConnectorRevision()
+    {
+        PetProfileCatalog.Pet2001_8.CassetteConfiguration.Should().Be(PetCassetteConfiguration.InternalAndExternal);
+        PetProfileCatalog.Cbm3008.KeyboardRevision.Should().Be(PetKeyboardRevision.Cbm3000Graphics);
+        PetProfileCatalog.Cbm4032.ConnectorConfiguration.Should().Be(PetConnectorConfiguration.Cbm4000);
+        PetProfileCatalog.Cbm8032.KeyboardRevision.Should().Be(PetKeyboardRevision.Cbm8000Business);
+        PetProfileCatalog.Cbm8016Converted80N50.ConnectorConfiguration.Should().Be(PetConnectorConfiguration.Unverified);
+    }
+
+    [Test]
+    public void BankedPetProfiles_DeclareThe8296CompatibleControlRegisterAndCapacity()
+    {
+        PetProfileCatalog.Cbm8096French.MemoryExpansion.Should().Be(new PetMemoryExpansion(0xFFF0, 0x8000));
+        PetProfileCatalog.Cbm8296.MemoryExpansion.Should().Be(new PetMemoryExpansion(0xFFF0, 0x10000));
+    }
+
+    [Test]
     public void Profiles_DeclareTheVideoHardwareUsedByTheirRevision()
     {
         PetProfileCatalog.Pet2001_8.VideoHardware.Should().Be(PetVideoHardware.Discrete);

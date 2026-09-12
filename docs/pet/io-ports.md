@@ -43,12 +43,12 @@ walidacji.
 
 | Model / wariant | Rzeczywiste porty i urządzenia | Główne adresy I/O | Status w repozytorium | Czego brakuje |
 | --- | --- | --- | --- | --- |
-| PET 2001 / PET 2001-8 | klawiatura matrycowa, IEEE-488, kaseta, User Port, złącze rozszerzeń | `$E810-$E813`, `$E820-$E823`, `$E840-$E84F` | ◐ klawiatura, PIA, VIA, IEEE-488 i kaseta #1 | kaseta #2, semantyka User Port, magistrala rozszerzeń |
-| PET 2001-32 | jak wyżej; 32 KiB RAM w późniejszym wariancie | j.w. | ◐ profil `pet-2001-32`, klawiatura, IEEE-488, kaseta #1 | jak wyżej; brak bankowania/rozszerzeń PET |
-| PET/CBM 3000 i wczesne 4000 / 3032 | klawiatura, IEEE-488, dwie kasety, User Port, rozszerzenie | j.w. | ◐ najbliżej profilu 40-kolumnowego | druga kaseta, User Port i rozszerzenie |
-| CBM 4032 / 40 kolumn | klawiatura, IEEE-488, kasety, User Port, rozszerzenie; wariant CRTC zależny od rewizji | j.w.; CRTC `$E880-$E881` w rewizjach z CRTC | ◐ profil `cbm-4032`, 40×25, CRTC, klawiatura, IEEE-488, kaseta #1 | druga kaseta, User Port, rozszerzenie; profil upraszcza różnice rewizji |
-| CBM 8032 / seria 8000 | klawiatura, IEEE-488, kasety, User Port, rozszerzenie, CRTC; 80×25 | j.w. + CRTC `$E880-$E881` | ◐ profil `cbm-8032`, 80×25, CRTC, klawiatura, IEEE-488, kaseta #1 | druga kaseta, User Port, rozszerzenie 8096/8296 |
-| 8096 / 8296 / SuperPET / SP9000 | porty PET/CBM oraz — zależnie od modelu — bankowane RAM, dodatkowy procesor, ACIA/RS-232 lub inne rozszerzenia | PET I/O j.w.; SuperPET ACIA `$EFF0-$EFF3`, bankowanie rozszerzenia m.in. `$EEFC` | ◐ profile `Placeholder`, manifesty ROM i MOS6551 podłączony do transportu bajtowego; bez bankowania i 6809 | cały dodatkowy sprzęt i bankowanie |
+| PET 2001 / PET 2001-8 | klawiatura matrycowa, IEEE-488, kaseta, User Port, złącze rozszerzeń | `$E810-$E813`, `$E820-$E823`, `$E840-$E84F` | ◐ profil i jawna rewizja klawiatury/kasety/złączy; PIA, VIA, IEEE-488 i obie ścieżki kaset | dokładne różnice płyt i wariantów rewizyjnych |
+| PET 2001-32 | jak wyżej; 32 KiB RAM w późniejszym wariancie | j.w. | ◐ profil i metadane rewizji | dokładne różnice płyt i wariantów rewizyjnych |
+| PET/CBM 3000 i wczesne 4000 / 3032 | klawiatura, IEEE-488, kasety, User Port, rozszerzenie | j.w. | ◐ profile 3008/3016/3032 i jawna rewizja rodziny 3000 | potwierdzenie niestandardowych płyt |
+| CBM 4032 / 40 kolumn | klawiatura, IEEE-488, kasety, User Port, rozszerzenie; wariant CRTC zależny od rewizji | j.w.; CRTC `$E880-$E881` w rewizjach z CRTC | ◐ profil `cbm-4032`, warianty CRTC, klawiatura 4000 i metadane złączy | potwierdzenie niestandardowych płyt |
+| CBM 8032 / seria 8000 | klawiatura, IEEE-488, kasety, User Port, rozszerzenie, CRTC; 80×25 | j.w. + CRTC `$E880-$E881` | ◐ profil `cbm-8032`, klawiatura business 8000 i metadane złączy | aktywacja 8096/8296 po weryfikacji ROM |
+| 8096 / 8296 / SuperPET / SP9000 | porty PET/CBM oraz — zależnie od modelu — bankowane RAM, dodatkowy procesor, ACIA/RS-232 lub inne rozszerzenia | PET I/O j.w.; SuperPET ACIA `$EFF0-$EFF3`, 8096/8296 rejestr bankowania `$FFF0` | ◐ profile `Placeholder`, manifesty ROM, MOS6551 i model bankowanego RAM; bez 6809 | cały dodatkowy sprzęt i aktywacja profili po weryfikacji ROM |
 | VIC-20 bez rozszerzenia | VIC-I, dwa VIA, joystick/paddle, User Port, kaseta, IEC serial, cartridge/expansion | `$9000-$900F`, `$9110-$911F`, `$9120-$912F`, `$9400-$97FF` | ◐ VIC-I, VIA1/VIA2, klawiatura, joystick, User Port, kaseta, IEC, Color RAM, CRT i pluginy cartridge | fizyczne źródło paddle/light-pen, adapter RS-232 |
 | VIC-20 +3K / +8K / +16K / +24K / All | te same porty zewnętrzne; dodatkowo odpowiedni blok RAM | jak wyżej; pamięć bloków `$0400`, `$2000`, `$4000`, `$6000`, `$A000` | ◐ profile pamięci i pluginy DLL mają jawne zasoby oraz walidację konfliktów | bardziej złożone multi-cartridge i pełne warianty sprzętowe |
 
@@ -59,7 +59,7 @@ Adresy są wspólne dla emulowanych profili PET. PIA/VIA są mapowane w
 
 | Adres | Układ / linie | Funkcja sprzętowa | Stan w repo |
 | --- | --- | --- | --- |
-| `$E810` | PIA1 Port A | wybór wiersza klawiatury; sense kasety #1/#2; IEEE EOI; wejście diagnostyczne | ◐ wybór klawiatury, sense kasety #1 i EOI; kaseta #2 pozostaje nieaktywna |
+| `$E810` | PIA1 Port A | wybór wiersza klawiatury; sense kasety #1/#2; IEEE EOI; wejście diagnostyczne | ◐ wybór klawiatury, sense kasety #1 i #2 oraz EOI |
 | `$E811` | PIA1 CA1/CA2 | odczyt kasety #1; w starszych rewizjach blanking ekranu lub EOI | ◐ odczyt kasety / sygnał synchronizacji modelu |
 | `$E812` | PIA1 Port B | kolumny klawiatury | ✅ |
 | `$E813` | PIA1 CB1/CB2 | retrace/blanking; silnik kasety #1 | ◐ kaseta #1 |
@@ -67,14 +67,15 @@ Adresy są wspólne dla emulowanych profili PET. PIA/VIA są mapowane w
 | `$E821` | PIA2 CA1/CA2 | IEEE NDAC / pozostałe handshake | ✅ w `PetIeeeBusBinding` |
 | `$E822` | PIA2 Port B | wyjście danych IEEE-488 | ✅ |
 | `$E823` | PIA2 CB1/CB2 | IEEE SRQ/DAV | ✅ w zakresie używanym przez magistralę |
-| `$E840` | VIA Port B | IEEE handshake i ATN; linie kasety #2; zapis kasety | ◐ IEEE jest podłączone; User Port i kaseta #2 nie |
+| `$E840` | VIA Port B | IEEE handshake i ATN; linie kasety #2; zapis kasety | ◐ IEEE, User Port i kaseta #2 są podłączone w modelu |
 | `$E841` / `$E84F` | VIA Port A | User Port i handshake CA2 | ◐ rejestry VIA istnieją, brak zewnętrznego urządzenia User Port |
 | `$E842-$E84E` | VIA DDR/timery/shift/PCR/IFR/IER | timery, IRQ i sterowanie linii VIA | ✅ układ VIA; nie wszystkie linie mają model zewnętrzny |
 | `$E880-$E881` | CRTC 6545 | indeks i dane kontrolera obrazu | ✅ tylko profile `cbm-4032` i `cbm-8032` |
 
 Emulator ma więc działającą ścieżkę `PIA → PetIeeeBus → PetIeeeDiskDrive`
-dla obrazów D64 oraz jedną emulowaną kasetę. Nie ma osobnego modelu drugiego
-gniazda kasety, User Portu ani rozszerzeń pamięciowych 8096/8296.
+dla obrazów D64, dwa niezależne modele kaset i User Port. Bankowanie 8096/8296
+jest dostępne na magistrali, ale profile pozostają ukryte do czasu potwierdzenia
+ich obrazów ROM.
 
 ## Co jest obecnie dostępne, a czego nie ma
 
@@ -82,8 +83,8 @@ gniazda kasety, User Portu ani rozszerzeń pamięciowych 8096/8296.
 | --- | --- | --- |
 | PET klawiatura | matryca PIA1 i profile 2001/4032/8032 | brak pełnej zmienności rewizji sprzętowych |
 | PET dyski | IEEE-488, urządzenia D64, montowanie i transfer DOS | brak drugiego niezależnego modelu kontrolera/portu; to ograniczenie modelu, nie standardu IEEE |
-| PET kasety | kaseta #1 i jej status | kaseta #2, pełny User Port i zewnętrzne linie VIA |
-| PET obraz | profile 40/80 kolumn, CRTC dla profili CRTC | brak 8096/8296 i ich bankowania |
+| PET kasety | kasety #1 i #2, niezależny status i transport | różnice analogowe konkretnego napędu |
+| PET obraz | profile 40/80 kolumn, CRTC dla profili CRTC, bankowanie 8096/8296 na busie | profile 8096/8296 nadal wymagają zweryfikowanych ROM |
 | VIC-20 klawiatura | VIA2 skanowanie matrycy | brak konfliktu z joystickiem; joystick Desktop używa numpada |
 | VIC-20 dyski | IEC przez VIA1/VIA2, napędy D64, status w modelu i podgląd Desktop | brak dodatkowych urządzeń pod I/O2/I/O3 poza kontraktem cartridge |
 | VIC-20 kaseta | odczyt, zapis logiczny/SAVE-LOAD, motor/sense | brak osobnego zewnętrznego modelu analogowego portu |
@@ -277,12 +278,16 @@ adresie i rozmiarze. Runtime testy zostały potwierdzone po uruchomieniu VSTest 
 ### 6. PET — rewizje modeli i obraz
 
 - [x] Rozdzielić profile według dostępnych, rzeczywistych rewizji, jeśli różnice wpływają na I/O.
-  - [x] Jawnie określić, które warianty mają CRTC, a które dyskretny układ obrazu.
+- [x] Jawnie określić, które warianty mają CRTC, a które dyskretny układ obrazu.
   - [x] Utrzymywać osobne manifesty ROM i test startu dla każdego dostępnego profilu.
-- [ ] Zweryfikować różnice klawiatury, kaset i złączy między PET 2001, 3000,
+- [x] Zweryfikować różnice klawiatury, kaset i złączy między PET 2001, 3000,
       4000/4032 i 8000/8032.
-  - [x] Dla dostępnych profili potwierdzić testem różne układy klawiatury/obrazu
-        oraz wspólną wiązkę dwóch kaset, IEEE-488 i User Portu.
+  - [x] Dla dostępnych profili zapisać jawnie rewizję klawiatury, konfigurację
+        kaset i rodzinę złączy; test nie pozwala pozostawić tych pól nieokreślonych
+        dla obsługiwanych modeli.
+  - [x] Zachować wspólną emulowaną wiązkę dwóch kaset, IEEE-488 i User Portu;
+        różnice mechaniczne (kaseta wewnętrzna/zewnętrzna i wariant złącza) są
+        metadanymi profilu, a nie udawaną zmianą mapy PIA/VIA.
   - [x] Dodać profile CBM 3008/3016/3032 na zweryfikowanym zestawie BASIC 2,
         z osobnymi pojemnościami RAM i współdzielonym katalogiem ROM.
   - [x] Dodać jawne profile wariantów `cbm-4008-crtc-40n60` i
@@ -306,8 +311,14 @@ adresie i rozmiarze. Runtime testy zostały potwierdzone po uruchomieniu VSTest 
         `Placeholder`, niewybieralne przez bieżący emulator.
   - [x] Dodać manifest firmware Waterloo SuperPET dla bloków `$A000-$BFFF`,
         `$C000-$DFFF` i `$E000-$FFFF`; loader tylko weryfikuje obrazy na tym etapie.
-- [ ] Zaimplementować bankowanie pamięci oraz rejestr sterujący rozszerzeniem.
-  - [ ] Dodać test przełączania banku i ochrony obszarów ROM/I/O.
+- [x] Zaimplementować bankowanie pamięci oraz rejestr sterujący rozszerzeniem.
+  - [x] Dodać test przełączania banku, ochrony zapisu oraz prześwitu ROM/I/O.
+  - [x] Odwzorować rejestr `$FFF0`: bit 7 włącza rozszerzenie, bity 3/2
+        wybierają parę bloków `$C000-$FFFF`/`$8000-$BFFF`, bit 6 udostępnia
+        I/O, bit 5 pamięć ekranu, a bity 1/0 chronią zapis obu okien.
+  - [x] Utrzymać profile `cbm-8096-french` (32 KiB RAM rozszerzenia) i
+        `cbm-8296` (64 KiB RAM rozszerzenia) jako placeholdery do czasu
+        potwierdzenia obrazów ROM; sam model magistrali jest testowalny bez ROM.
 - [x] Podłączyć MOS6551 ACIA do mapy `$EFF0-$EFF3` profilu SuperPET i do
       transportu bajtowego używanego przez terminal/RS-232.
   - [x] Dodać test integracyjny z istniejącym 6502: zapis/odczyt danych oraz

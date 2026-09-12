@@ -41,6 +41,9 @@ public sealed class PetMemoryBus : IMemoryBus
     private readonly MT6545? _crtc;
     private readonly MOS6551? _acia;
     private readonly ushort? _aciaBaseAddress;
+    private readonly PetMemoryExpansion? _memoryExpansion;
+    private readonly byte[]? _expansionRam;
+    private byte _expansionControl;
 
     public PetMemoryBus(PetProfile profile, IReadOnlyList<PetRomImage> roms, MT6520 pia1, MT6520 pia2, MOS6522 via, MT6545? crtc, MOS6551? acia = null, ushort? aciaBaseAddress = null)
     {
@@ -52,6 +55,10 @@ public sealed class PetMemoryBus : IMemoryBus
         _crtc = crtc;
         _acia = acia;
         _aciaBaseAddress = aciaBaseAddress;
+        _memoryExpansion = profile.MemoryExpansion;
+        if (_memoryExpansion is not null && (_memoryExpansion.ExpansionRamSize == 0 || _memoryExpansion.ExpansionRamSize > 0x10000 || _memoryExpansion.ExpansionRamSize % 0x4000 != 0))
+            throw new ArgumentOutOfRangeException(nameof(profile), "Expansion RAM must contain one to four 16 KiB blocks.");
+        _expansionRam = _memoryExpansion is null ? null : new byte[checked((int)_memoryExpansion.ExpansionRamSize)];
         if (_acia is not null && _aciaBaseAddress is null)
             throw new ArgumentException("An ACIA mapping requires a base address.", nameof(aciaBaseAddress));
 
@@ -73,8 +80,11 @@ public sealed class PetMemoryBus : IMemoryBus
 
     private byte ReadCore(ushort address)
     {
-        if (IsRam(address))
-            return _ram[address];
+        if (_memoryExpansion is not null && address == _memoryExpansion.ControlRegisterAddress)
+            return OpenBus;
+
+        if (TryReadExpansion(address, out var expansionValue))
+            return expansionValue;
 
         if (_acia is not null && InRange(address, _aciaBaseAddress!.Value, _acia.Length))
             return _acia.Read(address);
@@ -91,6 +101,9 @@ public sealed class PetMemoryBus : IMemoryBus
         if (_crtc is not null && InRange(address, CrtcBase, _crtc.Length))
             return _crtc.Read(address);
 
+        if (IsRam(address))
+            return _ram[address];
+
         return OpenBus;
     }
 
@@ -102,11 +115,14 @@ public sealed class PetMemoryBus : IMemoryBus
 
     private void WriteCore(ushort address, byte value)
     {
-        if (IsRam(address))
+        if (_memoryExpansion is not null && address == _memoryExpansion.ControlRegisterAddress)
         {
-            _ram[address] = value;
+            _expansionControl = value;
             return;
         }
+
+        if (TryWriteExpansion(address, value))
+            return;
 
         // ROM is read-only: writes are silently dropped, matching real hardware.
         if (_acia is not null && InRange(address, _aciaBaseAddress!.Value, _acia.Length))
@@ -126,11 +142,65 @@ public sealed class PetMemoryBus : IMemoryBus
             _via.Write(address, value);
         else if (_crtc is not null && InRange(address, CrtcBase, _crtc.Length))
             _crtc.Write(address, value);
+        else if (IsRam(address))
+            _ram[address] = value;
         // else: unmapped - write has no effect (open bus).
     }
 
     /// <summary>Zeroes RAM, including the video-RAM subrange.</summary>
-    public void ClearRam() => Array.Clear(_ram);
+    public void ClearRam()
+    {
+        Array.Clear(_ram);
+        if (_expansionRam is not null)
+            Array.Clear(_expansionRam);
+        _expansionControl = 0;
+    }
+
+    public byte ExpansionControl => _expansionControl;
+
+    private bool TryReadExpansion(ushort address, out byte value)
+    {
+        value = OpenBus;
+        if (_memoryExpansion is null || (_expansionControl & PetMemoryExpansion.Enabled) == 0 || address < 0x8000)
+            return false;
+        if ((_expansionControl & PetMemoryExpansion.ScreenPeekThrough) != 0 && address < 0x9000)
+            return false;
+        if ((_expansionControl & PetMemoryExpansion.IoPeekThrough) != 0 && address >= 0xE800)
+            return false;
+
+        var offset = ExpansionOffset(address);
+        if (offset < 0 || offset >= _expansionRam!.Length)
+            return true;
+        value = _expansionRam[offset];
+        return true;
+    }
+
+    private bool TryWriteExpansion(ushort address, byte value)
+    {
+        if (_memoryExpansion is null || (_expansionControl & PetMemoryExpansion.Enabled) == 0 || address < 0x8000)
+            return false;
+        if ((_expansionControl & PetMemoryExpansion.ScreenPeekThrough) != 0 && address < 0x9000)
+            return false;
+        if ((_expansionControl & PetMemoryExpansion.IoPeekThrough) != 0 && address >= 0xE800)
+            return false;
+
+        var upper = address >= 0xC000;
+        var protect = upper ? PetMemoryExpansion.UpperWriteProtect : PetMemoryExpansion.LowerWriteProtect;
+        var offset = ExpansionOffset(address);
+        if ((_expansionControl & protect) == 0 && offset >= 0 && offset < _expansionRam!.Length)
+            _expansionRam[offset] = value;
+        return true;
+    }
+
+    private int ExpansionOffset(ushort address)
+    {
+        var blockPair = address >= 0xC000 ? 2 : 0;
+        var selectedPair = address >= 0xC000
+            ? ((_expansionControl & 0x08) != 0 ? 1 : 0)
+            : ((_expansionControl & 0x04) != 0 ? 1 : 0);
+        var block = blockPair + selectedPair;
+        return block * 0x4000 + (address & 0x3FFF);
+    }
 
     private bool IsRam(uint address) => address < _ramSize || (address >= _videoRamStart && address < _videoRamEnd);
 
