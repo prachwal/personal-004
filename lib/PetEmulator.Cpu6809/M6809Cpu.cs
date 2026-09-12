@@ -8,6 +8,10 @@ public class M6809Cpu : M6800Cpu
 {
     protected Func<int>[] OpcodeTable = null!;
 
+    public M6800OpcodeTable OpcodeMetadata { get; private set; } = null!;
+    public M6800OpcodeTable Page10OpcodeMetadata { get; private set; } = null!;
+    public M6800OpcodeTable Page11OpcodeMetadata { get; private set; } = null!;
+
     public long Cycles => State.Cycles;
     public new M6809State State => (M6809State)base.State;
 
@@ -47,6 +51,9 @@ public class M6809Cpu : M6800Cpu
         : base(memory, state, new M6800OpcodeTable())
     {
         FillOpcodeTable();
+        OpcodeMetadata = BuildOpcodeMetadata(OpcodeTable);
+        Page10OpcodeMetadata = BuildOpcodeMetadata(Page10OpcodeTable);
+        Page11OpcodeMetadata = BuildOpcodeMetadata(Page11OpcodeTable);
     }
 
     /// <summary>Request an IRQ interrupt (level-triggered, blocked by I flag).</summary>
@@ -141,11 +148,11 @@ public class M6809Cpu : M6800Cpu
         Page10OpcodeTable = new Func<int>[256];
         Page11OpcodeTable = new Func<int>[256];
 
-        // Initialize all Page10/Page11 slots to default 2-cycle NOP
+        // Keep the historical 2-cycle compatibility behavior, but expose it as unsupported metadata.
         for (int i = 0; i < 256; i++)
         {
-            Page10OpcodeTable[i] = () => 2;
-            Page11OpcodeTable[i] = () => 2;
+            Page10OpcodeTable[i] = UnsupportedOpcode;
+            Page11OpcodeTable[i] = UnsupportedOpcode;
         }
 
         // Fill Page10 prefix table (0x10 0xNN)
@@ -402,6 +409,34 @@ public class M6809Cpu : M6800Cpu
     }
 
     protected override int ExecuteOpcode(byte op) => OpcodeTable[op]();
+
+    private static M6800OpcodeTable BuildOpcodeMetadata(Func<int>[] handlers)
+    {
+        var metadata = new M6800OpcodeTable();
+        for (byte opcode = 0; ; opcode++)
+        {
+            var handler = handlers[opcode];
+            if (handler is not null)
+            {
+                var implemented = handler.Method.Name != nameof(UnsupportedOpcode);
+                metadata.Set(new M6800OpcodeDefinition(
+                    opcode,
+                    $"OP ${opcode:X2}",
+                    M6800AddressingMode.Unknown,
+                    1,
+                    0,
+                    (_, _) => handler(),
+                    implemented));
+            }
+
+            if (opcode == byte.MaxValue)
+                break;
+        }
+
+        return metadata;
+    }
+
+    private int UnsupportedOpcode() => 2;
 
     protected override ushort ResolveDirectAddress(byte offset) => (ushort)((State.DP << 8) | offset);
 
