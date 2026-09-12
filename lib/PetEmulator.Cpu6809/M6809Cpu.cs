@@ -321,8 +321,8 @@ public class M6809Cpu : M6800Cpu
         OpcodeTable[0x86] = () => LdaI(Fetch()); OpcodeTable[0x87] = () => 2;
         OpcodeTable[0x88] = () => EorA(Fetch()); OpcodeTable[0x89] = () => AdcA(Fetch());
         OpcodeTable[0x8A] = () => OraA(Fetch()); OpcodeTable[0x8B] = () => AddA(Fetch());
-        OpcodeTable[0x8C] = () => CmpX(Fetch16()); OpcodeTable[0x8D] = () => base.Bsr(FetchSigned());
-        OpcodeTable[0x8E] = () => LdxI(Fetch16()); OpcodeTable[0x8F] = () => 2;
+        OpcodeTable[0x8C] = () => base.CmpX(Fetch16()); OpcodeTable[0x8D] = () => base.Bsr(FetchSigned());
+        OpcodeTable[0x8E] = () => base.LdxI(Fetch16()); OpcodeTable[0x8F] = () => 2;
 
         // A-column dir (0x90-0x9F)
         OpcodeTable[0x90] = () => SubA(LdDirect()); OpcodeTable[0x91] = () => CmpA(LdDirect());
@@ -331,8 +331,8 @@ public class M6809Cpu : M6800Cpu
         OpcodeTable[0x96] = () => base.LoadA(FetchDirectAddress(), 4); OpcodeTable[0x97] = () => base.StoreA(FetchDirectAddress(), 4);
         OpcodeTable[0x98] = () => EorA(LdDirect()); OpcodeTable[0x99] = () => AdcA(LdDirect());
         OpcodeTable[0x9A] = () => OraA(LdDirect()); OpcodeTable[0x9B] = () => AddA(LdDirect());
-        OpcodeTable[0x9C] = () => CmpX(Ld16Direct()); OpcodeTable[0x9D] = JsrD;
-        OpcodeTable[0x9E] = LdxD; OpcodeTable[0x9F] = StxD;
+        OpcodeTable[0x9C] = () => base.CmpX(Ld16Direct()); OpcodeTable[0x9D] = JsrD;
+        OpcodeTable[0x9E] = () => base.LoadX(FetchDirectAddress(), 5); OpcodeTable[0x9F] = () => base.StoreX(FetchDirectAddress(), 5);
 
         // A-column indexed (0xA0-0xAF)
         OpcodeTable[0xA0] = () => SubA(LdIndexed(out int exA0)) + exA0;
@@ -347,10 +347,10 @@ public class M6809Cpu : M6800Cpu
         OpcodeTable[0xA9] = () => AdcA(LdIndexed(out int exA9)) + exA9;
         OpcodeTable[0xAA] = () => OraA(LdIndexed(out int exAA)) + exAA;
         OpcodeTable[0xAB] = () => AddA(LdIndexed(out int exAB)) + exAB;
-        OpcodeTable[0xAC] = () => CmpX(Ld16Indexed(out int exAC)) + exAC;
+        OpcodeTable[0xAC] = () => base.CmpX(Ld16Indexed(out int exAC)) + exAC;
         OpcodeTable[0xAD] = JsrIdx;
-        OpcodeTable[0xAE] = LdxIdx;
-        OpcodeTable[0xAF] = StxIdx;
+        OpcodeTable[0xAE] = () => base.LoadX(FetchIndexed(out int exAE), 5 + exAE);
+        OpcodeTable[0xAF] = () => base.StoreX(FetchIndexed(out int exAF), 5 + exAF);
 
         // A-column extended (0xB0-0xBF)
         OpcodeTable[0xB0] = () => SubA(LdExtended()); OpcodeTable[0xB1] = () => CmpA(LdExtended());
@@ -359,8 +359,8 @@ public class M6809Cpu : M6800Cpu
         OpcodeTable[0xB6] = () => base.LoadA(FetchExtended(), 5); OpcodeTable[0xB7] = () => base.StoreA(FetchExtended(), 5);
         OpcodeTable[0xB8] = () => EorA(LdExtended()); OpcodeTable[0xB9] = () => AdcA(LdExtended());
         OpcodeTable[0xBA] = () => OraA(LdExtended()); OpcodeTable[0xBB] = () => AddA(LdExtended());
-        OpcodeTable[0xBC] = () => CmpX(Ld16Extended()); OpcodeTable[0xBD] = JsrExt;
-        OpcodeTable[0xBE] = LdxExt; OpcodeTable[0xBF] = StxExt;
+        OpcodeTable[0xBC] = () => base.CmpX(Ld16Extended()); OpcodeTable[0xBD] = JsrExt;
+        OpcodeTable[0xBE] = () => base.LoadX(FetchExtended(), 6); OpcodeTable[0xBF] = () => base.StoreX(FetchExtended(), 6);
 
         // B-column ALU (0xC0-0xCF)
         OpcodeTable[0xC0] = () => SubB(Fetch()); OpcodeTable[0xC1] = () => CmpB(Fetch());
@@ -647,7 +647,7 @@ public class M6809Cpu : M6800Cpu
     #region Instruction Implementations
 
     // RMW operations on memory
-    private int Neg(ushort addr)
+    private new int Neg(ushort addr)
     {
         byte val = Mmu.Read(addr);
         byte result = (byte)(-(int)val);
@@ -659,7 +659,7 @@ public class M6809Cpu : M6800Cpu
         return 6;
     }
 
-    private int Com(ushort addr)
+    private new int Com(ushort addr)
     {
         byte val = Mmu.Read(addr);
         byte result = (byte)~val;
@@ -671,7 +671,7 @@ public class M6809Cpu : M6800Cpu
         return 6;
     }
 
-    private int Lsr(ushort addr)
+    private new int Lsr(ushort addr)
     {
         byte val = Mmu.Read(addr);
         byte result = (byte)(val >> 1);
@@ -682,7 +682,7 @@ public class M6809Cpu : M6800Cpu
         return 6;
     }
 
-    private int Ror(ushort addr)
+    private new int Ror(ushort addr)
     {
         byte val = Mmu.Read(addr);
         byte result = (byte)((val >> 1) | (State.Flags.C ? 0x80 : 0));
@@ -693,7 +693,7 @@ public class M6809Cpu : M6800Cpu
         return 6;
     }
 
-    private int Asr(ushort addr)
+    private new int Asr(ushort addr)
     {
         byte val = Mmu.Read(addr);
         byte result = (byte)((val >> 1) | (val & 0x80));
@@ -704,7 +704,7 @@ public class M6809Cpu : M6800Cpu
         return 6;
     }
 
-    private int Asl(ushort addr)
+    private new int Asl(ushort addr)
     {
         byte val = Mmu.Read(addr);
         byte result = (byte)(val << 1);
@@ -716,7 +716,7 @@ public class M6809Cpu : M6800Cpu
         return 6;
     }
 
-    private int Rol(ushort addr)
+    private new int Rol(ushort addr)
     {
         byte val = Mmu.Read(addr);
         byte result = (byte)((val << 1) | (State.Flags.C ? 1 : 0));
@@ -728,7 +728,7 @@ public class M6809Cpu : M6800Cpu
         return 6;
     }
 
-    private int Dec(ushort addr)
+    private new int Dec(ushort addr)
     {
         byte val = Mmu.Read(addr);
         byte result = (byte)(val - 1);
@@ -739,7 +739,7 @@ public class M6809Cpu : M6800Cpu
         return 6;
     }
 
-    private int Inc(ushort addr)
+    private new int Inc(ushort addr)
     {
         byte val = Mmu.Read(addr);
         byte result = (byte)(val + 1);
@@ -750,7 +750,7 @@ public class M6809Cpu : M6800Cpu
         return 6;
     }
 
-    private int Tst(ushort addr)
+    private new int Tst(ushort addr)
     {
         byte val = Mmu.Read(addr);
         State.Flags.N = (val & 0x80) != 0;
@@ -766,7 +766,7 @@ public class M6809Cpu : M6800Cpu
         return 3;
     }
 
-    private int Clr(ushort addr)
+    private new int Clr(ushort addr)
     {
         Mmu.Write(addr, 0);
         State.Flags.N = false;
@@ -777,7 +777,7 @@ public class M6809Cpu : M6800Cpu
     }
 
     // Accumulator RMW
-    private int NegA()
+    private new int NegA()
     {
         State.A = (byte)(-State.A);
         State.Flags.N = (State.A & 0x80) != 0;
@@ -787,7 +787,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int ComA()
+    private new int ComA()
     {
         State.A = (byte)~State.A;
         State.Flags.N = (State.A & 0x80) != 0;
@@ -797,7 +797,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int LsrA()
+    private new int LsrA()
     {
         byte c = (byte)(State.A & 0x01);
         State.A >>= 1;
@@ -807,7 +807,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int RorA()
+    private new int RorA()
     {
         byte c = (byte)(State.A & 0x01);
         State.A = (byte)((State.A >> 1) | (State.Flags.C ? 0x80 : 0));
@@ -817,7 +817,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int AsrA()
+    private new int AsrA()
     {
         byte c = (byte)(State.A & 0x01);
         State.A = (byte)((State.A >> 1) | (State.A & 0x80));
@@ -827,7 +827,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int AslA()
+    private new int AslA()
     {
         byte c = (byte)((State.A & 0x80) != 0 ? 1 : 0);
         State.A <<= 1;
@@ -838,7 +838,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int RolA()
+    private new int RolA()
     {
         byte c = (byte)((State.A & 0x80) != 0 ? 1 : 0);
         State.A = (byte)((State.A << 1) | (State.Flags.C ? 1 : 0));
@@ -849,7 +849,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int DecA()
+    private new int DecA()
     {
         State.A--;
         State.Flags.N = (State.A & 0x80) != 0;
@@ -858,7 +858,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int IncA()
+    private new int IncA()
     {
         State.A++;
         State.Flags.N = (State.A & 0x80) != 0;
@@ -867,7 +867,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int TstA()
+    private new int TstA()
     {
         State.Flags.N = (State.A & 0x80) != 0;
         State.Flags.Z = State.A == 0;
@@ -875,7 +875,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int ClrA()
+    private new int ClrA()
     {
         State.A = 0;
         State.Flags.N = false;
@@ -885,7 +885,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int NegB()
+    private new int NegB()
     {
         State.B = (byte)(-State.B);
         State.Flags.N = (State.B & 0x80) != 0;
@@ -895,7 +895,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int ComB()
+    private new int ComB()
     {
         State.B = (byte)~State.B;
         State.Flags.N = (State.B & 0x80) != 0;
@@ -905,7 +905,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int LsrB()
+    private new int LsrB()
     {
         byte c = (byte)(State.B & 0x01);
         State.B >>= 1;
@@ -915,7 +915,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int RorB()
+    private new int RorB()
     {
         byte c = (byte)(State.B & 0x01);
         State.B = (byte)((State.B >> 1) | (State.Flags.C ? 0x80 : 0));
@@ -925,7 +925,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int AsrB()
+    private new int AsrB()
     {
         byte c = (byte)(State.B & 0x01);
         State.B = (byte)((State.B >> 1) | (State.B & 0x80));
@@ -935,7 +935,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int AslB()
+    private new int AslB()
     {
         byte c = (byte)((State.B & 0x80) != 0 ? 1 : 0);
         State.B <<= 1;
@@ -946,7 +946,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int RolB()
+    private new int RolB()
     {
         byte c = (byte)((State.B & 0x80) != 0 ? 1 : 0);
         State.B = (byte)((State.B << 1) | (State.Flags.C ? 1 : 0));
@@ -957,7 +957,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int DecB()
+    private new int DecB()
     {
         State.B--;
         State.Flags.N = (State.B & 0x80) != 0;
@@ -966,7 +966,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int IncB()
+    private new int IncB()
     {
         State.B++;
         State.Flags.N = (State.B & 0x80) != 0;
@@ -975,7 +975,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int TstB()
+    private new int TstB()
     {
         State.Flags.N = (State.B & 0x80) != 0;
         State.Flags.Z = State.B == 0;
@@ -983,7 +983,7 @@ public class M6809Cpu : M6800Cpu
         return 2;
     }
 
-    private int ClrB()
+    private new int ClrB()
     {
         State.B = 0;
         State.Flags.N = false;
@@ -1124,109 +1124,109 @@ public class M6809Cpu : M6800Cpu
     }
 
     // Branches (8-bit offset)
-    private int Bra(byte offset)
+    private new int Bra(byte offset)
     {
         State.PC = (ushort)(State.PC + (sbyte)offset);
         return 3;
     }
 
-    private int Brn(byte offset)
+    private new int Brn(byte offset)
     {
         return 3;
     }
 
-    private int Bhi(byte offset)
+    private new int Bhi(byte offset)
     {
         if (!State.Flags.C && !State.Flags.Z)
             State.PC = (ushort)(State.PC + (sbyte)offset);
         return 3;
     }
 
-    private int Bls(byte offset)
+    private new int Bls(byte offset)
     {
         if (State.Flags.C || State.Flags.Z)
             State.PC = (ushort)(State.PC + (sbyte)offset);
         return 3;
     }
 
-    private int Bcc(byte offset)
+    private new int Bcc(byte offset)
     {
         if (!State.Flags.C)
             State.PC = (ushort)(State.PC + (sbyte)offset);
         return 3;
     }
 
-    private int Bcs(byte offset)
+    private new int Bcs(byte offset)
     {
         if (State.Flags.C)
             State.PC = (ushort)(State.PC + (sbyte)offset);
         return 3;
     }
 
-    private int Bne(byte offset)
+    private new int Bne(byte offset)
     {
         if (!State.Flags.Z)
             State.PC = (ushort)(State.PC + (sbyte)offset);
         return 3;
     }
 
-    private int Beq(byte offset)
+    private new int Beq(byte offset)
     {
         if (State.Flags.Z)
             State.PC = (ushort)(State.PC + (sbyte)offset);
         return 3;
     }
 
-    private int Bvc(byte offset)
+    private new int Bvc(byte offset)
     {
         if (!State.Flags.V)
             State.PC = (ushort)(State.PC + (sbyte)offset);
         return 3;
     }
 
-    private int Bvs(byte offset)
+    private new int Bvs(byte offset)
     {
         if (State.Flags.V)
             State.PC = (ushort)(State.PC + (sbyte)offset);
         return 3;
     }
 
-    private int Bpl(byte offset)
+    private new int Bpl(byte offset)
     {
         if (!State.Flags.N)
             State.PC = (ushort)(State.PC + (sbyte)offset);
         return 3;
     }
 
-    private int Bmi(byte offset)
+    private new int Bmi(byte offset)
     {
         if (State.Flags.N)
             State.PC = (ushort)(State.PC + (sbyte)offset);
         return 3;
     }
 
-    private int Bge(byte offset)
+    private new int Bge(byte offset)
     {
         if ((State.Flags.N && State.Flags.V) || (!State.Flags.N && !State.Flags.V))
             State.PC = (ushort)(State.PC + (sbyte)offset);
         return 3;
     }
 
-    private int Blt(byte offset)
+    private new int Blt(byte offset)
     {
         if ((State.Flags.N && !State.Flags.V) || (!State.Flags.N && State.Flags.V))
             State.PC = (ushort)(State.PC + (sbyte)offset);
         return 3;
     }
 
-    private int Bgt(byte offset)
+    private new int Bgt(byte offset)
     {
         if (!State.Flags.Z && ((State.Flags.N && State.Flags.V) || (!State.Flags.N && !State.Flags.V)))
             State.PC = (ushort)(State.PC + (sbyte)offset);
         return 3;
     }
 
-    private int Ble(byte offset)
+    private new int Ble(byte offset)
     {
         if (State.Flags.Z || ((State.Flags.N && !State.Flags.V) || (!State.Flags.N && State.Flags.V)))
             State.PC = (ushort)(State.PC + (sbyte)offset);
@@ -1479,7 +1479,7 @@ public class M6809Cpu : M6800Cpu
     }
 
     // Return/jump
-    private int Rts()
+    private new int Rts()
     {
         State.PC = PopS16();
         return 5;
@@ -1554,11 +1554,11 @@ public class M6809Cpu : M6800Cpu
     }
 
     // A-column operations (immediate and addressing modes)
-    private int SubA(byte val) => base.SubA(val);
+    private new int SubA(byte val) => base.SubA(val);
 
-    private int CmpA(byte val) => base.CmpA(val);
+    private new int CmpA(byte val) => base.CmpA(val);
 
-    private int SbcA(byte val) => base.SbcA(val);
+    private new int SbcA(byte val) => base.SbcA(val);
 
     private int SubD(ushort val)
     {
@@ -1571,13 +1571,13 @@ public class M6809Cpu : M6800Cpu
         return 4;
     }
 
-    private int AndA(byte val) => base.AndA(val);
+    private new int AndA(byte val) => base.AndA(val);
 
-    private int BitA(byte val) => base.BitA(val);
+    private new int BitA(byte val) => base.BitA(val);
 
-    private int LdaI(byte val) => base.LdaI(val);
+    private new int LdaI(byte val) => base.LdaI(val);
 
-    private int LdxI(ushort val)
+    private new int LdxI(ushort val)
     {
         State.X = val;
         State.Flags.N = (val & 0x8000) != 0;
@@ -1586,15 +1586,15 @@ public class M6809Cpu : M6800Cpu
         return 3;
     }
 
-    private int EorA(byte val) => base.EorA(val);
+    private new int EorA(byte val) => base.EorA(val);
 
-    private int AdcA(byte val) => base.AdcA(val);
+    private new int AdcA(byte val) => base.AdcA(val);
 
-    private int OraA(byte val) => base.OraA(val);
+    private new int OraA(byte val) => base.OraA(val);
 
-    private int AddA(byte val) => base.AddA(val);
+    private new int AddA(byte val) => base.AddA(val);
 
-    private int CmpX(ushort val)
+    private new int CmpX(ushort val)
     {
         ushort result = (ushort)(State.X - val);
         State.Flags.N = (result & 0x8000) != 0;
@@ -1644,7 +1644,7 @@ public class M6809Cpu : M6800Cpu
         return 5;
     }
 
-    private int Bsr(byte offset)
+    private new int Bsr(byte offset)
     {
         PushS16(State.PC);
         State.PC = (ushort)(State.PC + (sbyte)offset);
@@ -1796,11 +1796,11 @@ public class M6809Cpu : M6800Cpu
     }
 
     // B-column operations
-    private int SubB(byte val) => base.SubB(val);
+    private new int SubB(byte val) => base.SubB(val);
 
-    private int CmpB(byte val) => base.CmpB(val);
+    private new int CmpB(byte val) => base.CmpB(val);
 
-    private int SbcB(byte val) => base.SbcB(val);
+    private new int SbcB(byte val) => base.SbcB(val);
 
     private int AddD(ushort val)
     {
@@ -1814,11 +1814,11 @@ public class M6809Cpu : M6800Cpu
         return 4;
     }
 
-    private int AndB(byte val) => base.AndB(val);
+    private new int AndB(byte val) => base.AndB(val);
 
-    private int BitB(byte val) => base.BitB(val);
+    private new int BitB(byte val) => base.BitB(val);
 
-    private int LdbI(byte val) => base.LdbI(val);
+    private new int LdbI(byte val) => base.LdbI(val);
 
     private int LddI(ushort val)
     {
@@ -1838,15 +1838,15 @@ public class M6809Cpu : M6800Cpu
         return 3;
     }
 
-    private int EorB(byte val) => base.EorB(val);
+    private new int EorB(byte val) => base.EorB(val);
 
-    private int AdcB(byte val) => base.AdcB(val);
+    private new int AdcB(byte val) => base.AdcB(val);
 
-    private int OraB(byte val) => base.OraB(val);
+    private new int OraB(byte val) => base.OraB(val);
 
-    private int AddB(byte val) => base.AddB(val);
+    private new int AddB(byte val) => base.AddB(val);
 
-    private int LdB(byte val) => base.LdB(val);
+    private new int LdB(byte val) => base.LdB(val);
 
     private int StbD()
     {
