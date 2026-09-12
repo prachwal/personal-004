@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>PetEmulator.CpuZ80.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(PET_EMULATOR_RUN_ZEXDOC)' != '1'">
+    <Compile Remove="Z80ZexdocTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../lib/PetEmulator.CpuZ80/PetEmulator.CpuZ80.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="TestData/z80doc.tap" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestData/zexdoc.com" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestData/z80test-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

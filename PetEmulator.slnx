@@ -5,6 +5,7 @@
     <Project Path="lib/PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
     <Project Path="lib/PetEmulator.Cpu6800/PetEmulator.Cpu6800.csproj" />
     <Project Path="lib/PetEmulator.Cpu6809/PetEmulator.Cpu6809.csproj" />
+    <Project Path="lib/PetEmulator.CpuZ80/PetEmulator.CpuZ80.csproj" />
     <Project Path="lib/PetEmulator.Chips/PetEmulator.Chips.csproj" />
     <Project Path="lib/PetEmulator.Debugger/PetEmulator.Debugger.csproj" />
     <Project Path="lib/PetEmulator.DebugApi/PetEmulator.DebugApi.csproj" />
@@ -31,6 +32,7 @@
     <Project Path="tests/PetEmulator.Cpu6502.Tests/PetEmulator.Cpu6502.Tests.csproj" />
     <Project Path="tests/PetEmulator.Cpu6800.Tests/PetEmulator.Cpu6800.Tests.csproj" />
     <Project Path="tests/PetEmulator.Cpu6809.Tests/PetEmulator.Cpu6809.Tests.csproj" />
+    <Project Path="tests/PetEmulator.CpuZ80.Tests/PetEmulator.CpuZ80.Tests.csproj" />
     <Project Path="tests/PetEmulator.DebugApi.Tests/PetEmulator.DebugApi.Tests.csproj" />
     <Project Path="tests/PetEmulator.Debugger.Tests/PetEmulator.Debugger.Tests.csproj" />
     <Project Path="tests/PetEmulator.Pet.Tests/PetEmulator.Pet.Tests.csproj" />
