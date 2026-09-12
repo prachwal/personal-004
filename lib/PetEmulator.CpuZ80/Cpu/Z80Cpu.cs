@@ -3,13 +3,14 @@ using Microsoft.Extensions.Logging.Abstractions;
 using PetEmulator.Core;
 using PetEmulator.CpuZ80.Bus;
 using PetEmulator.CpuZ80.Interrupts;
+using Z80InterruptLines = PetEmulator.CpuZ80.Interrupts.IInterruptLines;
 
 namespace PetEmulator.CpuZ80.Cpu;
 
 public partial class Z80Cpu : IProcessor, IDebuggableProcessor
 {
     private readonly IBus bus;
-    private readonly IInterruptLines interruptLines;
+    private readonly Z80InterruptLines interruptLines;
     private readonly IBusCycleObserver? cycleObserver;
     private readonly ILogger logger;
     private readonly IClock clock;
@@ -25,7 +26,7 @@ public partial class Z80Cpu : IProcessor, IDebuggableProcessor
     /// default <see cref="NullLogger"/> makes every call a no-op, so this
     /// costs nothing on the hot Step() path when nobody asked for it.
     /// </param>
-    public Z80Cpu(IBus bus, IInterruptLines interruptLines, IBusCycleObserver? cycleObserver = null, ILogger<Z80Cpu>? logger = null, IClock? clock = null)
+    public Z80Cpu(IBus bus, Z80InterruptLines interruptLines, IBusCycleObserver? cycleObserver = null, ILogger<Z80Cpu>? logger = null, IClock? clock = null)
     {
         this.bus = bus;
         this.interruptLines = interruptLines;

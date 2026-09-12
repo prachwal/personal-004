@@ -4,7 +4,7 @@ using PetEmulator.Core;
 namespace PetEmulator.Cpu6809;
 
 /// <summary>Motorola 6809 CPU emulator with dual stacks and complex addressing modes.</summary>
-public class M6809Cpu : M6800Cpu
+public class M6809Cpu : M6800Cpu, IFirqProcessor
 {
     protected Func<int>[] OpcodeTable = null!;
 
@@ -70,6 +70,8 @@ public class M6809Cpu : M6800Cpu
     {
         _firqPending = true;
     }
+
+    public void SetFIRQ(bool active) => _firqPending = active;
 
     /// <summary>Request an NMI interrupt (edge-triggered, armed when S is written).</summary>
     public void RequestNmi()

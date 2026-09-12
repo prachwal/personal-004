@@ -1,10 +1,9 @@
+using PetEmulator.Core;
+
 namespace PetEmulator.CpuZ80.Interrupts;
 
-public interface IInterruptLines
+public interface IInterruptLines : PetEmulator.Core.IInterruptLines, IWaitLine
 {
-    bool IntAsserted { get; }
-    bool NmiAsserted { get; }
-
     /// <summary>
     /// The Z80's WAIT line - real hardware freezes the CPU mid-bus-cycle
     /// while this is asserted (no fetch, no execute, no interrupt
@@ -13,7 +12,5 @@ public interface IInterruptLines
     /// comment for the one real source this codebase models (port 0xF4
     /// bit 6).
     /// </summary>
-    bool WaitAsserted { get; }
-
     void Clear();
 }
