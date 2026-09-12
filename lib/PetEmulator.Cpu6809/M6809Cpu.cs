@@ -86,6 +86,7 @@ public class M6809Cpu : M6800Cpu
         _nmiPending = false;
         _nmiArmed = false;
         InstructionCount = 0;
+        ResetCycleClock();
         State.PC = Read16(0xFFFE);
     }
 
@@ -101,7 +102,7 @@ public class M6809Cpu : M6800Cpu
             State.Flags.I = true;
             State.Flags.F = true;
             State.PC = Read16(0xFFFC);
-            State.Cycles += 19;
+            AdvanceCycles(19);
             return 19;
         }
 
@@ -114,7 +115,7 @@ public class M6809Cpu : M6800Cpu
             State.Flags.I = true;
             State.Flags.F = true;
             State.PC = Read16(0xFFF6);
-            State.Cycles += 10;
+            AdvanceCycles(10);
             return 10;
         }
 
@@ -126,14 +127,14 @@ public class M6809Cpu : M6800Cpu
             PushFullFrame();
             State.Flags.I = true;
             State.PC = Read16(0xFFF8);
-            State.Cycles += 19;
+            AdvanceCycles(19);
             return 19;
         }
 
         // Step 4: Check HALTed state (SYNC/CWAI waiting)
         if (State.Halted)
         {
-            State.Cycles += 2;
+            AdvanceCycles(2);
             return 2;
         }
 
@@ -141,7 +142,7 @@ public class M6809Cpu : M6800Cpu
         byte op = Fetch();
         int cycles = ExecuteOpcode(op);
         InstructionCount++;
-        State.Cycles += cycles;
+        AdvanceCycles(cycles);
         return cycles;
     }
 

@@ -6,6 +6,7 @@ namespace PetEmulator.Cpu6800;
 public partial class M6800Cpu : IProcessor, IDebuggableProcessor
 {
     protected readonly IMemoryBus Mmu;
+    private readonly IClock _clock;
     // The compiled table is used by the concrete MC6800. Family variants can
     // supply metadata instead and then dispatch through Opcodes below.
     private readonly Func<int>[]? _defaultOpcodeTable;
@@ -27,13 +28,14 @@ public partial class M6800Cpu : IProcessor, IDebuggableProcessor
     {
         Mmu = memory ?? throw new ArgumentNullException(nameof(memory));
         State = state ?? throw new ArgumentNullException(nameof(state));
+        _clock = new EmulationClock();
         if (opcodes is null)
             _defaultOpcodeTable = BuildOpcodeTable(out opcodes);
         Opcodes = opcodes;
     }
 
     public M6800State State { get; }
-    public ulong CycleCount => checked((ulong)State.Cycles);
+    public ulong CycleCount => _clock.CycleCount;
     public ulong InstructionCount { get; protected set; }
     public bool Halted => State.Halted;
 
@@ -52,6 +54,7 @@ public partial class M6800Cpu : IProcessor, IDebuggableProcessor
     public virtual void Reset()
     {
         State.Reset();
+        _clock.Reset();
         InstructionCount = 0;
         State.PC = Read16(0xFFFE);
     }
@@ -71,7 +74,7 @@ public partial class M6800Cpu : IProcessor, IDebuggableProcessor
         byte opcode = Fetch();
         int cycles = ExecuteOpcode(opcode);
         InstructionCount++;
-        State.Cycles += cycles;
+        AdvanceCycles(cycles);
     }
 
     public virtual void SetIRQ(bool active)
@@ -81,6 +84,17 @@ public partial class M6800Cpu : IProcessor, IDebuggableProcessor
     public virtual void SetNMI(bool active)
     {
     }
+
+    protected void AdvanceCycles(int cycles)
+    {
+        if (cycles < 0)
+            throw new ArgumentOutOfRangeException(nameof(cycles));
+
+        State.Cycles += cycles;
+        _clock.Advance((ulong)cycles);
+    }
+
+    protected void ResetCycleClock() => _clock.Reset();
 
     protected virtual int ExecuteOpcode(byte opcode) =>
         _defaultOpcodeTable is not null
