@@ -34,11 +34,34 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         _filePicker = filePicker;
         _romsRoot = RomsRootLocator.Find();
 
+        SuperPetChoices =
+        [
+            new ModuleMenuEntry("6502", () => new PetMachineViewModel(PetProfileCatalog.SuperPet6502, Path.Combine(_romsRoot, "pet"))),
+            new ModuleMenuEntry("6809", () => new PetMachineViewModel(PetProfileCatalog.SuperPet6809, Path.Combine(_romsRoot, "pet")))
+        ];
+
         ModuleChoices =
         [
-             .. PetProfileCatalog.Available.Select(profile =>
-                 new ModuleMenuEntry(profile.Name, () => new PetMachineViewModel(profile, Path.Combine(_romsRoot, "pet")))),
+              new ModuleMenuEntry("PET 20xx", null, CreateProfileChoices(PetProfileCatalog.Pet2001_8, PetProfileCatalog.Pet2001_32)),
+              new ModuleMenuEntry("CBM 30xx", null, CreateProfileChoices(PetProfileCatalog.Cbm3008, PetProfileCatalog.Cbm3016, PetProfileCatalog.Cbm3032)),
+              new ModuleMenuEntry("CBM 40xx", null, CreateProfileChoices(
+                  PetProfileCatalog.Cbm4008Crtc40N60,
+                  PetProfileCatalog.Cbm4016Crtc40N60,
+                  PetProfileCatalog.Cbm4032,
+                  PetProfileCatalog.Cbm4032Crtc40N50,
+                  PetProfileCatalog.Cbm4032Crtc40B50,
+                  PetProfileCatalog.Cbm4032Crtc40B60)),
+              new ModuleMenuEntry("CBM 80xx", null, CreateProfileChoices(
+                  PetProfileCatalog.Cbm8032,
+                  PetProfileCatalog.Cbm8032Crtc80B50,
+                  PetProfileCatalog.Cbm8016Converted80N50,
+                  PetProfileCatalog.Converted80NUnknown)),
+              new ModuleMenuEntry("SuperPET", null, SuperPetChoices),
               new ModuleMenuEntry("VIC-20", CreateVic20),
+         ];
+
+        ToolChoices =
+        [
               new ModuleMenuEntry("Chip Tester", () => new ChipTesterViewModel(_romsRoot)),
               new ModuleMenuEntry("Media Tester", () => new MediaTesterViewModel(_filePicker)),
               new ModuleMenuEntry("Font / Glyph Viewer", () => new FontViewerViewModel(_romsRoot)),
@@ -46,7 +69,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
               new ModuleMenuEntry("Keyboard Matrix", () => new KeyboardMatrixViewModel()),
          ];
 
-        _currentModule = ModuleChoices[0].Create();
+        var initialCreate = ModuleChoices
+            .SelectMany(entry => entry.Children ?? Array.Empty<ModuleMenuEntry>())
+            .FirstOrDefault(entry => entry.Create is not null)?.Create
+            ?? throw new InvalidOperationException("The first machine menu entry must be selectable.");
+        _currentModule = initialCreate();
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
         _timer.Tick += (_, _) =>
@@ -59,6 +86,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     /// <summary>Every selectable machine configuration, for the Machine menu.</summary>
     public IReadOnlyList<ModuleMenuEntry> ModuleChoices { get; }
+
+    /// <summary>Developer and media tools, kept separate from emulated machine profiles.</summary>
+    public IReadOnlyList<ModuleMenuEntry> ToolChoices { get; }
+
+    /// <summary>The two processor modes behind the physical SuperPET switch.</summary>
+    public IReadOnlyList<ModuleMenuEntry> SuperPetChoices { get; }
+
+    private IReadOnlyList<ModuleMenuEntry> CreateProfileChoices(params PetProfile[] profiles) =>
+        profiles.Select(profile =>
+            new ModuleMenuEntry(profile.Name, () => new PetMachineViewModel(profile, Path.Combine(_romsRoot, "pet"))))
+        .ToArray();
 
     private Vic20MachineViewModel CreateVic20()
     {
@@ -108,8 +146,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void SwitchMachine(ModuleMenuEntry entry)
     {
+        var create = entry.Create;
+        if (create is null)
+            return;
+
         var old = CurrentModule;
-        CurrentModule = entry.Create();
+        CurrentModule = create();
         old.Dispose();
     }
 
