@@ -112,6 +112,25 @@ public class PetRasterDisplayTests
     }
 
     [Test]
+    public void Render_SuperPetAscii_UsesHighBitForReverseSpaceCursor()
+    {
+        var font = new PetCharacterRomLoader().Load(Path.Combine(
+            RomLocator.Directory("cbm-8032", "characters.901640-01.bin"),
+            "characters.901640-01.bin"));
+        var profile = PetProfileCatalog.SuperPet6809;
+        var memory = new FakeMemoryBus();
+        memory.Write((ushort)profile.VideoRamStart, 0xA0);
+        var display = new PetRasterDisplay(profile, memory, font);
+        var frame = new uint[display.PixelWidth * display.PixelHeight];
+
+        display.Render(frame);
+
+        CellPixels(frame, display.PixelWidth, font, 0, 0)
+            .Should().OnlyContain(pixel => pixel == 0xFF8DFF72u,
+                "$A0 is Waterloo's reverse-video ASCII space cursor");
+    }
+
+    [Test]
     public void Render_WrongSizedBuffer_Throws()
     {
         var font = LoadRealFont();

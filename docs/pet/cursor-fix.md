@@ -85,3 +85,29 @@ cbm-8032:    booted OK, 3/80 frames changed
 ```
 
 All 4 profiles blink correctly now.
+
+## Waterloo 6809 menu cursor
+
+Waterloo 6809 does not use the PET BASIC zero-page cursor pointers `$C4-$C6` or
+`$E0-$E2`. After the reset sequence reaches the interactive menu, it writes ordinary
+ASCII directly to the 80-column screen RAM at `$8000-$87CF` and marks the selected
+menu cell with bit 7. The initial menu was verified after 3,000,000 6809 instructions:
+
+```text
+Waterloo microSystems
+
+Select :
+  setup
+  monitor
+  apl
+  basic
+  edit
+  fortran
+  pascal
+  development
+```
+
+The selected blank cell contains `$A0`, not `$20`: it is ASCII space with reverse
+video. Therefore the renderer must strip bit 7 before selecting the second 2 KiB
+ASCII character-ROM bank and invert the resulting glyph. Cursor position cannot be
+derived from the generic PET BASIC zero-page pointer for this profile.

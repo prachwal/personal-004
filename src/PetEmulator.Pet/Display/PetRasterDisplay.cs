@@ -82,12 +82,14 @@ public sealed class PetRasterDisplay
             for (var col = 0; col < _profile.Columns; col++)
             {
                 var screenCode = _memory.Read((ushort)(_profile.VideoRamStart + row * _profile.Columns + col));
-                var isReverse = _profile.ScreenCharacterEncoding == PetScreenCharacterEncoding.PetScreenCode
-                    && (screenCode & 0x80) != 0;
+                // Both PET screen codes and Waterloo's ASCII screen use bit 7 for reverse video.
+                // Waterloo marks its menu cursor by writing $A0 (reverse ASCII space), so the bit
+                // must be removed before selecting the ASCII character-ROM bank as well.
+                var isReverse = (screenCode & 0x80) != 0;
                 var invert = isReverse
                     || (_cursorVisible && cursor is { } c && c.Row == row && c.Column == col);
                 var characterCode = _profile.ScreenCharacterEncoding == PetScreenCharacterEncoding.Ascii
-                    ? 0x100 + screenCode
+                    ? 0x100 + (screenCode & 0x7F)
                     : screenCode & 0x7F;
                 for (var glyphRow = 0; glyphRow < _font.GlyphHeight; glyphRow++)
                 {
