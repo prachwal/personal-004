@@ -419,9 +419,18 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
             (_, _) => CpuStepResult.Completed((ulong)execute()));
 
     private int ExecuteRegistered(OpcodeKey key, int fallbackCycles = 8)
-        => Opcodes.TryGet(key, out var definition)
-            ? checked((int)definition!.Execute(Registers, ExecutionContext).Cycles)
-            : fallbackCycles;
+    {
+        if (!Opcodes.TryGet(key, out var definition))
+            return fallbackCycles;
+
+        return ExecuteDefinition(definition!);
+    }
+
+    private int ExecuteDefinition(OpcodeDefinition<Z80Registers> definition)
+    {
+        SetCurrentOpcode(definition.Key, definition.Mnemonic);
+        return checked((int)definition.Execute(Registers, ExecutionContext).Cycles);
+    }
 
     private int Halt()
     {
@@ -691,7 +700,7 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
     {
         var opcode = FetchByte(true);
         return Opcodes.TryGet(new OpcodeKey(0xED, opcode), out var definition)
-            ? checked((int)definition!.Execute(Registers, ExecutionContext).Cycles)
+            ? ExecuteDefinition(definition!)
             : 8;
     }
 
@@ -1047,7 +1056,7 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
         {
             if (!Opcodes.TryGet(OpcodeKey.Base(acknowledgedOpcode), out var definition))
                 throw new NotSupportedException($"Unsupported IM 0 interrupt opcode 0x{acknowledgedOpcode:X2}.");
-            return checked((int)definition!.Execute(Registers, ExecutionContext).Cycles) + 2;
+            return ExecuteDefinition(definition!) + 2;
         }
 
         Push(Registers.PC);
