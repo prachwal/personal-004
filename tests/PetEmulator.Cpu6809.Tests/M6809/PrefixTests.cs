@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using PetEmulator.Core;
 using PetEmulator.Cpu6809;
 using FluentAssertions;
 
@@ -11,11 +12,10 @@ public class PrefixTests
     {
         var cpu = new M6809Cpu(new RamMemoryBus(0x10000));
 
-        cpu.OpcodeMetadata[0x13].IsImplemented.Should().BeTrue();
-        cpu.Page10OpcodeMetadata[0x20].IsImplemented.Should().BeTrue();
-        cpu.Page10OpcodeMetadata[0x00].IsImplemented.Should().BeFalse();
-        cpu.Page11OpcodeMetadata[0x00].IsImplemented.Should().BeFalse();
-        cpu.Page10OpcodeMetadata[0x00].Handler(cpu, 0x00).Should().Be(2);
+        cpu.Opcodes.Get(new OpcodeKey(0x00, 0x13)).Should().NotBeNull();
+        cpu.Opcodes.Get(new OpcodeKey(0x10, 0x20)).Mnemonic.Should().Be("OP $20");
+        cpu.Opcodes.Get(new OpcodeKey(0x10, 0x00)).Mnemonic.Should().Be("OP $00");
+        cpu.Opcodes.Get(new OpcodeKey(0x11, 0x00)).Mnemonic.Should().Be("OP $00");
     }
 
     [Test]

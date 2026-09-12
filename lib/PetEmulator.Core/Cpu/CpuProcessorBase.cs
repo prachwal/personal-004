@@ -42,12 +42,12 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
 
     public ulong CycleCount => Clock.CycleCount;
 
-    public ulong InstructionCount { get; private set; }
+    public ulong InstructionCount { get; protected set; }
 
     /// <summary>Optional debugger or monitoring integration.</summary>
     public ICpuExecutionObserver? ExecutionObserver { get; set; }
 
-    public void Reset()
+    public virtual void Reset()
     {
         State.Reset();
         Clock.Reset();
@@ -70,7 +70,7 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
     }
 
     /// <summary>Executes one lifecycle step and preserves the public IProcessor contract.</summary>
-    public void StepInstruction()
+    public virtual void StepInstruction()
     {
         var before = CaptureSnapshot();
         _currentOpcode = null;
@@ -116,7 +116,7 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
     {
     }
 
-    public IReadOnlyDictionary<string, ulong> GetRegisters()
+    public virtual IReadOnlyDictionary<string, ulong> GetRegisters()
         => State.GetRegisters();
 
     /// <summary>

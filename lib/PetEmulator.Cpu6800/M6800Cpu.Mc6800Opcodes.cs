@@ -5,85 +5,78 @@ namespace PetEmulator.Cpu6800;
 /// <summary>Concrete Motorola MC6800 processor with its own opcode map.</summary>
 public partial class M6800Cpu
 {
-    private Func<int>[] BuildOpcodeTable(out M6800OpcodeTable metadata)
+    private void BuildOpcodeTable()
     {
-        metadata = new M6800OpcodeTable();
-        var table = Enumerable.Repeat<Func<int>>(UnsupportedOpcode, 256).ToArray();
-
         for (byte opcode = 0; ; opcode++)
         {
-            metadata.Set(new M6800OpcodeDefinition(
-                opcode, $"OP ${opcode:X2}", M6800AddressingMode.Unknown, 1, 2,
-                (_, _) => 2, false));
+            Set(opcode, $"OP ${opcode:X2}", M6800AddressingMode.Unknown, 1, 2, UnsupportedOpcode);
             if (opcode == byte.MaxValue)
                 break;
         }
 
-        Set(table, metadata, 0x01, "NOP", M6800AddressingMode.Inherent, 1, 2, () => 2);
-        Set(table, metadata, 0x06, "TAP", M6800AddressingMode.Inherent, 1, 2, Tap);
-        Set(table, metadata, 0x07, "TPA", M6800AddressingMode.Inherent, 1, 2, Tpa);
-        Set(table, metadata, 0x08, "INX", M6800AddressingMode.Inherent, 1, 4, Inx);
-        Set(table, metadata, 0x09, "DEX", M6800AddressingMode.Inherent, 1, 4, Dex);
-        Set(table, metadata, 0x0A, "CLV", M6800AddressingMode.Inherent, 1, 2, () => SetFlag(v => v.V = false));
-        Set(table, metadata, 0x0B, "SEV", M6800AddressingMode.Inherent, 1, 2, () => SetFlag(v => v.V = true));
-        Set(table, metadata, 0x0C, "CLC", M6800AddressingMode.Inherent, 1, 2, () => SetFlag(v => v.C = false));
-        Set(table, metadata, 0x0D, "SEC", M6800AddressingMode.Inherent, 1, 2, () => SetFlag(v => v.C = true));
-        Set(table, metadata, 0x0E, "CLI", M6800AddressingMode.Inherent, 1, 2, () => SetFlag(v => v.I = false));
-        Set(table, metadata, 0x0F, "SEI", M6800AddressingMode.Inherent, 1, 2, () => SetFlag(v => v.I = true));
+        Set(0x01, "NOP", M6800AddressingMode.Inherent, 1, 2, () => 2);
+        Set(0x06, "TAP", M6800AddressingMode.Inherent, 1, 2, Tap);
+        Set(0x07, "TPA", M6800AddressingMode.Inherent, 1, 2, Tpa);
+        Set(0x08, "INX", M6800AddressingMode.Inherent, 1, 4, Inx);
+        Set(0x09, "DEX", M6800AddressingMode.Inherent, 1, 4, Dex);
+        Set(0x0A, "CLV", M6800AddressingMode.Inherent, 1, 2, () => SetFlag(v => v.V = false));
+        Set(0x0B, "SEV", M6800AddressingMode.Inherent, 1, 2, () => SetFlag(v => v.V = true));
+        Set(0x0C, "CLC", M6800AddressingMode.Inherent, 1, 2, () => SetFlag(v => v.C = false));
+        Set(0x0D, "SEC", M6800AddressingMode.Inherent, 1, 2, () => SetFlag(v => v.C = true));
+        Set(0x0E, "CLI", M6800AddressingMode.Inherent, 1, 2, () => SetFlag(v => v.I = false));
+        Set(0x0F, "SEI", M6800AddressingMode.Inherent, 1, 2, () => SetFlag(v => v.I = true));
 
-        Set(table, metadata, 0x10, "SBA", M6800AddressingMode.Inherent, 1, 2, Sba);
-        Set(table, metadata, 0x11, "CBA", M6800AddressingMode.Inherent, 1, 2, Cba);
-        Set(table, metadata, 0x16, "TAB", M6800AddressingMode.Inherent, 1, 2, Tab);
-        Set(table, metadata, 0x17, "TBA", M6800AddressingMode.Inherent, 1, 2, Tba);
-        Set(table, metadata, 0x19, "DAA", M6800AddressingMode.Inherent, 1, 2, Daa);
-        Set(table, metadata, 0x1B, "ABA", M6800AddressingMode.Inherent, 1, 2, Aba);
+        Set(0x10, "SBA", M6800AddressingMode.Inherent, 1, 2, Sba);
+        Set(0x11, "CBA", M6800AddressingMode.Inherent, 1, 2, Cba);
+        Set(0x16, "TAB", M6800AddressingMode.Inherent, 1, 2, Tab);
+        Set(0x17, "TBA", M6800AddressingMode.Inherent, 1, 2, Tba);
+        Set(0x19, "DAA", M6800AddressingMode.Inherent, 1, 2, Daa);
+        Set(0x1B, "ABA", M6800AddressingMode.Inherent, 1, 2, Aba);
 
-        SetBranches(table, metadata);
-        SetStackAndControl(table, metadata);
-        SetUnary(table, metadata);
-        SetAccumulatorOperations(table, metadata);
-        SetMemoryOperations(table, metadata);
-        SetIndexOperations(table, metadata);
-
-        return table;
+        SetBranches();
+        SetStackAndControl();
+        SetUnary();
+        SetAccumulatorOperations();
+        SetMemoryOperations();
+        SetIndexOperations();
     }
 
-    private void SetBranches(Func<int>[] table, M6800OpcodeTable metadata)
+    private void SetBranches()
     {
-        Set(table, metadata, 0x20, "BRA", M6800AddressingMode.Relative, 2, 4, () => Bra(Fetch()));
-        Set(table, metadata, 0x22, "BHI", M6800AddressingMode.Relative, 2, 4, () => Bhi(Fetch()));
-        Set(table, metadata, 0x23, "BLS", M6800AddressingMode.Relative, 2, 4, () => Bls(Fetch()));
-        Set(table, metadata, 0x24, "BCC", M6800AddressingMode.Relative, 2, 4, () => Bcc(Fetch()));
-        Set(table, metadata, 0x25, "BCS", M6800AddressingMode.Relative, 2, 4, () => Bcs(Fetch()));
-        Set(table, metadata, 0x26, "BNE", M6800AddressingMode.Relative, 2, 4, () => Bne(Fetch()));
-        Set(table, metadata, 0x27, "BEQ", M6800AddressingMode.Relative, 2, 4, () => Beq(Fetch()));
-        Set(table, metadata, 0x28, "BVC", M6800AddressingMode.Relative, 2, 4, () => Bvc(Fetch()));
-        Set(table, metadata, 0x29, "BVS", M6800AddressingMode.Relative, 2, 4, () => Bvs(Fetch()));
-        Set(table, metadata, 0x2A, "BPL", M6800AddressingMode.Relative, 2, 4, () => Bpl(Fetch()));
-        Set(table, metadata, 0x2B, "BMI", M6800AddressingMode.Relative, 2, 4, () => Bmi(Fetch()));
-        Set(table, metadata, 0x2C, "BGE", M6800AddressingMode.Relative, 2, 4, () => Bge(Fetch()));
-        Set(table, metadata, 0x2D, "BLT", M6800AddressingMode.Relative, 2, 4, () => Blt(Fetch()));
-        Set(table, metadata, 0x2E, "BGT", M6800AddressingMode.Relative, 2, 4, () => Bgt(Fetch()));
-        Set(table, metadata, 0x2F, "BLE", M6800AddressingMode.Relative, 2, 4, () => Ble(Fetch()));
+        Set(0x20, "BRA", M6800AddressingMode.Relative, 2, 4, () => Bra(Fetch()));
+        Set(0x22, "BHI", M6800AddressingMode.Relative, 2, 4, () => Bhi(Fetch()));
+        Set(0x23, "BLS", M6800AddressingMode.Relative, 2, 4, () => Bls(Fetch()));
+        Set(0x24, "BCC", M6800AddressingMode.Relative, 2, 4, () => Bcc(Fetch()));
+        Set(0x25, "BCS", M6800AddressingMode.Relative, 2, 4, () => Bcs(Fetch()));
+        Set(0x26, "BNE", M6800AddressingMode.Relative, 2, 4, () => Bne(Fetch()));
+        Set(0x27, "BEQ", M6800AddressingMode.Relative, 2, 4, () => Beq(Fetch()));
+        Set(0x28, "BVC", M6800AddressingMode.Relative, 2, 4, () => Bvc(Fetch()));
+        Set(0x29, "BVS", M6800AddressingMode.Relative, 2, 4, () => Bvs(Fetch()));
+        Set(0x2A, "BPL", M6800AddressingMode.Relative, 2, 4, () => Bpl(Fetch()));
+        Set(0x2B, "BMI", M6800AddressingMode.Relative, 2, 4, () => Bmi(Fetch()));
+        Set(0x2C, "BGE", M6800AddressingMode.Relative, 2, 4, () => Bge(Fetch()));
+        Set(0x2D, "BLT", M6800AddressingMode.Relative, 2, 4, () => Blt(Fetch()));
+        Set(0x2E, "BGT", M6800AddressingMode.Relative, 2, 4, () => Bgt(Fetch()));
+        Set(0x2F, "BLE", M6800AddressingMode.Relative, 2, 4, () => Ble(Fetch()));
     }
 
-    private void SetStackAndControl(Func<int>[] table, M6800OpcodeTable metadata)
+    private void SetStackAndControl()
     {
-        Set(table, metadata, 0x30, "TSX", M6800AddressingMode.Inherent, 1, 4, Tsx);
-        Set(table, metadata, 0x31, "INS", M6800AddressingMode.Inherent, 1, 4, () => { State.StackPointer++; return 4; });
-        Set(table, metadata, 0x32, "PULA", M6800AddressingMode.Inherent, 1, 4, () => { State.A = PopStack8(); return 4; });
-        Set(table, metadata, 0x33, "PULB", M6800AddressingMode.Inherent, 1, 4, () => { State.B = PopStack8(); return 4; });
-        Set(table, metadata, 0x34, "DES", M6800AddressingMode.Inherent, 1, 4, () => { State.StackPointer--; return 4; });
-        Set(table, metadata, 0x35, "TXS", M6800AddressingMode.Inherent, 1, 4, Txs);
-        Set(table, metadata, 0x36, "PSHA", M6800AddressingMode.Inherent, 1, 4, () => { PushStack8(State.A); return 4; });
-        Set(table, metadata, 0x37, "PSHB", M6800AddressingMode.Inherent, 1, 4, () => { PushStack8(State.B); return 4; });
-        Set(table, metadata, 0x39, "RTS", M6800AddressingMode.Inherent, 1, 5, Rts);
-        Set(table, metadata, 0x3B, "RTI", M6800AddressingMode.Inherent, 1, 10, Rti);
-        Set(table, metadata, 0x3E, "WAI", M6800AddressingMode.Inherent, 1, 9, Wai);
-        Set(table, metadata, 0x3F, "SWI", M6800AddressingMode.Inherent, 1, 12, Swi);
+        Set(0x30, "TSX", M6800AddressingMode.Inherent, 1, 4, Tsx);
+        Set(0x31, "INS", M6800AddressingMode.Inherent, 1, 4, () => { State.StackPointer++; return 4; });
+        Set(0x32, "PULA", M6800AddressingMode.Inherent, 1, 4, () => { State.A = PopStack8(); return 4; });
+        Set(0x33, "PULB", M6800AddressingMode.Inherent, 1, 4, () => { State.B = PopStack8(); return 4; });
+        Set(0x34, "DES", M6800AddressingMode.Inherent, 1, 4, () => { State.StackPointer--; return 4; });
+        Set(0x35, "TXS", M6800AddressingMode.Inherent, 1, 4, Txs);
+        Set(0x36, "PSHA", M6800AddressingMode.Inherent, 1, 4, () => { PushStack8(State.A); return 4; });
+        Set(0x37, "PSHB", M6800AddressingMode.Inherent, 1, 4, () => { PushStack8(State.B); return 4; });
+        Set(0x39, "RTS", M6800AddressingMode.Inherent, 1, 5, Rts);
+        Set(0x3B, "RTI", M6800AddressingMode.Inherent, 1, 10, Rti);
+        Set(0x3E, "WAI", M6800AddressingMode.Inherent, 1, 9, Wai);
+        Set(0x3F, "SWI", M6800AddressingMode.Inherent, 1, 12, Swi);
     }
 
-    private void SetUnary(Func<int>[] table, M6800OpcodeTable metadata)
+    private void SetUnary()
     {
         (byte op, string name, Func<int> action)[] accA =
         [
@@ -100,41 +93,41 @@ public partial class M6800Cpu
             (0x5D, "TSTB", TstB), (0x5F, "CLRB", ClrB),
         ];
         foreach (var item in accA.Concat(accB))
-            Set(table, metadata, item.op, item.name, M6800AddressingMode.Inherent, 1, 2, item.action);
+            Set(item.op, item.name, M6800AddressingMode.Inherent, 1, 2, item.action);
 
-        SetMemoryUnary(table, metadata, 0x00, "NEG", Neg);
-        SetMemoryUnary(table, metadata, 0x03, "COM", Com);
-        SetMemoryUnary(table, metadata, 0x04, "LSR", Lsr);
-        SetMemoryUnary(table, metadata, 0x06, "ROR", Ror);
-        SetMemoryUnary(table, metadata, 0x07, "ASR", Asr);
-        SetMemoryUnary(table, metadata, 0x08, "ASL", Asl);
-        SetMemoryUnary(table, metadata, 0x09, "ROL", Rol);
-        SetMemoryUnary(table, metadata, 0x0A, "DEC", Dec);
-        SetMemoryUnary(table, metadata, 0x0C, "INC", Inc);
-        SetMemoryUnary(table, metadata, 0x0D, "TST", Tst);
-        SetMemoryUnary(table, metadata, 0x0F, "CLR", Clr);
+        SetMemoryUnary(0x00, "NEG", Neg);
+        SetMemoryUnary(0x03, "COM", Com);
+        SetMemoryUnary(0x04, "LSR", Lsr);
+        SetMemoryUnary(0x06, "ROR", Ror);
+        SetMemoryUnary(0x07, "ASR", Asr);
+        SetMemoryUnary(0x08, "ASL", Asl);
+        SetMemoryUnary(0x09, "ROL", Rol);
+        SetMemoryUnary(0x0A, "DEC", Dec);
+        SetMemoryUnary(0x0C, "INC", Inc);
+        SetMemoryUnary(0x0D, "TST", Tst);
+        SetMemoryUnary(0x0F, "CLR", Clr);
     }
 
-    private void SetMemoryUnary(Func<int>[] table, M6800OpcodeTable metadata, byte opcode, string name, Func<ushort, int> action)
+    private void SetMemoryUnary(byte opcode, string name, Func<ushort, int> action)
     {
-        Set(table, metadata, opcode, name, M6800AddressingMode.Direct, 2, 6, () => action(FetchDirectAddress()));
-        Set(table, metadata, (byte)(opcode + 0x60), name, M6800AddressingMode.Indexed, 2, 6, () => action(FetchIndexed()));
-        Set(table, metadata, (byte)(opcode + 0x70), name, M6800AddressingMode.Extended, 3, 6, () => action(FetchExtended()));
+        Set(opcode, name, M6800AddressingMode.Direct, 2, 6, () => action(FetchDirectAddress()));
+        Set((byte)(opcode + 0x60), name, M6800AddressingMode.Indexed, 2, 6, () => action(FetchIndexed()));
+        Set((byte)(opcode + 0x70), name, M6800AddressingMode.Extended, 3, 6, () => action(FetchExtended()));
     }
 
-    private void SetAccumulatorOperations(Func<int>[] table, M6800OpcodeTable metadata)
+    private void SetAccumulatorOperations()
     {
-        SetAluGroup(table, metadata, 0x80, true, M6800AddressingMode.Immediate, 2);
-        SetAluGroup(table, metadata, 0x90, true, M6800AddressingMode.Direct, 3);
-        SetAluGroup(table, metadata, 0xA0, true, M6800AddressingMode.Indexed, 5);
-        SetAluGroup(table, metadata, 0xB0, true, M6800AddressingMode.Extended, 4);
-        SetAluGroup(table, metadata, 0xC0, false, M6800AddressingMode.Immediate, 2);
-        SetAluGroup(table, metadata, 0xD0, false, M6800AddressingMode.Direct, 3);
-        SetAluGroup(table, metadata, 0xE0, false, M6800AddressingMode.Indexed, 5);
-        SetAluGroup(table, metadata, 0xF0, false, M6800AddressingMode.Extended, 4);
+        SetAluGroup(0x80, true, M6800AddressingMode.Immediate, 2);
+        SetAluGroup(0x90, true, M6800AddressingMode.Direct, 3);
+        SetAluGroup(0xA0, true, M6800AddressingMode.Indexed, 5);
+        SetAluGroup(0xB0, true, M6800AddressingMode.Extended, 4);
+        SetAluGroup(0xC0, false, M6800AddressingMode.Immediate, 2);
+        SetAluGroup(0xD0, false, M6800AddressingMode.Direct, 3);
+        SetAluGroup(0xE0, false, M6800AddressingMode.Indexed, 5);
+        SetAluGroup(0xF0, false, M6800AddressingMode.Extended, 4);
     }
 
-    private void SetAluGroup(Func<int>[] table, M6800OpcodeTable metadata, byte start, bool registerA, M6800AddressingMode mode, byte cycles)
+    private void SetAluGroup(byte start, bool registerA, M6800AddressingMode mode, byte cycles)
     {
         Func<int> operand = mode switch
         {
@@ -154,7 +147,7 @@ public partial class M6800Cpu
             byte opcode = (byte)(start + offsets[i]);
             var index = i;
             Func<int> action = () => ExecuteAlu(index, registerA, operand()) + cycles - 2;
-            Set(table, metadata, opcode, names[i], mode, length, cycles, action);
+            Set(opcode, names[i], mode, length, cycles, action);
         }
     }
 
@@ -176,17 +169,17 @@ public partial class M6800Cpu
         };
     }
 
-    private void SetMemoryOperations(Func<int>[] table, M6800OpcodeTable metadata)
+    private void SetMemoryOperations()
     {
-        SetLoadStore(table, metadata, 0x96, true, M6800AddressingMode.Direct, 3, 3);
-        SetLoadStore(table, metadata, 0xA6, true, M6800AddressingMode.Indexed, 2, 5);
-        SetLoadStore(table, metadata, 0xB6, true, M6800AddressingMode.Extended, 3, 4);
-        SetLoadStore(table, metadata, 0xD6, false, M6800AddressingMode.Direct, 3, 3);
-        SetLoadStore(table, metadata, 0xE6, false, M6800AddressingMode.Indexed, 2, 5);
-        SetLoadStore(table, metadata, 0xF6, false, M6800AddressingMode.Extended, 3, 4);
+        SetLoadStore(0x96, true, M6800AddressingMode.Direct, 3, 3);
+        SetLoadStore(0xA6, true, M6800AddressingMode.Indexed, 2, 5);
+        SetLoadStore(0xB6, true, M6800AddressingMode.Extended, 3, 4);
+        SetLoadStore(0xD6, false, M6800AddressingMode.Direct, 3, 3);
+        SetLoadStore(0xE6, false, M6800AddressingMode.Indexed, 2, 5);
+        SetLoadStore(0xF6, false, M6800AddressingMode.Extended, 3, 4);
     }
 
-    private void SetLoadStore(Func<int>[] table, M6800OpcodeTable metadata, byte loadOpcode, bool registerA, M6800AddressingMode mode, byte length, byte cycles)
+    private void SetLoadStore(byte loadOpcode, bool registerA, M6800AddressingMode mode, byte length, byte cycles)
     {
         Func<ushort> address = mode switch
         {
@@ -195,29 +188,34 @@ public partial class M6800Cpu
             _ => FetchExtended,
         };
         string register = registerA ? "A" : "B";
-        Set(table, metadata, loadOpcode, $"LD{register}", mode, length, cycles, () => LoadAOrB(registerA, address(), cycles));
-        Set(table, metadata, (byte)(loadOpcode + 1), $"ST{register}", mode, length, cycles, () => StoreAOrB(registerA, address(), cycles));
+        Set(loadOpcode, $"LD{register}", mode, length, cycles, () => LoadAOrB(registerA, address(), cycles));
+        Set((byte)(loadOpcode + 1), $"ST{register}", mode, length, cycles, () => StoreAOrB(registerA, address(), cycles));
     }
 
-    private void SetIndexOperations(Func<int>[] table, M6800OpcodeTable metadata)
+    private void SetIndexOperations()
     {
-        Set(table, metadata, 0x8C, "CPX", M6800AddressingMode.Immediate, 3, 4, () => CmpX(Fetch16()));
-        Set(table, metadata, 0x9C, "CPX", M6800AddressingMode.Direct, 2, 5, () => CmpX(Ld16Direct()) + 1);
-        Set(table, metadata, 0xAC, "CPX", M6800AddressingMode.Indexed, 2, 6, () => CmpX(Ld16Indexed()) + 2);
-        Set(table, metadata, 0xBC, "CPX", M6800AddressingMode.Extended, 3, 6, () => CmpX(Ld16Extended()) + 2);
-        Set(table, metadata, 0xCE, "LDX", M6800AddressingMode.Immediate, 3, 3, () => LdxI(Fetch16()));
-        Set(table, metadata, 0xDE, "LDX", M6800AddressingMode.Direct, 2, 5, () => LoadX(FetchDirectAddress(), 5));
-        Set(table, metadata, 0xEE, "LDX", M6800AddressingMode.Indexed, 2, 6, () => LoadX(FetchIndexed(), 6));
-        Set(table, metadata, 0xFE, "LDX", M6800AddressingMode.Extended, 3, 6, () => LoadX(FetchExtended(), 6));
-        Set(table, metadata, 0xDF, "STX", M6800AddressingMode.Direct, 2, 5, () => StoreX(FetchDirectAddress(), 5));
-        Set(table, metadata, 0xEF, "STX", M6800AddressingMode.Indexed, 2, 6, () => StoreX(FetchIndexed(), 6));
-        Set(table, metadata, 0xFF, "STX", M6800AddressingMode.Extended, 3, 6, () => StoreX(FetchExtended(), 6));
+        Set(0x8C, "CPX", M6800AddressingMode.Immediate, 3, 4, () => CmpX(Fetch16()));
+        Set(0x9C, "CPX", M6800AddressingMode.Direct, 2, 5, () => CmpX(Ld16Direct()) + 1);
+        Set(0xAC, "CPX", M6800AddressingMode.Indexed, 2, 6, () => CmpX(Ld16Indexed()) + 2);
+        Set(0xBC, "CPX", M6800AddressingMode.Extended, 3, 6, () => CmpX(Ld16Extended()) + 2);
+        Set(0xCE, "LDX", M6800AddressingMode.Immediate, 3, 3, () => LdxI(Fetch16()));
+        Set(0xDE, "LDX", M6800AddressingMode.Direct, 2, 5, () => LoadX(FetchDirectAddress(), 5));
+        Set(0xEE, "LDX", M6800AddressingMode.Indexed, 2, 6, () => LoadX(FetchIndexed(), 6));
+        Set(0xFE, "LDX", M6800AddressingMode.Extended, 3, 6, () => LoadX(FetchExtended(), 6));
+        Set(0xDF, "STX", M6800AddressingMode.Direct, 2, 5, () => StoreX(FetchDirectAddress(), 5));
+        Set(0xEF, "STX", M6800AddressingMode.Indexed, 2, 6, () => StoreX(FetchIndexed(), 6));
+        Set(0xFF, "STX", M6800AddressingMode.Extended, 3, 6, () => StoreX(FetchExtended(), 6));
     }
 
-    private void Set(Func<int>[] table, M6800OpcodeTable metadata, byte opcode, string mnemonic, M6800AddressingMode mode, byte length, byte cycles, Func<int> action)
+    private void Set(byte opcode, string mnemonic, M6800AddressingMode mode, byte length, byte cycles, Func<int> action)
     {
-        table[opcode] = action;
-        metadata.Set(new M6800OpcodeDefinition(opcode, mnemonic, mode, length, cycles, (_, _) => action(), true));
+        Opcodes.Replace(new OpcodeDefinition<M6800State>(
+            OpcodeKey.Base(opcode),
+            mnemonic,
+            length,
+            cycles,
+            mode.ToString(),
+            (_, _) => CpuStepResult.Completed((ulong)action())));
     }
 
     private int UnsupportedOpcode() => 2;

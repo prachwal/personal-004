@@ -3,86 +3,44 @@ using PetEmulator.Core;
 namespace PetEmulator.Cpu6800;
 
 /// <summary>Base execution lifecycle for Motorola 6800-family processors.</summary>
-public partial class M6800Cpu : IProcessor, IDebuggableProcessor
+public partial class M6800Cpu : CpuProcessorBase<M6800State>
 {
-    protected readonly IMemoryBus Mmu;
-    private readonly IClock _clock;
-    // The compiled table is used by the concrete MC6800. Family variants can
-    // supply metadata instead and then dispatch through Opcodes below.
-    private readonly Func<int>[]? _defaultOpcodeTable;
-
-    public M6800OpcodeTable Opcodes { get; }
+    public new OpcodeTable<M6800State> Opcodes => base.Opcodes;
 
     /// <summary>Creates a concrete MC6800 CPU with its standard opcode table.</summary>
     public M6800Cpu(IMemoryBus memory)
-        : this(memory, new M6800State(), null)
+        : this(memory, new M6800State())
     {
     }
 
     /// <summary>
-    /// Initializes a 6800-family CPU. A null opcode table builds the standard
-    /// MC6800 dispatch table; a supplied table enables metadata-based dispatch
-    /// for derived processors such as MC6809.
+    /// Initializes a 6800-family CPU and registers the MC6800 opcode set in the
+    /// shared Core registry.
     /// </summary>
-    protected M6800Cpu(IMemoryBus memory, M6800State state, M6800OpcodeTable? opcodes)
+    protected M6800Cpu(IMemoryBus memory, M6800State state)
+        : base(state, memory)
     {
-        Mmu = memory ?? throw new ArgumentNullException(nameof(memory));
-        State = state ?? throw new ArgumentNullException(nameof(state));
-        _clock = new EmulationClock();
-        if (opcodes is null)
-            _defaultOpcodeTable = BuildOpcodeTable(out opcodes);
-        Opcodes = opcodes;
+        BuildOpcodeTable();
     }
 
-    public M6800State State { get; }
-    public ulong CycleCount => _clock.CycleCount;
-    public ulong InstructionCount { get; protected set; }
-    public bool Halted => State.Halted;
+    public new M6800State State => base.State;
+    protected IMemoryBus Mmu => Memory;
 
     protected virtual M6800Flags ConditionCodes => State.Flags;
 
-    public virtual IReadOnlyDictionary<string, ulong> GetRegisters() => new Dictionary<string, ulong>
-    {
-        ["PC"] = State.PC,
-        ["A"] = State.A,
-        ["B"] = State.B,
-        ["X"] = State.X,
-        ["SP"] = State.StackPointer,
-        ["P"] = State.Flags.ToByte(),
-    };
+    public override IReadOnlyDictionary<string, ulong> GetRegisters() => State.GetRegisters();
 
-    public virtual void Reset()
+    public override void Reset()
     {
-        State.Reset();
-        _clock.Reset();
-        InstructionCount = 0;
+        base.Reset();
         State.PC = Read16(0xFFFE);
     }
 
-    public virtual int Step()
+    public new virtual int Step()
     {
         var cyclesBefore = State.Cycles;
         StepInstruction();
         return checked((int)(State.Cycles - cyclesBefore));
-    }
-
-    public virtual void StepInstruction()
-    {
-        if (State.Halted)
-            return;
-
-        byte opcode = Fetch();
-        int cycles = ExecuteOpcode(opcode);
-        InstructionCount++;
-        AdvanceCycles(cycles);
-    }
-
-    public virtual void SetIRQ(bool active)
-    {
-    }
-
-    public virtual void SetNMI(bool active)
-    {
     }
 
     protected void AdvanceCycles(int cycles)
@@ -91,15 +49,57 @@ public partial class M6800Cpu : IProcessor, IDebuggableProcessor
             throw new ArgumentOutOfRangeException(nameof(cycles));
 
         State.Cycles += cycles;
-        _clock.Advance((ulong)cycles);
+        Clock.Advance((ulong)cycles);
     }
 
-    protected void ResetCycleClock() => _clock.Reset();
+    protected void ResetCycleClock() => Clock.Reset();
 
-    protected virtual int ExecuteOpcode(byte opcode) =>
-        _defaultOpcodeTable is not null
-            ? _defaultOpcodeTable[opcode]()
-            : Opcodes[opcode].Handler(this, opcode);
+    protected override bool TryHandleWait(out CpuStepResult result)
+    {
+        if (!State.Halted)
+        {
+            result = default;
+            return false;
+        }
+
+        result = CpuStepResult.Idle(0);
+        return true;
+    }
+
+    protected override CpuStepResult CompleteStep(CpuStepResult result)
+    {
+        var completed = base.CompleteStep(result);
+        State.Cycles += (long)result.Cycles;
+        return completed;
+    }
+
+    protected override OpcodeKey FetchOpcode() => OpcodeKey.Base(Fetch());
+
+    protected override OpcodeDefinition<M6800State> DecodeOpcode(OpcodeKey key)
+        => base.Opcodes.Get(key);
+
+    protected OpcodeDefinition<M6800State> GetCommonOpcode(OpcodeKey key)
+        => base.Opcodes.Get(key);
+
+    protected void RegisterOpcode(
+        OpcodeKey key,
+        string mnemonic,
+        byte length,
+        byte cycles,
+        string addressingMode,
+        Func<int> execute)
+    {
+        base.Opcodes.Replace(new OpcodeDefinition<M6800State>(
+            key,
+            mnemonic,
+            length,
+            cycles,
+            addressingMode,
+            (_, _) => CpuStepResult.Completed((ulong)execute())));
+    }
+
+    protected override CpuStepResult ExecuteOpcode(OpcodeDefinition<M6800State> definition)
+        => definition.Execute(State, ExecutionContext);
 
     public virtual byte FetchDirect()
     {

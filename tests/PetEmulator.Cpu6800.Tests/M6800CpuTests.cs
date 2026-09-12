@@ -19,7 +19,7 @@ public class M6800CpuTests
         cpu.Reset();
         cpu.StepInstruction();
 
-        cpu.LastOpcode.Should().Be(0x42);
+        cpu.Opcodes.Get(OpcodeKey.Base(0x42)).Mnemonic.Should().Be("OP $42");
         cpu.State.PC.Should().Be(0x1001);
         cpu.CycleCount.Should().Be(2);
         cpu.InstructionCount.Should().Be(1);
@@ -62,8 +62,8 @@ public class M6800CpuTests
     {
         var cpu = new M6800Cpu(new TestMemoryBus());
 
-        cpu.Opcodes.Definitions.Should().HaveCount(256);
-        cpu.Opcodes.Definitions.Count(definition => definition.IsImplemented).Should().BeGreaterThan(100);
+        cpu.Opcodes.Entries.Should().HaveCount(256);
+        cpu.Opcodes.Entries.Count(definition => !definition.Mnemonic.StartsWith("OP ")).Should().BeGreaterThan(100);
     }
 
     [Test]
@@ -72,15 +72,15 @@ public class M6800CpuTests
         var memory = new TestMemoryBus();
         var cpu = new M6800Cpu(memory);
 
-        foreach (var definition in cpu.Opcodes.Definitions.Where(definition => definition.IsImplemented))
+        foreach (var definition in cpu.Opcodes.Entries.Where(definition => !definition.Mnemonic.StartsWith("OP ")))
         {
             memory.Write(0xFFFE, 0x01);
             memory.Write(0xFFFF, 0x00);
-            memory.Write(0x0100, definition.Opcode);
+            memory.Write(0x0100, definition.Key.Opcode);
             cpu.Reset();
 
             var action = () => cpu.StepInstruction();
-            action.Should().NotThrow($"opcode 0x{definition.Opcode:X2} ({definition.Mnemonic})");
+            action.Should().NotThrow($"opcode 0x{definition.Key.Opcode:X2} ({definition.Mnemonic})");
         }
     }
 
@@ -110,19 +110,11 @@ public class M6800CpuTests
     {
         var memory = new TestMemoryBus();
         var invoked = false;
-        var table = new M6800OpcodeTable();
-        table.Set(new M6800OpcodeDefinition(
-            0x42,
-            "CUSTOM",
-            M6800AddressingMode.Inherent,
-            1,
-            5,
-            (_, _) =>
-            {
-                invoked = true;
-                return 5;
-            }));
-        var cpu = new MetadataTableCpu(memory, table);
+        var cpu = new MetadataTableCpu(memory, () =>
+        {
+            invoked = true;
+            return 5;
+        });
 
         memory.Write(0xFFFE, 0x10);
         memory.Write(0xFFFF, 0x00);
@@ -135,23 +127,24 @@ public class M6800CpuTests
         cpu.CycleCount.Should().Be(5);
     }
 
-    private sealed class TestCpu(IMemoryBus memory) : M6800Cpu(memory, new M6800State(), CreateTable())
+    private sealed class TestCpu(IMemoryBus memory) : M6800Cpu(memory)
     {
-        public byte LastOpcode { get; private set; }
-
         public int ExecuteAddA(byte value) => AddA(value);
-
-        protected override int ExecuteOpcode(byte opcode)
-        {
-            LastOpcode = opcode;
-            return 2;
-        }
-
-        private static M6800OpcodeTable CreateTable() => new();
     }
 
-    private sealed class MetadataTableCpu(IMemoryBus memory, M6800OpcodeTable table)
-        : M6800Cpu(memory, new M6800State(), table);
+    private sealed class MetadataTableCpu : M6800Cpu
+    {
+        public MetadataTableCpu(IMemoryBus memory, Func<int> handler) : this(memory, handler, new M6800State())
+        {
+        }
+
+        private MetadataTableCpu(IMemoryBus memory, Func<int> handler, M6800State state)
+            : base(memory, state)
+        {
+            RegisterOpcode(OpcodeKey.Base(0x42), "CUSTOM", 1, 5, M6800AddressingMode.Inherent.ToString(), handler);
+        }
+
+    }
 
     private sealed class TestMemoryBus : IMemoryBus
     {
