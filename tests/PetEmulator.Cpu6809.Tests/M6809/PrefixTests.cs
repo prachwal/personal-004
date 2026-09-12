@@ -7,6 +7,18 @@ namespace PetEmulator.Cpu6809.Tests.M6809;
 public class PrefixTests
 {
     [Test]
+    public void OpcodeMetadata_DistinguishesImplementedAndUnsupportedPrefixedEntries()
+    {
+        var cpu = new M6809Cpu(new RamMemoryBus(0x10000));
+
+        cpu.OpcodeMetadata[0x13].IsImplemented.Should().BeTrue();
+        cpu.Page10OpcodeMetadata[0x20].IsImplemented.Should().BeTrue();
+        cpu.Page10OpcodeMetadata[0x00].IsImplemented.Should().BeFalse();
+        cpu.Page11OpcodeMetadata[0x00].IsImplemented.Should().BeFalse();
+        cpu.Page10OpcodeMetadata[0x00].Handler(cpu, 0x00).Should().Be(2);
+    }
+
+    [Test]
     public void LBcc_Page10Prefix_LongBranchCarryClear_Taken()
     {
         var memory = new RamMemoryBus(0x10000);
