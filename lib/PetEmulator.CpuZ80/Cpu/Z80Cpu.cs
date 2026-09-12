@@ -1,18 +1,23 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using PetEmulator.Core;
 using PetEmulator.CpuZ80.Bus;
 using PetEmulator.CpuZ80.Interrupts;
 
 namespace PetEmulator.CpuZ80.Cpu;
 
-public partial class Z80Cpu
+public partial class Z80Cpu : IProcessor, IDebuggableProcessor
 {
     private readonly IBus bus;
     private readonly IInterruptLines interruptLines;
     private readonly IBusCycleObserver? cycleObserver;
     private readonly ILogger logger;
+    private readonly IClock clock;
     private readonly Dictionary<byte, Func<int>> opcodes = new();
     private readonly Dictionary<byte, Func<int>> edOpcodes = new();
+    private ulong instructionCount;
+    private bool coreIrq;
+    private bool coreNmi;
 
     /// <param name="logger">
     /// Optional per-instruction Trace source ("Core" category per the
@@ -20,12 +25,13 @@ public partial class Z80Cpu
     /// default <see cref="NullLogger"/> makes every call a no-op, so this
     /// costs nothing on the hot Step() path when nobody asked for it.
     /// </param>
-    public Z80Cpu(IBus bus, IInterruptLines interruptLines, IBusCycleObserver? cycleObserver = null, ILogger<Z80Cpu>? logger = null)
+    public Z80Cpu(IBus bus, IInterruptLines interruptLines, IBusCycleObserver? cycleObserver = null, ILogger<Z80Cpu>? logger = null, IClock? clock = null)
     {
         this.bus = bus;
         this.interruptLines = interruptLines;
         this.cycleObserver = cycleObserver;
         this.logger = logger ?? NullLogger<Z80Cpu>.Instance;
+        this.clock = clock ?? new EmulationClock();
         InitializeOpcodes();
         Reset();
     }
@@ -43,6 +49,8 @@ public partial class Z80Cpu
     public CpuHookCollection Hooks { get; } = new();
 
     public bool Halted { get; private set; }
+    public ulong CycleCount => clock.CycleCount;
+    public ulong InstructionCount => instructionCount;
     public bool Iff1 { get; private set; }
     public bool Iff2 { get; private set; }
     public byte InterruptMode { get; private set; } = 1;
@@ -63,7 +71,34 @@ public partial class Z80Cpu
         InterruptMode = 0;
         interruptDelay = 0;
         previousNmi = false;
+        instructionCount = 0;
+        coreIrq = false;
+        coreNmi = false;
+        clock.Reset();
     }
+
+    public void SetIRQ(bool active) => coreIrq = active;
+
+    public void SetNMI(bool active) => coreNmi = active;
+
+    public void StepInstruction() => Step();
+
+    public IReadOnlyDictionary<string, ulong> GetRegisters() => new Dictionary<string, ulong>
+    {
+        ["A"] = Registers.A, ["F"] = Registers.F,
+        ["B"] = Registers.B, ["C"] = Registers.C,
+        ["D"] = Registers.D, ["E"] = Registers.E,
+        ["H"] = Registers.H, ["L"] = Registers.L,
+        ["I"] = Registers.I, ["R"] = Registers.R,
+        ["PC"] = Registers.PC, ["SP"] = Registers.SP,
+        ["IX"] = Registers.IX, ["IY"] = Registers.IY,
+        ["AF"] = Registers.AF, ["BC"] = Registers.BC,
+        ["DE"] = Registers.DE, ["HL"] = Registers.HL,
+        ["AF'"] = Registers.AlternateAF, ["BC'"] = Registers.AlternateBC,
+        ["DE'"] = Registers.AlternateDE, ["HL'"] = Registers.AlternateHL,
+        ["IFF1"] = Iff1 ? 1UL : 0UL, ["IFF2"] = Iff2 ? 1UL : 0UL,
+        ["IM"] = InterruptMode
+    };
 
     public int Step()
     {
@@ -74,27 +109,27 @@ public partial class Z80Cpu
                 Hooks[i].RunIfMatched(this);
 
         if (interruptLines.WaitAsserted)
-            return 1; // frozen mid-bus-cycle, same as real hardware - no fetch, no execute, no NMI/INT service until whatever asserted WAIT releases it
+            return CompleteStep(1, false); // frozen mid-bus-cycle, same as real hardware - no fetch, no execute, no NMI/INT service until whatever asserted WAIT releases it
 
         traceMachineCycle = 0;
         traceTStates = 0;
         traceCycleLength = 0;
         traceStandaloneRefreshLength = 4;
-        var nmi = interruptLines.NmiAsserted;
+        var nmi = interruptLines.NmiAsserted || coreNmi;
         var nmiEdge = nmi && !previousNmi;
         previousNmi = nmi;
 
         if (nmiEdge)
-            return ServiceNmi();
+            return CompleteStep(ServiceNmi(), false);
 
-        if (interruptLines.IntAsserted && Iff1 && interruptDelay == 0)
-            return ServiceMaskableInterrupt();
+        if ((interruptLines.IntAsserted || coreIrq) && Iff1 && interruptDelay == 0)
+            return CompleteStep(ServiceMaskableInterrupt(), false);
 
         if (Halted)
         {
             traceStandaloneRefreshLength = 4;
             IncrementRefresh();
-            return 4;
+            return CompleteStep(4, false);
         }
 
         var opcode = FetchByte(true);
@@ -106,6 +141,14 @@ public partial class Z80Cpu
         var cycles = execute();
         if (interruptDelay > 0)
             interruptDelay--;
+        return CompleteStep(cycles, true);
+    }
+
+    private int CompleteStep(int cycles, bool instruction)
+    {
+        clock.Advance((ulong)cycles);
+        if (instruction)
+            instructionCount++;
         return cycles;
     }
 
