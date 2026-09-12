@@ -3,14 +3,14 @@ namespace PetEmulator.Cpu6800;
 /// <summary>Motorola 6800 condition-code register.</summary>
 public class M6800Flags
 {
-    public bool H { get; set; }
-    public bool I { get; set; }
-    public bool N { get; set; }
-    public bool Z { get; set; }
-    public bool V { get; set; }
-    public bool C { get; set; }
+    public virtual bool H { get; set; }
+    public virtual bool I { get; set; }
+    public virtual bool N { get; set; }
+    public virtual bool Z { get; set; }
+    public virtual bool V { get; set; }
+    public virtual bool C { get; set; }
 
-    public byte ToByte()
+    public virtual byte ToByte()
     {
         byte value = 0;
         if (H) value |= 0x20;
@@ -33,7 +33,7 @@ public class M6800Flags
             C = (value & 0x01) != 0,
         };
 
-    public void Reset()
+    public virtual void Reset()
     {
         H = false;
         I = true;

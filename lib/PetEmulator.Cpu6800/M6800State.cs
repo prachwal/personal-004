@@ -6,9 +6,9 @@ public class M6800State
     public byte A { get; set; }
     public byte B { get; set; }
     public ushort X { get; set; }
-    public ushort StackPointer { get; set; }
+    public virtual ushort StackPointer { get; set; }
     public ushort PC { get; set; }
-    public M6800Flags Flags { get; set; } = new();
+    public virtual M6800Flags Flags { get; set; } = new();
     public bool Halted { get; set; }
     public long Cycles { get; set; }
 
