@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             x:Class="PetEmulator.Desktop.Views.Controls.CartridgeControl"
+             x:DataType="viewModels:ICartridgeViewModel"
+             PointerPressed="OnPointerPressed">
+    <StackPanel Orientation="Horizontal" Spacing="4" ToolTip.Tip="VIC-20 cartridge">
+        <TextBlock Text="🧩" FontSize="14" Foreground="{Binding CartridgeIconBrush}" />
+        <TextBlock FontFamily="monospace"
+                   Foreground="{DynamicResource DeviceStatusTextBrush}"
+                   Text="{Binding CartridgeName}" />
+        <Button Content="⏏"
+                Padding="4,0"
+                Command="{Binding EjectCartridgeCommand}"
+                IsEnabled="{Binding CartridgeLoaded}"
+                ToolTip.Tip="Eject cartridge" />
+    </StackPanel>
+</UserControl>

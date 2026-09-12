@@ -7,7 +7,7 @@ namespace PetEmulator.Core;
 ///
 /// Moved here from PetEmulator.Pet.Devices.IPetDeviceStatus once a second machine (VIC-20)
 /// needed a shared per-machine device-status contract for the same Desktop status-bar view - see
-/// docs/vic20-desktop-plan.md.</summary>
+/// docs/desktop/multi-machine.md.</summary>
 public interface IDeviceStatus
 {
     /// <summary>Stable id for a GUI to key elements on (e.g. "datasette", "ieee488:8").</summary>

@@ -3,7 +3,7 @@ namespace PetEmulator.Vic20.Keyboard;
 /// <summary>Row/column for one VIC-20 keyboard key.
 ///
 /// Empirically discovered against the real emulated hardware, not ported from a reference
-/// implementation - see docs/vic20-rendering-fixes.md's keyboard investigation. An earlier
+/// implementation - see docs/vic20/rendering-fixes.md's keyboard investigation. An earlier
 /// version of this table (copied from cpu-vibe-001's VicHostKeyMap.LetterMap) was simply wrong:
 /// besides the real bugs it took to even get a key press to register at all (VIA1 vs VIA2,
 /// single-row vs OR-ed multi-row select - see Vic20Machine/Vic20KeyboardMatrix), the (row, col)

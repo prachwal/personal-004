@@ -7,7 +7,7 @@ namespace PetEmulator.Audio;
 /// (<c>libpulse-simple</c>) on a dedicated background thread.
 ///
 /// Chosen over SDL3's audio API for this repo's WSLg-only host, per prior-art gathered from
-/// personal-002/personal-003/proc-vibe-001 (see docs/audio-wsl-backend.md for the full writeup):
+/// personal-002/personal-003/proc-vibe-001 (see docs/desktop/audio-wsl-backend.md for the full writeup):
 /// SDL3's default driver probe silently picks pipewire on WSL (the distro ships a pipewire
 /// *client* lib with no pipewire server actually running), so a naive <c>SDL_Init</c> opens a
 /// device that plays into nothing - personal-002's Sdl3AudioSink only works around this with a

@@ -19,9 +19,9 @@ namespace PetEmulator.Cli;
 /// <remarks>
 /// Construction commands (<c>profile</c>/<c>roms</c>/<c>keymap</c>/<c>tape</c>/<c>disk</c>/
 /// <c>play</c>/<c>stop</c>/<c>eject</c>/<c>key</c>/<c>type</c>/<c>devices</c>/<c>status</c>/
-/// <c>trace-log</c>/<c>disk-stall-check</c>) live here, PET-specific
+/// <c>trace-log</c>/<c>superpet-diagnose</c>/<c>disk-stall-check</c>) live here, PET-specific
 /// (<c>trace-log</c>/<c>disk-stall-check</c> wrap <see cref="InstructionTracer"/>/
-/// <see cref="MachineExtensions.RunUntilOrStalled"/> - see docs/pet-debug-tools.md). Everything else
+/// <see cref="MachineExtensions.RunUntilOrStalled"/> - see docs/pet/debug-tools.md). Everything else
 /// (<c>trace</c>/<c>watch</c>/<c>watch-range</c>/<c>unwatch</c>/<c>break-cycle</c>/
 /// <c>break-instruction-count</c>/<c>dump</c>) is CPU-agnostic and already implemented once in
 /// <see cref="MachineDebugger"/> - this class delegates to it rather than duplicating it, once the
@@ -62,6 +62,7 @@ public sealed class PetDebuggerSession
                 "devices" => Devices(),
                 "status" => Status(),
                 "trace-log" => TraceLog(int.Parse(parts[1], CultureInfo.InvariantCulture), parts[2]),
+                "superpet-diagnose" => SuperPetDiagnose(parts.Length > 1 ? int.Parse(parts[1], CultureInfo.InvariantCulture) : 16),
                 "disk-stall-check" => DiskStallCheck(
                     ulong.Parse(parts[1], CultureInfo.InvariantCulture),
                     parts.Length > 2 ? ulong.Parse(parts[2], CultureInfo.InvariantCulture) : 50_000),
@@ -204,6 +205,9 @@ public sealed class PetDebuggerSession
 
         return $"trace written: {Path.GetFullPath(path)} ({count} instructions)";
     }
+
+    private string SuperPetDiagnose(int instructionCount) =>
+        EnsureMachine().DiagnoseSuperPet6809Startup(instructionCount).Render();
 
     /// <summary>Runs up to <paramref name="maxInstructions"/> instructions watching
     /// <see cref="PetMachine.IeeeByteTransferCount"/> for a plateau (<see cref="MachineExtensions.RunUntilOrStalled"/>)

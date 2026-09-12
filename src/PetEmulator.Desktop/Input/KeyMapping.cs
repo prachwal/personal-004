@@ -129,6 +129,10 @@ internal static class KeyMapping
         Key.OemPeriod => "Period",
         Key.OemQuestion => "Slash",
         Key.OemSemicolon => "Semicolon",
+        Key.Left => "Left",
+        Key.Right => "Right",
+        Key.Up => "Up",
+        Key.Down => "Down",
         _ => null
     };
 }

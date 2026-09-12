@@ -6,11 +6,9 @@
         x:Class="PetEmulator.Desktop.Views.MainWindow"
         x:Name="RootWindow"
         x:DataType="viewModels:MainWindowViewModel"
-         Title="{Binding CurrentModule.WindowTitle}"
+        Title="{Binding CurrentModule.WindowTitle}"
         Width="960" Height="640"
-        Background="{DynamicResource WindowBackgroundBrush}"
-        KeyDown="OnKeyDown"
-        KeyUp="OnKeyUp">
+        Background="{DynamicResource WindowBackgroundBrush}">
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
@@ -23,13 +21,30 @@
                 <Separator />
                 <MenuItem Header="E_xit" Command="{Binding ExitCommand}" />
             </MenuItem>
-             <!-- One flat list across every shell module (PET profiles + VIC-20 + Chip Tester) - see
-                  ModuleMenuEntry's doc comment. Picking an entry swaps CurrentModule wholesale;
-                  the ContentControl below picks which View to show purely from the new instance's
-                  concrete type. -->
+             <!-- Machine profiles are separate from developer/media tools. Picking an entry swaps
+                  CurrentModule wholesale; the ContentControl below picks which View to show purely
+                  from the new instance's concrete type. -->
              <MenuItem Header="_Machine" ItemsSource="{Binding ModuleChoices}">
                  <MenuItem.ItemTemplate>
                      <DataTemplate x:DataType="models:ModuleMenuEntry">
+                        <MenuItem Header="{Binding Label}"
+                                  Command="{Binding #RootWindow.((viewModels:MainWindowViewModel)DataContext).SwitchMachineCommand}"
+                                  CommandParameter="{Binding}"
+                                  ItemsSource="{Binding Children}">
+                            <MenuItem.ItemTemplate>
+                                <DataTemplate x:DataType="models:ModuleMenuEntry">
+                                    <MenuItem Header="{Binding Label}"
+                                              Command="{Binding #RootWindow.((viewModels:MainWindowViewModel)DataContext).SwitchMachineCommand}"
+                                              CommandParameter="{Binding}" />
+                                </DataTemplate>
+                            </MenuItem.ItemTemplate>
+                        </MenuItem>
+                    </DataTemplate>
+                </MenuItem.ItemTemplate>
+            </MenuItem>
+            <MenuItem Header="_Tools" ItemsSource="{Binding ToolChoices}">
+                <MenuItem.ItemTemplate>
+                    <DataTemplate x:DataType="models:ModuleMenuEntry">
                         <MenuItem Header="{Binding Label}"
                                   Command="{Binding #RootWindow.((viewModels:MainWindowViewModel)DataContext).SwitchMachineCommand}"
                                   CommandParameter="{Binding}" />

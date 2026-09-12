@@ -26,6 +26,34 @@ public sealed class Pet2001GraphicsKeyboardMapTests
         Assert.That(map.Translate("F13", HostKeyEventKind.Press), Is.Empty);
     }
 
+    [Test]
+    public void Cursor_keys_use_the_real_horizontal_and_vertical_cursor_keys()
+    {
+        var map = new Pet2001GraphicsKeyboardMap();
+
+        Assert.That(map.Translate("Left", HostKeyEventKind.Press), Is.EqualTo(new[] { new MatrixAction(0, 7, true) }));
+        Assert.That(map.Translate("Down", HostKeyEventKind.Press), Is.EqualTo(new[] { new MatrixAction(1, 6, true) }));
+        Assert.That(map.Translate("Right", HostKeyEventKind.Press), Is.EqualTo(new[]
+        {
+            new MatrixAction(8, 0, true), new MatrixAction(0, 7, true)
+        }));
+        Assert.That(map.Translate("Right", HostKeyEventKind.Release), Is.EqualTo(new[]
+        {
+            new MatrixAction(0, 7, false), new MatrixAction(8, 0, false)
+        }));
+    }
+
+    [Test]
+    public void Cursor_shift_is_not_released_while_host_shift_is_still_held()
+    {
+        var map = new Pet2001GraphicsKeyboardMap();
+
+        map.Translate("ShiftLeft", HostKeyEventKind.Press);
+        Assert.That(map.Translate("Up", HostKeyEventKind.Press), Is.EqualTo(new[] { new MatrixAction(1, 6, true) }));
+        Assert.That(map.Translate("Up", HostKeyEventKind.Release), Is.EqualTo(new[] { new MatrixAction(1, 6, false) }));
+        Assert.That(map.Translate("ShiftLeft", HostKeyEventKind.Release), Is.EqualTo(new[] { new MatrixAction(8, 0, false) }));
+    }
+
     // The centerpiece of the task: pressing '+' doesn't just press one cell, it also
     // force-releases both Shift matrix cells - proving one host key event yields a SEQUENCE.
     [TestCase("Equal")]

@@ -19,6 +19,7 @@ public sealed class Cbm8032KeyboardMap : IPetKeyboardMap
     public string Id => "pet-cbm-8032";
 
     private bool _shiftRightHeld;
+    private bool _shiftLeftHeld;
 
     private static readonly Dictionary<string, (int Row, int Column)> Table = new()
     {
@@ -47,6 +48,14 @@ public sealed class Cbm8032KeyboardMap : IPetKeyboardMap
             _shiftRightHeld = kind == HostKeyEventKind.Press;
             return [new MatrixAction(6, 6, _shiftRightHeld)];
         }
+
+        if (hostKey == "ShiftLeft")
+            _shiftLeftHeld = kind == HostKeyEventKind.Press;
+
+        var cursorActions = PetCursorKeyActions.Translate(
+            hostKey, kind, 6, 0, _shiftLeftHeld);
+        if (cursorActions is not null)
+            return cursorActions;
 
         if (PetKeyboardMapPrimitives.PlusKeys.Contains(hostKey))
         {

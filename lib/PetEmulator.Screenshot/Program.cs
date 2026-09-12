@@ -63,7 +63,7 @@ internal static class Program
             // simulation) - the SAME path a real OS keypress takes (focus -> bubble -> Window's
             // KeyDown/KeyUp handlers -> MainWindowViewModel.HandleKey), unlike calling
             // machine.Keyboard.Press directly. Built specifically to catch focus-routing bugs
-            // (see docs/vic20-rendering-fixes.md's keyboard-focus regression) that a direct-call
+            // (see docs/vic20/rendering-fixes.md's keyboard-focus regression) that a direct-call
             // test can't see.
             var direct = ArgValue(args, "--direct") is not null;
             foreach (var ch in typeText)

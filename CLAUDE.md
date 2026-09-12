@@ -51,6 +51,6 @@ Work touching `lib/PetEmulator.Cpu6502/` goes through dedicated subagents instea
 | Task | Agent |
 | --- | --- |
 | Implement/fix an opcode, migrate a family off the legacy big-switch, add a variant (65C02, 6510), touch flags/BCD/interrupts | `cpu6502-worker` (`.claude/agents/cpu6502-worker.md`) |
-| Review a CPU-core diff against `docs/architecture.md` before commit | `cpu6502-reviewer` (`.claude/agents/cpu6502-reviewer.md`) |
+| Review a CPU-core diff against `docs/architecture/overview.md` before commit | `cpu6502-reviewer` (`.claude/agents/cpu6502-reviewer.md`) |
 
 Both still obey the gitnexus gates above (impact before edit, detect_changes before commit, `UNKNOWN` risk = unresolved).

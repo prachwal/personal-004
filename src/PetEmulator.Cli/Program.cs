@@ -47,7 +47,7 @@ internal static class CliCommandFactory
         };
         var debug = new Command("debug",
             "Run a scripted PetDebuggerSession: profile/roms/tape/disk/key/type/devices/status, " +
-            "plus trace/watch/watch-range/unwatch/break-cycle/break-instruction-count/dump.");
+            "plus superpet-diagnose, trace/watch/watch-range/unwatch/break-cycle/break-instruction-count/dump.");
         debug.Arguments.Add(script);
         debug.SetAction((parseResult, _) => Task.FromResult(RunDebugScript(parseResult.GetValue(script))));
 
@@ -57,7 +57,7 @@ internal static class CliCommandFactory
             Arity = ArgumentArity.ZeroOrOne
         };
         var vic20Debug = new Command("vic20-debug",
-            "Run a scripted Vic20DebuggerSession: roms/key/type/status, plus trace/watch/" +
+            "Run a scripted Vic20DebuggerSession: roms/cartridge/cartridge-plugin/disk/key/type/status, plus trace/watch/" +
             "watch-range/unwatch/break-cycle/break-instruction-count/break-pc/dump.");
         vic20Debug.Arguments.Add(vic20Script);
         vic20Debug.SetAction((parseResult, _) => Task.FromResult(RunVic20DebugScript(parseResult.GetValue(vic20Script))));

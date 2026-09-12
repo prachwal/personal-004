@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><RootNamespace>PetEmulator.Vic20.Cartridge.Ram</RootNamespace><AssemblyName>PetEmulator.Vic20.Cartridge.Ram.24K</AssemblyName><DefineConstants>$(DefineConstants);VIC20_RAM_24K</DefineConstants></PropertyGroup>
+  <ItemGroup><Compile Include="../PetEmulator.Vic20.Cartridge.Ram/RamExpansionCartridgePlugin.cs" Link="RamExpansionCartridgePlugin.cs" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../lib/PetEmulator.Vic20.Cartridge.Abstractions/PetEmulator.Vic20.Cartridge.Abstractions.csproj" /></ItemGroup>
+</Project>

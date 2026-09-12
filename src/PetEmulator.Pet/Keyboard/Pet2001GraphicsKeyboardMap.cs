@@ -18,6 +18,9 @@ public sealed class Pet2001GraphicsKeyboardMap : IPetKeyboardMap
 {
     public string Id => "pet-2001-graphics";
 
+    private bool _shiftLeftHeld;
+    private bool _shiftRightHeld;
+
     private static readonly Dictionary<string, (int Row, int Column)> Table = new()
     {
         ["KeyA"] = (4, 0), ["KeyB"] = (6, 2), ["KeyC"] = (6, 1), ["KeyD"] = (4, 1), ["KeyE"] = (2, 1), ["KeyF"] = (5, 1),
@@ -37,6 +40,14 @@ public sealed class Pet2001GraphicsKeyboardMap : IPetKeyboardMap
 
     public IReadOnlyList<MatrixAction> Translate(string hostKey, HostKeyEventKind kind)
     {
+        if (hostKey == "ShiftLeft") _shiftLeftHeld = kind == HostKeyEventKind.Press;
+        if (hostKey == "ShiftRight") _shiftRightHeld = kind == HostKeyEventKind.Press;
+
+        var cursorActions = PetCursorKeyActions.Translate(
+            hostKey, kind, 8, 0, _shiftLeftHeld || _shiftRightHeld);
+        if (cursorActions is not null)
+            return cursorActions;
+
         if (PetKeyboardMapPrimitives.PlusKeys.Contains(hostKey))
             return PetKeyboardMapPrimitives.ForceReleaseShift(7, 7, kind);
         // Same fix as '+' above: on a modern keyboard '"' needs Shift+' held, but this cell

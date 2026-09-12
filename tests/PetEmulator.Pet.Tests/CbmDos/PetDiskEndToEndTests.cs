@@ -8,7 +8,7 @@ using PetEmulator.Pet.Tests.Roms;
 namespace PetEmulator.Pet.Tests.CbmDos;
 
 /// <summary>
-/// Layer 2 of this repo's disk-drive testing strategy (see docs/pet-disk-testing-strategy.md):
+/// Layer 2 of this repo's disk-drive testing strategy (see docs/pet/disk-testing-strategy.md):
 /// real KERNAL/BASIC commands typed through the keyboard matrix on a fully booted machine, not
 /// register pokes (that's <see cref="PetEmulator.Pet.Tests.PetMachineTests.PollDiskActivity_ReportsRealIeee488Traffic_ThenClearsUntilTheNextByte"/>,
 /// Layer 1) and not direct D64Image calls (that's <see cref="D64ImageTests"/>, Layer 0). Every
@@ -16,6 +16,7 @@ namespace PetEmulator.Pet.Tests.CbmDos;
 /// cross-check against a second, separately-loaded D64Image - never a peek into CbmDosEngine's
 /// own internals.
 /// </summary>
+[Explicit("Long-running real PET disk integration tests; run explicitly.")]
 public sealed class PetDiskEndToEndTests
 {
     private static readonly byte[] ReadyBytes = [0x12, 0x05, 0x01, 0x04, 0x19, 0x2E]; // "READY."
@@ -84,7 +85,7 @@ public sealed class PetDiskEndToEndTests
     /// to the host <c>.d64</c> file; re-opening this test's own disk file afterward would show it
     /// exactly as it was created, still empty. A real "New Disk" workflow (create, SAVE your
     /// programs, close the emulator, come back later) needs a flush-to-host-file mechanism this
-    /// codebase doesn't have yet - see docs/pet-disk-testing-strategy.md's note on this.</summary>
+    /// codebase doesn't have yet - see docs/pet/disk-testing-strategy.md's note on this.</summary>
     [Test]
     [CancelAfter(60_000)]
     public void SaveThenLoadRoundTripsARealProgramThroughARealDisk()

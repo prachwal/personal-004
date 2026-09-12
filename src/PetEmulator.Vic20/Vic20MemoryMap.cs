@@ -1,6 +1,6 @@
 namespace PetEmulator.Vic20;
 
-/// <summary>Real, unexpanded VIC-20 hardware addresses (see docs/vic20-migration-plan.md step 5 -
+/// <summary>Real, unexpanded VIC-20 hardware addresses (see docs/vic20/migration-plan.md step 5 -
 /// expansion-preset banking ($3K/$8K/$16K/$24K/All) deliberately out of scope for v1: an
 /// unexpanded machine boots BASIC and runs small programs exactly like real unexpanded
 /// hardware does).</summary>
@@ -22,6 +22,8 @@ public static class Vic20MemoryMap
     public const int Block3Size = 0x2000;
     public const ushort CartridgeStart = 0xA000;
     public const int CartridgeSize = 0x2000;
+    public const ushort Io2Start = 0x9800;
+    public const ushort Io3End = 0x9FFF;
 
     public const ushort CharRomStart = 0x8000;
 

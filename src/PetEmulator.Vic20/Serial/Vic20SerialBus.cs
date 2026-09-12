@@ -7,7 +7,7 @@ namespace PetEmulator.Vic20.Serial;
 /// Detail="0x24 written (command)"). Mirrors <see cref="PetIeeeBus.Activity"/>'s shape (same
 /// observability need: a future debug surface, or - the reason this was added - correlating live
 /// bus behavior with real KERNAL PC during real-CPU-timing bug hunts that idealized
-/// Tick()-sequenced unit tests can't reproduce; see docs/vic20-disk.md's IEC debugging notes).</summary>
+/// Tick()-sequenced unit tests can't reproduce; see docs/vic20/disk.md's IEC debugging notes).</summary>
 public readonly record struct Vic20SerialActivity(string Kind, string Detail);
 
 /// <summary>
@@ -50,7 +50,7 @@ public sealed class Vic20SerialBus
     // bound to this VIC-side constant - reusing it here was a plausible-looking but unverified
     // guess, not a disassembly-sourced requirement for this direction.
     //
-    // Root-caused by instruction-level + Activity-correlated tracing (see docs/vic20-disk.md):
+    // Root-caused by instruction-level + Activity-correlated tracing (see docs/vic20/disk.md):
     // with this at 26, a live LOAD"$",8 run desyncs mid-transfer - the CPU permanently parks in
     // LAB_EF66 (wait CLK low) on one byte while the bus's own byte-dequeue counter shows the
     // *device* has already raced ahead and popped the next byte(s), because each bit's CLK/DATA
@@ -71,7 +71,7 @@ public sealed class Vic20SerialBus
     // there (JSR SERGET; LSR; BCS loop) costs ~24 CPU cycles per iteration - a 26-cycle pulse is
     // barely one iteration wide and can fall entirely between two samples, so the KERNAL's own
     // polling never observes it and LAB_EE60 spins forever. Confirmed by instruction-level tracing
-    // (see docs/vic20-disk.md's IEC debugging notes) - widened to comfortably outlast one polling
+    // (see docs/vic20/disk.md's IEC debugging notes) - widened to comfortably outlast one polling
     // iteration with margin, independent of the unrelated bit-transmission timing constant above.
     private const int EoiAcknowledgePulseCycles = 100;
     // Real IEC protocol: right after ATN releases with a device addressed as talker, that device
@@ -80,7 +80,7 @@ public sealed class Vic20SerialBus
     // before the later per-byte ready handshake FACPTR itself implements (LAB_EF21 onward, which
     // starts by releasing CLK again). Same polling-loop-width reasoning as EoiAcknowledgePulseCycles.
     private const int TalkerAcknowledgePulseCycles = 100;
-    // Real KERNAL bug found by instruction-level tracing on a real CPU run (see docs/vic20-disk.md
+    // Real KERNAL bug found by instruction-level tracing on a real CPU run (see docs/vic20/disk.md
     // IEC debugging notes): FACPTR's bit-receive loop is LAB_EF58 (wait CLK high, sample bit) then
     // unconditionally LAB_EF66 (wait CLK low) BEFORE checking "8 bits done yet" - this wait-for-low
     // happens after EVERY bit, including the 8th/last one. Releasing CLK after bit 8 and stopping

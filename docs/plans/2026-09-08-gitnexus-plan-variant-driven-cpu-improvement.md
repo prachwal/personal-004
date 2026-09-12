@@ -117,7 +117,7 @@ implementation_context:
       canonicalization: "gitnexus-evidence-provenance-v2 NUL-framed UTF-8 records"
       value: "0b82774590462b01090e22128fa29585f5c9606fea1a484e9507e2b02da43763"
     cited_path_manifest:
-      - {path: "docs/architecture.md", state: staged, head_digest: absent, index_digest: "sha256:fa157244194d339788f30182477018aed9669a36426fe5e84e20593338df532a", worktree_digest: "sha256:fa157244194d339788f30182477018aed9669a36426fe5e84e20593338df532a"}
+      - {path: "docs/architecture/overview.md", state: staged, head_digest: absent, index_digest: "sha256:fa157244194d339788f30182477018aed9669a36426fe5e84e20593338df532a", worktree_digest: "sha256:fa157244194d339788f30182477018aed9669a36426fe5e84e20593338df532a"}
       - {path: "lib/PetEmulator.Cpu6502/Cpu6502Classic.cs", state: staged, head_digest: absent, index_digest: "sha256:9eba9d9057d88084df5393486dbec1924373226d16e4ad3b02fcdc3862b86c65", worktree_digest: "sha256:9eba9d9057d88084df5393486dbec1924373226d16e4ad3b02fcdc3862b86c65"}
       - {path: "lib/PetEmulator.Cpu6502/Cpu6502Nes.cs", state: staged, head_digest: absent, index_digest: "sha256:d87e1a06f917405992a43afd6923077c2d6d4ec2fdf893bd4ed2b537602c9900", worktree_digest: "sha256:d87e1a06f917405992a43afd6923077c2d6d4ec2fdf893bd4ed2b537602c9900"}
       - {path: "lib/PetEmulator.Cpu6502/Processor/Cpu6502.CycleStepped.Core.cs", state: staged, head_digest: absent, index_digest: "sha256:e2515222857f155c628fdbede199b90426b9d1cdcdec48fbfcfe3d345901511b", worktree_digest: "sha256:e2515222857f155c628fdbede199b90426b9d1cdcdec48fbfcfe3d345901511b"}

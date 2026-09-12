@@ -163,7 +163,7 @@ public sealed class PetIeeeBus
     /// <summary>Cycles a talker/listener settle delay ticks down before releasing a handshake line
     /// or pre-fetching the next byte (see <see cref="ArmWriteAck"/> and <see cref="OnDioRead"/>/
     /// <see cref="Tick"/>). Was 32 - too short: traced with <see cref="PetEmulator.Pet.PetMachine.BusObserver"/>
-    /// against a real multi-hundred-byte LOAD (see docs/pet-disk-testing-strategy.md), the
+    /// against a real multi-hundred-byte LOAD (see docs/pet/disk-testing-strategy.md), the
     /// periodic ~60Hz keyboard-scan IRQ takes ~550-600 instructions (>1,000 cycles) to run, comfortably
     /// outlasting a 32-cycle window; this let the read side silently pre-fetch and re-assert DAV
     /// for the *next* byte while the KERNAL's read-wait loop was still parked inside that ISR,

@@ -31,7 +31,13 @@ public sealed class MT6520Tests
     public void UsesPortBindingsForInputAndOutputLatchWrites()
     {
         var writes = new List<byte>();
-        var pia = new MT6520 { PortAInput = () => 0x0F, PortAWritten = writes.Add };
+        var reads = 0;
+        var pia = new MT6520
+        {
+            PortAInput = () => 0x0F,
+            PortAWritten = writes.Add,
+            PortARead = () => reads++
+        };
 
         pia.Write(0, 0xF0);
         pia.Write(1, 0x04);
@@ -40,6 +46,7 @@ public sealed class MT6520Tests
         writes.Should().Equal(0xA5);
         pia.ORA.Should().Be(0xA5);
         pia.Read(0).Should().Be(0xAF);
+        reads.Should().Be(1);
     }
 
     [Test]
@@ -174,6 +181,167 @@ public sealed class MT6520Tests
         var pia = new MT6520();
 
         pia.Name.Should().Be("PIA");
+        pia.Length.Should().Be(4);
+        pia.IsCb2Output.Should().BeFalse();
+        pia.HasInterrupt.Should().BeFalse();
+    }
+
+    [Test]
+    public void RejectsAddressesOutsideTheFourRegisterWindow()
+    {
+        var pia = new MT6520("PIA", 0x1000);
+
+        var read = () => pia.Read(0x0FFF);
+        var write = () => pia.Write(0x1004, 0);
+
+        read.Should().Throw<ArgumentOutOfRangeException>();
+        write.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Test]
+    public void UsesPortBDataCallbacksAndDirectionRegister()
+    {
+        var written = new List<byte>();
+        var readCount = 0;
+        var pia = new MT6520
+        {
+            PortBInput = () => 0x0F,
+            PortBWritten = written.Add,
+            PortBRead = () => readCount++
+        };
+
+        pia.Write(2, 0xF0);
+        pia.Read(2).Should().Be(0xF0);
+        pia.Write(3, 0x04);
+        pia.Write(2, 0xA5);
+
+        pia.Read(2).Should().Be(0xAF);
+        written.Should().Equal(0xA5);
+        readCount.Should().Be(1);
+    }
+
+    [Test]
+    public void ReportsControlWritesAndMasksUnsupportedBits()
+    {
+        var controlA = new List<byte>();
+        var controlB = new List<byte>();
+        var pia = new MT6520
+        {
+            ControlAWritten = controlA.Add,
+            ControlBWritten = controlB.Add
+        };
+
+        pia.Write(1, 0xFF);
+        pia.Write(3, 0xFF);
+
+        controlA.Should().Equal(0x3F);
+        controlB.Should().Equal(0x3F);
+        pia.Read(1).Should().Be(0x3F);
+        pia.Read(3).Should().Be(0x3F);
+        pia.IsCb2Output.Should().BeTrue();
+    }
+
+    [Test]
+    public void PortBDataSelectionCanBeOverridden()
+    {
+        var pia = new MT6520
+        {
+            SelectPortBDataRegister = control => control == 0x30
+        };
+
+        pia.Write(3, 0x30);
+        pia.Write(2, 0x5A);
+
+        pia.DDRB.Should().Be(0);
+        pia.ORB.Should().Be(0x5A);
+        pia.Read(2).Should().Be(0);
+    }
+
+    [Test]
+    public void InputControlLinesIgnoreWritesWhileConfiguredAsOutputs()
+    {
+        var pia = new MT6520();
+
+        pia.Write(1, 0x20);
+        pia.CA2 = true;
+        pia.CA2.Should().BeTrue();
+
+        pia.Write(3, 0x20);
+        pia.CB2 = true;
+        pia.CB2.Should().BeTrue();
+        pia.IRQA.Should().BeFalse();
+        pia.IRQB.Should().BeFalse();
+    }
+
+    [Test]
+    public void ControlTwoInputFlagDoesNotRaiseIrqWhenItsMaskIsDisabled()
+    {
+        var pia = new MT6520();
+
+        pia.Write(1, 0x14); // CA2 rising edge, input interrupt disabled.
+        pia.CA2 = true;
+
+        (pia.Read(1) & 0x40).Should().Be(0x40);
+        pia.IRQA.Should().BeFalse();
+
+        pia.Reset();
+        pia.Write(1, 0x1C);
+        pia.CA2 = true;
+        pia.Write(1, 0x20); // Preserve the flag while changing CA2 to output mode.
+        pia.IRQA.Should().BeFalse();
+    }
+
+    [Test]
+    public void RepeatedControlLevelsDoNotCreateEdgesOrRestoreOutputs()
+    {
+        var ca2Changes = new List<bool>();
+        var cb2Changes = new List<bool>();
+        var pia = new MT6520
+        {
+            Ca2OutputChanged = ca2Changes.Add,
+            Cb2OutputChanged = cb2Changes.Add
+        };
+
+        pia.Write(1, 0x27);
+        pia.CA1 = false;
+        pia.CA1 = true;
+        pia.CA1 = true;
+        pia.Write(3, 0x27);
+        ca2Changes.Clear();
+        cb2Changes.Clear();
+        pia.CB1 = false;
+        pia.CB1 = true;
+        pia.CB1 = true;
+
+        ca2Changes.Should().BeEmpty();
+        cb2Changes.Should().BeEmpty();
+        pia.IRQA.Should().BeTrue();
+        pia.IRQB.Should().BeTrue();
+    }
+
+    [Test]
+    public void NotifiesOutputTransitionsAndHandlesPartialPulseTicks()
+    {
+        var ca2Changes = new List<bool>();
+        var cb2Changes = new List<bool>();
+        var pia = new MT6520
+        {
+            PortAInput = () => 0,
+            Ca2OutputChanged = ca2Changes.Add,
+            Cb2OutputChanged = cb2Changes.Add
+        };
+
+        pia.Write(1, 0x2C);
+        pia.Write(3, 0x2C);
+        pia.Read(0);
+        pia.Write(2, 0x55);
+        pia.Tick(0);
+        pia.CA2.Should().BeFalse();
+        pia.CB2.Should().BeFalse();
+        pia.Tick(1);
+
+        ca2Changes.Should().Equal(true, false, true);
+        cb2Changes.Should().Equal(true, false, true);
     }
 
     [Test]

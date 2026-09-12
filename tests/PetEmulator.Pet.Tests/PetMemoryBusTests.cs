@@ -43,6 +43,20 @@ public sealed class PetMemoryBusTests
         bus.Read(0x3000).Should().Be(0xFF);
     }
 
+    [TestCase((ushort)0xE800)]
+    [TestCase((ushort)0xE830)]
+    [TestCase((ushort)0xE850)]
+    [TestCase((ushort)0xE890)]
+    public void UnmappedPeripheralAddress_ReadsAsOpenBus(ushort address)
+    {
+        var bus = CreateBus(PetProfileCatalog.Pet2001_8, out _, out _, out _, out _);
+
+        bus.Read(address).Should().Be(0xFF);
+
+        bus.Write(address, 0x42);
+        bus.Read(address).Should().Be(0xFF, "unmapped writes must have no effect");
+    }
+
     [Test]
     public void Rom_ReadsLoadedBytes_AndIsReadOnly()
     {
@@ -119,6 +133,70 @@ public sealed class PetMemoryBusTests
         crtc.Should().BeNull();
 
         bus.Read(PetMemoryBus.CrtcBase).Should().Be(0xFF);
+    }
+
+    [Test]
+    public void Cbm8296_ExpansionSwitchesTheSelected16KiBBank()
+    {
+        var bus = CreateBus(PetProfileCatalog.Cbm8296, out _, out _, out _, out _);
+
+        bus.Write(0xFFF0, PetMemoryExpansion.Enabled);
+        bus.Write(0x8000, 0x11);
+        bus.Write(0xFFF0, (byte)(PetMemoryExpansion.Enabled | 0x04));
+        bus.Write(0x8000, 0x22);
+
+        bus.Write(0xFFF0, PetMemoryExpansion.Enabled);
+        bus.Read(0x8000).Should().Be(0x11);
+        bus.Write(0xFFF0, (byte)(PetMemoryExpansion.Enabled | 0x04));
+        bus.Read(0x8000).Should().Be(0x22);
+    }
+
+    [Test]
+    public void Cbm8296_ExpansionWriteProtectsBothWindows_AndControlRegisterIsWriteOnly()
+    {
+        var bus = CreateBus(PetProfileCatalog.Cbm8296, out _, out _, out _, out _);
+
+        bus.Write(0xFFF0, (byte)(PetMemoryExpansion.Enabled | PetMemoryExpansion.LowerWriteProtect));
+        bus.Write(0x8000, 0x55);
+
+        bus.Read(0x8000).Should().Be(0x00);
+        bus.Read(0xFFF0).Should().Be(0xFF);
+        bus.ExpansionControl.Should().Be((byte)(PetMemoryExpansion.Enabled | PetMemoryExpansion.LowerWriteProtect));
+    }
+
+    [Test]
+    public void Cbm8296_PeekThroughRestoresMainScreenAndIoInsteadOfExpansionRam()
+    {
+        var bus = CreateBus(PetProfileCatalog.Cbm8296, out var pia1, out _, out _, out _);
+
+        bus.Write(0xFFF0, (byte)(PetMemoryExpansion.Enabled | PetMemoryExpansion.IoPeekThrough));
+        bus.Write(0xE810, 0xFF);
+        bus.Write(0xE811, 0x04);
+        bus.Write(0xE810, 0x22);
+        bus.Write(0xFFF0, PetMemoryExpansion.Enabled);
+        bus.Write(0x8000, 0x11);
+
+        bus.Write(0xFFF0, (byte)(PetMemoryExpansion.Enabled | PetMemoryExpansion.ScreenPeekThrough | PetMemoryExpansion.IoPeekThrough));
+        bus.Write(0x8000, 0x33);
+        bus.Read(0x8000).Should().Be(0x33);
+        pia1.ORA.Should().Be(0x22);
+        bus.Read(0xE810).Should().Be(0x22);
+    }
+
+    [Test]
+    public void Cbm8296_ExpansionWindowCanExposeAddressThatIsRomWhenDisabled()
+    {
+        var requirement = new PetRomRequirement("test.bin", 0xF000, 1);
+        var bus = CreateBus(PetProfileCatalog.Cbm8296, out _, out _, out _, out _, [new PetRomImage(requirement, [0x42])]);
+
+        bus.Read(0xF000).Should().Be(0x42);
+        bus.Write(0xFFF0, (byte)(PetMemoryExpansion.Enabled | PetMemoryExpansion.UpperWriteProtect));
+        bus.Write(0xF000, 0x99);
+        bus.Read(0xF000).Should().Be(0x00, "the protected expansion bank shadows the ROM and rejects writes");
+
+        bus.Write(0xFFF0, PetMemoryExpansion.Enabled);
+        bus.Write(0xF000, 0x99);
+        bus.Read(0xF000).Should().Be(0x99);
     }
 
     private static PetMemoryBus CreateBus(

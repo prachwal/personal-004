@@ -6,7 +6,7 @@ using PetEmulator.Vic20.Keyboard;
 
 namespace PetEmulator.Vic20.Tests;
 
-/// <summary>Layer 2 (see docs/vic20-migration-plan.md step 12): real BASIC direct-mode command
+/// <summary>Layer 2 (see docs/vic20/migration-plan.md step 12): real BASIC direct-mode command
 /// typed through the real keyboard matrix on a fully booted machine - not a register poke.</summary>
 public sealed class Vic20KeyboardBootTests
 {
@@ -19,7 +19,7 @@ public sealed class Vic20KeyboardBootTests
         // (this repo's own first version of this test made exactly that mistake, checking for
         // the literal digit in "PRINT5" - it stayed green through a real bug where Enter was
         // wired to CRSR-DOWN and never executed a single typed line - see
-        // docs/vic20-rendering-fixes.md's Enter investigation). '4' cannot appear from echoing
+        // docs/vic20/rendering-fixes.md's Enter investigation). '4' cannot appear from echoing
         // the typed characters alone - only real execution proves it.
         var machine = new Vic20Machine(RomsRoot());
         machine.RunUntil(_ => HasScreenText(machine), 2_000_000).Should().BeTrue("must boot first");

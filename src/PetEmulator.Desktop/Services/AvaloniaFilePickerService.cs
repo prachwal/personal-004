@@ -7,12 +7,12 @@ public sealed class AvaloniaFilePickerService(Window window) : IFilePickerServic
 {
     public async Task<string?> PickTapeToOpenAsync()
     {
-        return await PickOpenFileAsync("Load tape", "Tape images", "*.tap");
+        return await PickOpenFileAsync("Load tape", "Tape images", ["*.tap"]);
     }
 
     public async Task<string?> PickDiskToOpenAsync()
     {
-        return await PickOpenFileAsync("Load disk", "Disk images", "*.d64");
+        return await PickOpenFileAsync("Load disk", "Disk images", ["*.d64"]);
     }
 
     public async Task<string?> PickDiskToSaveAsync()
@@ -26,13 +26,19 @@ public sealed class AvaloniaFilePickerService(Window window) : IFilePickerServic
         return file?.Path.LocalPath;
     }
 
-    private async Task<string?> PickOpenFileAsync(string title, string filterName, string pattern)
+    public async Task<string?> PickCartridgeToOpenAsync() =>
+        await PickOpenFileAsync("Load VIC-20 cartridge", "VIC-20 cartridge images", ["*.bin", "*.crt", "*.prg"]);
+
+    public async Task<string?> PickCartridgePluginToOpenAsync() =>
+        await PickOpenFileAsync("Load VIC-20 cartridge plugin", "Cartridge plugins", ["*.dll"]);
+
+    private async Task<string?> PickOpenFileAsync(string title, string filterName, IReadOnlyList<string> patterns)
     {
         IReadOnlyList<IStorageFile> files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = title,
             AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType(filterName) { Patterns = [pattern] }]
+            FileTypeFilter = [new FilePickerFileType(filterName) { Patterns = patterns }]
         });
         return files.Count == 0 ? null : files[0].Path.LocalPath;
     }

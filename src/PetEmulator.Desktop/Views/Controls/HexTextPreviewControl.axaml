@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
+             x:Class="PetEmulator.Desktop.Views.Controls.HexTextPreviewControl"
+             x:DataType="controls:HexTextPreviewControl"
+             x:Name="Root"
+             Background="#FF101010">
+    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+        <ItemsControl ItemsSource="{Binding Lines, ElementName=Root}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="controls:HexTextLine">
+                    <TextBlock FontFamily="monospace"
+                               Text="{Binding Display}"
+                               Margin="4,1" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </ScrollViewer>
+</UserControl>

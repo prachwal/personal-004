@@ -6,8 +6,8 @@ using PetEmulator.Vic20.Keyboard;
 
 namespace PetEmulator.Vic20.Tests.Keyboard;
 
-/// <summary>Layer 0 (see docs/vic20-migration-plan.md step 12) for the matrix itself - covers the
-/// real bug docs/vic20-rendering-fixes.md's keyboard investigation found: the KERNAL's own
+/// <summary>Layer 0 (see docs/vic20/migration-plan.md step 12) for the matrix itself - covers the
+/// real bug docs/vic20/rendering-fixes.md's keyboard investigation found: the KERNAL's own
 /// "is anything pressed at all" fast path asserts ALL EIGHT rows simultaneously (real
 /// open-collector wire-OR hardware behavior), not one row at a time.</summary>
 public sealed class Vic20KeyboardMatrixTests
@@ -78,7 +78,7 @@ public sealed class Vic20KeyboardMatrixTests
     public void Vic20HostKeyMap_MatchesTheEmpiricallyVerifiedRealMatrix(char ch, int expectedRow, int expectedCol)
     {
         // Spot-checks a few entries against the full 64-cell scan recorded in
-        // docs/vic20-rendering-fixes.md - the table this repo shipped before that investigation
+        // docs/vic20/rendering-fixes.md - the table this repo shipped before that investigation
         // (ported from a reference project) had every one of these wrong.
         Vic20HostKeyMap.Find(ch).Should().Be((expectedRow, expectedCol));
     }

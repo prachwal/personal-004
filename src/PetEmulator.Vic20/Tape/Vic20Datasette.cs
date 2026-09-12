@@ -7,7 +7,7 @@ namespace PetEmulator.Vic20.Tape;
 /// handled at a higher level (<see cref="Vic20Machine"/> snapshots the real KERNAL's own header
 /// buffer and program bytes once it detects a real SAVE dispatch, then hands the encoded result
 /// straight to <see cref="LoadTape"/> - see <c>Vic20Machine</c>'s doc comment and
-/// docs/vic20-tape.md's "Write (SAVE)" section for why: this class's first pass tried a literal
+/// docs/vic20/tape.md's "Write (SAVE)" section for why: this class's first pass tried a literal
 /// analog capture of VIA2 PB3's real write pulses, which genuinely worked at the wiring level but
 /// never reliably round-tripped back through LOAD - real emulated interrupt-dispatch jitter on
 /// each individual bit-toggle interrupt was enough to blur the two-level (~192/~352-cycle) FM
@@ -23,7 +23,7 @@ namespace PetEmulator.Vic20.Tape;
 /// cycle-width ranges (352/512/672) fall squarely inside the 296-424/440-576/600-744 microsecond
 /// ranges Commodore's own KERNAL source documents for these four pulse kinds).
 ///
-/// Real wiring (see docs/vic20-tape.md for how this was found - a labeled KERNAL disassembly, not
+/// Real wiring (see docs/vic20/tape.md for how this was found - a labeled KERNAL disassembly, not
 /// a guess): VIA2 CA1 ($912C PCR bit 0) = cassette READ line (NOT VIA1 - VIA1's CA1 is the
 /// [RESTORE] key). VIA1 PA6 ($9111/$911F bit 6, active low) = cassette switch sense (NOT PA7).
 /// VIA1 CA2 (PCR bits 1-3, manual-output mode, bit 1 = level) = cassette motor control, active
@@ -34,6 +34,8 @@ public sealed class Vic20Datasette
 {
     private readonly MOS6522 _via1;
     private readonly MOS6522 _via2;
+    private readonly Vic20CassetteLines _lines;
+    private readonly Vic20CassetteWriteRecorder _writeRecorder;
     private IReadOnlyList<int> _pulseCycles = [];
     private int _pulseIndex;
     private int _cyclesUntilNextEdge;
@@ -42,11 +44,24 @@ public sealed class Vic20Datasette
     {
         _via1 = via1 ?? throw new ArgumentNullException(nameof(via1));
         _via2 = via2 ?? throw new ArgumentNullException(nameof(via2));
+        _lines = new Vic20CassetteLines(_via1, _via2);
+        _writeRecorder = new Vic20CassetteWriteRecorder(() => _lines.WriteLevel);
     }
+
+    /// <summary>Physical cassette lines used by this deck. Pulse decoding remains in this class;
+    /// callers that need to inspect pin-level state should use this object.</summary>
+    public Vic20CassetteLines Lines => _lines;
+
+    /// <summary>Optional PB3 diagnostic recorder. Its output is not used by logical SAVE/LOAD.</summary>
+    public Vic20CassetteWriteRecorder WriteRecorder => _writeRecorder;
 
     /// <summary>CA2 configured as a manual-output line (PCR bits 1-3 select an output mode,
     /// $08-$0E) and held low - active-low motor-on, same convention as PET's PIA1 CB2.</summary>
-    public bool MotorOn => (_via1.PCR & 0x0E) >= 0x08 && !_via1.CA2Output;
+    public bool MotorOn => _lines.MotorOn;
+
+    /// <summary>Current level driven on VIA2 PB3, the physical cassette WRITE line. It is low
+    /// while PB3 is configured as an input because the emulated VIA is not driving the pin.</summary>
+    public bool WriteLevel => _lines.WriteLevel;
 
     public bool HasTape => _pulseCycles.Count > 0;
 
@@ -58,7 +73,7 @@ public sealed class Vic20Datasette
     /// is physically held down, regardless of whether a tape is even loaded - matching real
     /// hardware. Same idiom as <c>PetDatasette.Sense</c>; kept as its own property (rather than
     /// inlining <see cref="PlayPressed"/> everywhere) so a caller reads intent, not mechanism.</summary>
-    public bool Sense => PlayPressed;
+    public bool Sense => _lines.Sense;
 
     /// <summary>True once every pulse in the loaded tape has been played past.</summary>
     public bool IsAtEnd => _pulseIndex >= _pulseCycles.Count;
@@ -76,6 +91,7 @@ public sealed class Vic20Datasette
         _pulseCycles = pulseCycles;
         TapeName = name;
         PlayPressed = false; // loading a fresh tape doesn't press play for you - matches a real deck
+        _lines.SetPlaySense(false);
         Rewind();
     }
 
@@ -105,12 +121,21 @@ public sealed class Vic20Datasette
         _pulseCycles = [];
         TapeName = null;
         PlayPressed = false;
+        _lines.SetPlaySense(false);
         Rewind();
     }
 
-    public void PressPlay() => PlayPressed = true;
+    public void PressPlay()
+    {
+        PlayPressed = true;
+        _lines.SetPlaySense(true);
+    }
 
-    public void Stop() => PlayPressed = false;
+    public void Stop()
+    {
+        PlayPressed = false;
+        _lines.SetPlaySense(false);
+    }
 
     public void Rewind()
     {
@@ -127,17 +152,20 @@ public sealed class Vic20Datasette
     {
         // PA6 reflects the physical PLAY sense switch every cycle, independent of the motor/tape
         // state below (a real switch closes the moment PLAY is pressed, tape moving or not).
-        _via1.PortAInput = (byte)(PlayPressed ? (_via1.PortAInput & ~0x40) : (_via1.PortAInput | 0x40));
+        _lines.SetPlaySense(PlayPressed);
 
-        if (!MotorOn || !PlayPressed || IsAtEnd)
+        if (!MotorOn || !PlayPressed)
+            return;
+
+        _writeRecorder.Tick();
+
+        if (IsAtEnd)
             return;
 
         if (--_cyclesUntilNextEdge > 0)
             return;
 
-        _via2.CA1 = true; // ensure a high baseline first (no-op if already high) so the next line is a guaranteed transition
-        _via2.CA1 = false;
-        _via2.CA1 = true;
+        _lines.PulseRead();
         _pulseIndex++;
         if (!IsAtEnd)
             _cyclesUntilNextEdge = _pulseCycles[_pulseIndex];

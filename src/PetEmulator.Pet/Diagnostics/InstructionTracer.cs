@@ -14,7 +14,7 @@ public readonly record struct TracedInstruction(long Index, ushort PC, IReadOnly
 
 /// <summary>
 /// Formalizes the ad-hoc PC+bus-access trace built by hand to root-cause the large-file LOAD
-/// stall (see docs/pet-disk-testing-strategy.md) into a reusable tool: a ring buffer of the last
+/// stall (see docs/pet/disk-testing-strategy.md) into a reusable tool: a ring buffer of the last
 /// <paramref name="capacity"/> instructions, each with its PC (via the optional
 /// <see cref="IDebuggableProcessor"/> capability) and every bus access it made (via
 /// <see cref="PetMachine.BusObserver"/>). Owns the step loop itself - it needs to read PC

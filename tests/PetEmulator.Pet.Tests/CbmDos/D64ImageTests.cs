@@ -73,6 +73,30 @@ public sealed class D64ImageTests
     }
 
     [Test]
+    public void ReadSectorMap_ReturnsEveryD64SectorAndMarksReservedSectors()
+    {
+        var img = D64Image.Load(Path.Combine(TestDisksDirectory, "games-1.d64"));
+
+        var map = img.ReadSectorMap();
+
+        map.Should().HaveCount(683);
+        map.Should().ContainSingle(sector => sector.Track == 18 && sector.Sector == 0 && sector.IsAllocated);
+        map.Should().ContainSingle(sector => sector.Track == 18 && sector.Sector == 1 && sector.IsAllocated);
+    }
+
+    [Test]
+    public void ReadFileSectors_FollowsTheDirectoryEntryChain()
+    {
+        var img = D64Image.Load(Path.Combine(TestDisksDirectory, "games-1.d64"));
+        var entry = img.ReadDirectory().First(e => e.Type == FileType.Prg);
+
+        var sectors = img.ReadFileSectors(entry);
+
+        sectors.Should().HaveCount(entry.SizeInSectors);
+        sectors[0].Should().Be(new D64SectorAddress(entry.StartTrack, entry.StartSector));
+    }
+
+    [Test]
     public void TrackSectorToOffset_StandardPositions()
     {
         D64Image.TrackSectorToOffset(18, 0).Should().Be(0x16500);
@@ -91,7 +115,7 @@ public sealed class D64ImageTests
 
     // CreateFormatted exists because CreateEmpty's all-zero BAM can never allocate a sector (every
     // track's free count reads 0) - a real bug found while adding a "New Disk" feature (see
-    // docs/pet-disk-testing-strategy.md and PetDiskEndToEndTests, which used to mount CreateEmpty
+    // docs/pet/disk-testing-strategy.md and PetDiskEndToEndTests, which used to mount CreateEmpty
     // and had SAVE silently write nothing while still reporting success).
     [Test]
     public void CreateFormatted_RoundTripsNameIdAndDosType()

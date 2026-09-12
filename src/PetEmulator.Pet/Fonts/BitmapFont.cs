@@ -19,7 +19,7 @@ public sealed class BitmapFont : IGlyphFont
         GlyphHeight = glyphHeight;
     }
 
-    public byte GetGlyphRow(byte characterCode, int row)
+    public byte GetGlyphRow(int characterCode, int row)
     {
         if (row < 0 || row >= GlyphHeight) return 0;
         var offset = characterCode * GlyphHeight + row;

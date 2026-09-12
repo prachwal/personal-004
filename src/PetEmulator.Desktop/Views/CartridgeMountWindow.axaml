@@ -1,0 +1,64 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+        x:Class="PetEmulator.Desktop.Views.CartridgeMountWindow"
+        x:DataType="viewModels:CartridgeMountViewModel"
+        Title="VIC-20 Cartridge"
+        Width="720"
+        Height="520"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+    <!-- Main modal layout: title, file loading controls, mounted-cartridge grid, and footer. -->
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16" RowSpacing="12">
+        <!-- Dialog title. -->
+        <TextBlock FontSize="18" Text="Cartridge slot" />
+
+        <!-- File picker and explicit load step. Browse selects a path; Load mounts it. -->
+        <StackPanel Grid.Row="1" Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBox Width="420" Text="{Binding SelectedPath}" PlaceholderText="Select raw cartridge image" />
+                <Button Content="Browse…" Command="{Binding BrowseCommand}" />
+                <Button Content="Load" Command="{Binding LoadCommand}" />
+            </StackPanel>
+            <Grid ColumnDefinitions="*,*,Auto,Auto" ColumnSpacing="8">
+                <TextBox Text="{Binding SelectedPluginPath}" PlaceholderText="Plugin DLL" />
+                <TextBox Grid.Column="1" Text="{Binding SelectedImagePath}" PlaceholderText="Plugin image" />
+                <Button Grid.Column="2" Content="Plugin…" Command="{Binding BrowsePluginCommand}" />
+                <Button Grid.Column="3" Content="Image…" Command="{Binding BrowseImageCommand}" />
+            </Grid>
+            <Button HorizontalAlignment="Right" Content="Load plugin" Command="{Binding LoadPluginCommand}" />
+        </StackPanel>
+
+        <!-- Grid of all mounted cartridge images. Each row exposes its path, resources, and eject action. -->
+        <Border Grid.Row="2" Padding="8" Background="{DynamicResource DeviceBarBackgroundBrush}">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding LoadedCartridges}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="viewModels:CartridgeMountRow">
+                            <Border BorderBrush="{DynamicResource DeviceStatusTextBrush}" BorderThickness="0,0,0,1" Padding="0,4">
+                                <Grid ColumnDefinitions="150,*,Auto" RowDefinitions="Auto,*" ColumnSpacing="8">
+                                    <TextBlock Text="{Binding Name}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Path}" FontFamily="monospace" TextTrimming="CharacterEllipsis" />
+                                    <Button Grid.Column="2" Grid.RowSpan="2" Content="Eject" Command="{Binding EjectCommand}" CommandParameter="{Binding Path}" />
+                                    <ItemsControl Grid.Row="1" Grid.ColumnSpan="2" ItemsSource="{Binding Resources}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="viewModels:CartridgeResourceRow">
+                                                <TextBlock FontFamily="monospace" Text="{Binding Summary}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Footer: validation/load errors are shown on the left; Close only dismisses the modal. -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <TextBlock Foreground="OrangeRed" Text="{Binding ErrorMessage}" Width="430" TextWrapping="Wrap" />
+            <Button Content="Close" Click="OnCloseClick" />
+        </StackPanel>
+    </Grid>
+</Window>

@@ -3,7 +3,7 @@ namespace PetEmulator.Vic20.Roms;
 /// <summary>Ported from PetEmulator.Pet.Roms.PetRomLoader (mirrors it exactly - existence/length
 /// validation, no checksum verification) rather than shared: the two are ~20 lines each and live
 /// in different projects with no natural common home short of adding a Core dependency neither
-/// otherwise needs for one static helper - not worth it (see docs/vic20-migration-plan.md step 0,
+/// otherwise needs for one static helper - not worth it (see docs/vic20/migration-plan.md step 0,
 /// which DID share PetEmulator.Core.BusAccess/Observer - that one earns a shared home because it's
 /// a runtime hot-path contract, not a one-shot file loader).</summary>
 public sealed record Vic20RomImage(Vic20RomRequirement Requirement, byte[] Data);

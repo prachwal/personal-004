@@ -9,7 +9,7 @@ namespace PetEmulator.Cli;
 
 /// <summary>
 /// Scripted, headless command session for a <see cref="Vic20Machine"/> - the VIC-20 analog of
-/// <see cref="PetDebuggerSession"/> (see docs/vic20-migration-plan.md step 10). No <c>profile</c>
+/// <see cref="PetDebuggerSession"/> (see docs/vic20/migration-plan.md step 10). No <c>profile</c>
 /// command (v1 is NTSC-unexpanded only, see that plan's scope cuts) - just <c>roms</c>, then
 /// machine-touching commands. Everything not listed here (<c>trace</c>/<c>watch</c>/
 /// <c>break-cycle</c>/<c>break-pc</c>/<c>dump</c>/...) delegates to <see cref="MachineDebugger"/>,
@@ -37,6 +37,11 @@ public sealed class Vic20DebuggerSession
                 "play" => PlayTape(),
                 "stop" => StopTape(),
                 "eject" => EjectTape(),
+                "disk" => LoadDisk(parts),
+                "new-disk" => NewDisk(parts),
+                "cartridge" => LoadCartridge(parts[1]),
+                "cartridge-plugin" => LoadCartridgePlugin(parts[1], parts[2]),
+                "eject-cartridge" => EjectCartridge(),
                 "key" => Key(parts),
                 "type" => Type(commandLine[(parts[0].Length + 1)..]),
                 "devices" => Devices(),
@@ -105,6 +110,42 @@ public sealed class Vic20DebuggerSession
     {
         EnsureMachine().Datasette.Eject();
         return "tape ejected";
+    }
+
+    private string LoadDisk(string[] parts)
+    {
+        var machine = EnsureMachine();
+        var device = parts.Length > 2 ? int.Parse(parts[2], CultureInfo.InvariantCulture) : 8;
+        machine.MountDisk(parts[1], device);
+        return $"disk mounted: {Path.GetFileName(parts[1])} on device {device}";
+    }
+
+    private string NewDisk(string[] parts)
+    {
+        var machine = EnsureMachine();
+        var path = parts[1];
+        var diskName = parts.Length > 2 ? parts[2] : Path.GetFileNameWithoutExtension(path).ToUpperInvariant();
+        var device = parts.Length > 3 ? int.Parse(parts[3], CultureInfo.InvariantCulture) : 8;
+        machine.MountNewDisk(path, diskName, deviceNumber: device);
+        return $"new disk created and mounted: {Path.GetFileName(path)} ({diskName}) on device {device}";
+    }
+
+    private string LoadCartridge(string path)
+    {
+        EnsureMachine().MountCartridge(path);
+        return $"cartridge mounted: {Path.GetFileName(path)}";
+    }
+
+    private string LoadCartridgePlugin(string pluginPath, string imagePath)
+    {
+        EnsureMachine().MountCartridgePlugin(pluginPath, imagePath);
+        return $"cartridge plugin mounted: {Path.GetFileName(pluginPath)} / {Path.GetFileName(imagePath)}";
+    }
+
+    private string EjectCartridge()
+    {
+        EnsureMachine().EjectCartridge();
+        return "cartridge ejected";
     }
 
     private string Devices()
