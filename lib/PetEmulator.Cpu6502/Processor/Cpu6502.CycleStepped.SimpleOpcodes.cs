@@ -105,9 +105,9 @@ public partial class Cpu6502
         {
             switch (_currentDefinition!.AddressingMode)
             {
-                case AddressingMode.Implied:
+                case nameof(AddressingMode.Implied):
                     break;
-                case AddressingMode.Immediate:
+                case nameof(AddressingMode.Immediate):
                     _memory.Read(_pc++);
                     break;
                 default:

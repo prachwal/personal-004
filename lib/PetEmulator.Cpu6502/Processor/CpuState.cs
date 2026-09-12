@@ -1,10 +1,14 @@
+using PetEmulator.Core;
+
 namespace PetEmulator.Cpu6502;
 
 /// <summary>
 /// Klasa reprezentująca stan procesora 6502 (rejestry).
 /// </summary>
-public class CpuState
+public class CpuState : PetEmulator.Core.CpuState
 {
+    internal Cpu6502? Owner { get; set; }
+
     /// <summary>
     /// Accumulator - główny rejestr arytmetyczny.
     /// </summary>
@@ -50,8 +54,36 @@ public class CpuState
     /// </summary>
     public bool Sync { get; set; }
 
-    /// <summary>
-    /// Wskazuje, czy procesor jest zatrzymany (np. przez KIL/JAM).
-    /// </summary>
-    public bool Halted { get; set; }
+    public override IReadOnlyDictionary<string, ulong> GetRegisters() => new Dictionary<string, ulong>
+    {
+        ["PC"] = PC,
+        ["A"] = A,
+        ["X"] = X,
+        ["Y"] = Y,
+        ["SP"] = SP,
+        ["P"] = P,
+        ["Cycle"] = Cycle,
+        ["IR"] = IR,
+        ["Sync"] = Sync ? 1UL : 0UL,
+    };
+
+    public override CpuStateSnapshot CaptureSnapshot()
+        => new(GetRegisters(), Halted);
+
+    public override void RestoreSnapshot(CpuStateSnapshot snapshot)
+    {
+        A = (byte)snapshot.Registers["A"];
+        X = (byte)snapshot.Registers["X"];
+        Y = (byte)snapshot.Registers["Y"];
+        PC = (ushort)snapshot.Registers["PC"];
+        SP = (byte)snapshot.Registers["SP"];
+        P = (byte)snapshot.Registers["P"];
+        if (snapshot.Registers.TryGetValue("Cycle", out var cycle))
+            Cycle = cycle;
+        if (snapshot.Registers.TryGetValue("IR", out var ir))
+            IR = (byte)ir;
+        if (snapshot.Registers.TryGetValue("Sync", out var sync))
+            Sync = sync != 0;
+        Halted = snapshot.Halted;
+    }
 }

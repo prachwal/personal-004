@@ -15,7 +15,7 @@ public sealed class Cpu6502Cmos65C02 : Cpu6502
     /// <param name="memory">Memory bus interface for the CPU.</param>
     /// <param name="opcodeTable">Optional custom opcode table (uses default 65C02 table if not provided).</param>
     /// <param name="clock">Optional injected IClock instance (uses default internal clock if null).</param>
-    public Cpu6502Cmos65C02(IMemoryBus memory, OpcodeTable? opcodeTable = null, IClock? clock = null)
+    public Cpu6502Cmos65C02(IMemoryBus memory, PetEmulator.Core.OpcodeTable<CpuState>? opcodeTable = null, IClock? clock = null)
         : base(memory, OpcodeTables.CreateCmos65C02Variant(opcodeTable), clock)
     {
     }

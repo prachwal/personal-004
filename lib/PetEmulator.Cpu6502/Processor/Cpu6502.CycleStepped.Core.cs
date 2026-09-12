@@ -15,18 +15,22 @@ public partial class Cpu6502
     /// <param name="memoryBus">Interfejs magistrali pamięci.</param>
     /// <param name="opcodeTable">Optional custom opcode table (uses NMOS by default).</param>
     /// <param name="clock">Optional injected IClock instance (uses default internal clock if null).</param>
-    public Cpu6502(IMemoryBus memoryBus, OpcodeTable? opcodeTable = null, IClock? clock = null)
+    public Cpu6502(IMemoryBus memoryBus, PetEmulator.Core.OpcodeTable<CpuState>? opcodeTable = null, IClock? clock = null)
         : this(memoryBus, OpcodeTables.CreateNmosVariant(opcodeTable), clock)
     {
     }
 
     protected Cpu6502(IMemoryBus memoryBus, Cpu6502Variant variant, IClock? clock = null)
+        : base(new CpuState(), memoryBus, clock)
     {
         _memory = memoryBus ?? throw new ArgumentNullException(nameof(memoryBus));
         Variant = variant ?? throw new ArgumentNullException(nameof(variant));
-        _opcodeTable = variant.OpcodeTable;
         _clock = clock ?? new Clock();
         Registers = new Cpu6502Registers(this);
+        State.Owner = this;
+        foreach (var definition in variant.OpcodeTable.Entries)
+            Opcodes.Add(definition);
+        SyncSharedState();
     }
 
     #endregion
@@ -37,9 +41,35 @@ public partial class Cpu6502
     /// Wykonuje **jedną pełną instrukcję** procesora (od pobrania opcodu do zakończenia).
     /// Jest to zalecane API dla nowego kodu.
     /// </summary>
-    public void StepInstruction()
+    public override void StepInstruction()
     {
-        StepInstructionCore();
+        var before = CaptureSnapshot();
+        if (ExecutionObserver?.ShouldBreak(before) == true)
+        {
+            ExecutionObserver.OnStepCompleted(
+                new CpuStepTrace(before, CaptureSnapshot(), null, null, CpuStepResult.Breakpoint()));
+            return;
+        }
+
+        try
+        {
+            StepInstructionCore();
+            SyncSharedState();
+            var after = CaptureSnapshot();
+            var completed = _instructionCount != before.InstructionCount;
+            var result = completed
+                ? CpuStepResult.Completed(after.CycleCount - before.CycleCount)
+                : CpuStepResult.Idle(after.CycleCount - before.CycleCount, _waitingForInterrupt);
+            OpcodeKey? opcode = completed ? OpcodeKey.Base(_currentOpcode) : null;
+            var mnemonic = completed ? _currentDefinition?.Mnemonic : null;
+            ExecutionObserver?.OnStepCompleted(new CpuStepTrace(before, after, opcode, mnemonic, result));
+        }
+        catch (Exception exception)
+        {
+            SyncSharedState();
+            ExecutionObserver?.OnStepFailed(before, exception);
+            throw;
+        }
     }
 
     #endregion
@@ -105,7 +135,7 @@ public partial class Cpu6502
 
             byte opcode = _memory.Read(_pc);
             _currentOpcode = opcode;
-            _currentDefinition = _opcodeTable[opcode];
+            _currentDefinition = GetSharedOpcode(opcode);
             _ir = (byte)(opcode << 3);
             _cycleCount = 0;
             _pageCrossed = false;
@@ -125,18 +155,19 @@ public partial class Cpu6502
                     $"Cpu6502: opcode 0x{_currentOpcode:X2} did not set _sync within 8 cycles (cycle {_cycleCount}). " +
                     "A cycle handler for this opcode is missing its _sync=true exit.");
 
-            _currentDefinition!.Handler(this, _currentOpcode, _cycleCount);
+            _currentDefinition!.ExecuteCycle!(State, ExecutionContext, _cycleCount);
             _cycleCount++;
             _clock.Advance(1);
         }
 
         _instructionCount++;
         ServicePostInstructionIrqBoundary();
+        SyncSharedState();
     }
 
 private byte GetEffectiveInstructionCycles(byte opcode)
     {
-        var definition = _opcodeTable[opcode];
+        var definition = GetSharedOpcode(opcode);
         byte cycles = definition.BaseCycles;
         if (_pageCrossed && definition.HasPageCrossPenalty)
         {
@@ -197,7 +228,7 @@ private byte GetEffectiveInstructionCycles(byte opcode)
 
         if (cycle > 0)
         {
-            _sync = cycle >= _opcodeTable[opcode].BaseCycles - 1;
+            _sync = cycle >= GetSharedOpcode(opcode).BaseCycles - 1;
             return true;
         }
 
@@ -250,7 +281,7 @@ private byte GetEffectiveInstructionCycles(byte opcode)
 
         if (cycle > 0)
         {
-            _sync = cycle >= _opcodeTable[opcode].BaseCycles - 1;
+            _sync = cycle >= GetSharedOpcode(opcode).BaseCycles - 1;
             return true;
         }
 

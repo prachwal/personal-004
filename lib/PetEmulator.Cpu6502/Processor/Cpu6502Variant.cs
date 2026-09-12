@@ -14,7 +14,7 @@ public sealed class Cpu6502Variant
 {
     public Cpu6502Variant(
         string name,
-        OpcodeTable opcodeTable,
+        PetEmulator.Core.OpcodeTable<CpuState> opcodeTable,
         CpuQuirk quirks)
     {
         Name = string.IsNullOrWhiteSpace(name) ? throw new ArgumentException("Variant name is required.", nameof(name)) : name;
@@ -23,6 +23,7 @@ public sealed class Cpu6502Variant
     }
 
     public string Name { get; }
-    public OpcodeTable OpcodeTable { get; }
+    /// <summary>Immutable Core opcode registry owned by this variant.</summary>
+    public PetEmulator.Core.OpcodeTable<CpuState> OpcodeTable { get; }
     public CpuQuirk Quirks { get; }
 }

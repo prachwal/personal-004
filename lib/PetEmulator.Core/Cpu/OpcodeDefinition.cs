@@ -8,4 +8,5 @@ public sealed record OpcodeDefinition<TState>(
     byte BaseCycles,
     string AddressingMode,
     Func<TState, CpuExecutionContext, CpuStepResult> Execute,
-    bool HasPageCrossPenalty = false);
+    bool HasPageCrossPenalty = false,
+    Action<TState, CpuExecutionContext, byte>? ExecuteCycle = null);

@@ -5,7 +5,7 @@ namespace PetEmulator.Cpu6502;
 /// <summary>
 /// Reprezentacja procesora MOS 6502.
 /// </summary>
-public partial class Cpu6502 : IProcessor, IDebuggableProcessor
+public partial class Cpu6502 : CpuProcessorBase<CpuState>
 {
     #region Metody publiczne - Reset
 
@@ -14,6 +14,11 @@ public partial class Cpu6502 : IProcessor, IDebuggableProcessor
     /// Ustawia rejestry na domyślne wartości i ładuje PC z wektora RESET.
     /// </summary>
     /// <param name="resetVectorAddress">Adres wektora RESET (domyślnie 0xFFFC).</param>
+    public override void Reset()
+    {
+        Reset(0xFFFC);
+    }
+
     public void Reset(ushort resetVectorAddress = 0xFFFC)
     {
         _a = 0;
@@ -45,14 +50,13 @@ public partial class Cpu6502 : IProcessor, IDebuggableProcessor
         _pageCrossed = false;
         _halted = false;
         _waitingForInterrupt = false;
+        SyncSharedState();
     }
 
     #endregion
 
-    void IProcessor.Reset() => Reset();
-
     /// <summary>Registers by name, for debug tooling (see <see cref="IDebuggableProcessor"/>).</summary>
-    public IReadOnlyDictionary<string, ulong> GetRegisters() => new Dictionary<string, ulong>
+    public override IReadOnlyDictionary<string, ulong> GetRegisters() => new Dictionary<string, ulong>
     {
         ["PC"] = _pc, ["A"] = _a, ["X"] = _x, ["Y"] = _y, ["SP"] = _sp, ["P"] = _p,
     };
@@ -82,6 +86,24 @@ public partial class Cpu6502 : IProcessor, IDebuggableProcessor
         _a = state.A; _x = state.X; _y = state.Y;
         _pc = state.PC; _sp = state.SP; _p = state.P;
         _clock.Reset(); _clock.Advance(state.Cycle); _ir = state.IR; _sync = state.Sync; _halted = state.Halted;
+        SyncSharedState();
+    }
+
+    public override void RestoreSnapshot(CpuDebugSnapshot snapshot)
+    {
+        base.RestoreSnapshot(snapshot);
+
+        _a = State.A;
+        _x = State.X;
+        _y = State.Y;
+        _pc = State.PC;
+        _sp = State.SP;
+        _p = State.P;
+        _ir = State.IR;
+        _sync = State.Sync;
+        _halted = State.Halted;
+        _instructionCount = base.InstructionCount;
+        _cycleCount = 0;
     }
 
      #endregion
@@ -92,7 +114,7 @@ public partial class Cpu6502 : IProcessor, IDebuggableProcessor
     /// Ustawia stan pinu IRQ.
     /// </summary>
     /// <param name="active">True = pin niski (aktywne przerwanie).</param>
-    public void SetIRQ(bool active)
+    public override void SetIRQ(bool active)
     {
         _irqPending = active;
         if (!active)
@@ -106,7 +128,7 @@ public partial class Cpu6502 : IProcessor, IDebuggableProcessor
     /// Wykrywa opadające zbocze i zatrzaskuje przerwanie.
     /// </summary>
     /// <param name="active">True = pin niski (aktywne przerwanie).</param>
-    public void SetNMI(bool active)
+    public override void SetNMI(bool active)
     {
         if (_previousNMI && !active)
         {

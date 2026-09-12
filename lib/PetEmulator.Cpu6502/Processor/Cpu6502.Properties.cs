@@ -18,7 +18,11 @@ public partial class Cpu6502
     public byte P
     {
         get => _p;
-        set => _p = value;
+        set
+        {
+            _p = value;
+            State.P = value;
+        }
     }
 
     /// <summary>
@@ -53,7 +57,11 @@ public partial class Cpu6502
     public byte A
     {
         get => _a;
-        set => _a = value;
+        set
+        {
+            _a = value;
+            State.A = value;
+        }
     }
 
     /// <summary>
@@ -62,7 +70,11 @@ public partial class Cpu6502
     public byte X
     {
         get => _x;
-        set => _x = value;
+        set
+        {
+            _x = value;
+            State.X = value;
+        }
     }
 
     /// <summary>
@@ -71,7 +83,11 @@ public partial class Cpu6502
     public byte Y
     {
         get => _y;
-        set => _y = value;
+        set
+        {
+            _y = value;
+            State.Y = value;
+        }
     }
 
     /// <summary>
@@ -80,7 +96,11 @@ public partial class Cpu6502
     public ushort PC
     {
         get => _pc;
-        set => _pc = value;
+        set
+        {
+            _pc = value;
+            State.PC = value;
+        }
     }
 
     /// <summary>
@@ -89,23 +109,27 @@ public partial class Cpu6502
     public byte SP
     {
         get => _sp;
-        set => _sp = value;
+        set
+        {
+            _sp = value;
+            State.SP = value;
+        }
     }
 
     /// <summary>
     /// Wskazuje, czy procesor jest zatrzymany (np. przez KIL/JAM).
     /// </summary>
-    public bool Halted => _halted;
+    public new bool Halted => _halted;
 
     /// <summary>
     /// Licznik wykonanych instrukcji.
     /// </summary>
-    public ulong InstructionCount => _instructionCount;
+    public new ulong InstructionCount => _instructionCount;
 
     /// <summary>
     /// Licznik cykli zegara.
     /// </summary>
-    public ulong CycleCount => _clock.CycleCount;
+    public new ulong CycleCount => _clock.CycleCount;
 
     #endregion
 }

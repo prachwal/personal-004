@@ -1,5 +1,18 @@
 # Migracja 6800 -> 6809 — checklista postępu
 
+Rodzina 6800/6809: migracja bazowa zakończona; 6809 pozostaje rozszerzeniem 6800.
+
+## Status wspólnego Core
+
+- [x] `M6800Cpu` używa wspólnego lifecycle, stanu i tabeli opcode’ów Core.
+- [x] `M6809Cpu` dziedziczy po `M6800Cpu` i zachowuje strony opcode’ów 10/11.
+- [x] Zachowane są DP, Y/U/S, FIRQ/NMI/IRQ oraz formaty ramek stosu.
+- [x] Wspólne instrukcje 6800 są implementowane w bazie i rozszerzane przez 6809.
+- [x] Testy CPU6800: 11/11; testy CPU6809: 91/91.
+- [x] Test binarny MC6800 i test binarny 6809 przechodzą.
+- [ ] Przenieść pozostałe rodzinne różnice do jawnych capability Core.
+- [ ] Wykonać końcową regresję całego rozwiązania po migracji Z80.
+
 - [x] Etap 1: baseline build/test i zapis zachowania wyjściowego — build OK; CPU6809 90/90; PET 255/255
 - [x] Etap 2: projekt Cpu6800 oraz projekt testów — solution build OK; test assembly ładuje się bez testów
 - [x] Etap 3: M6800State i M6800Flags — 3/3 testy stanu i flag przechodzą

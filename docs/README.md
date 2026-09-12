@@ -12,6 +12,7 @@
   MT6545, MOS6560, MC146818 i MOS6551.
 - [Plan migracji VIC-20](vic20/migration-plan.md) i [strategia testów VIC-20](vic20/testing-strategy.md).
 - [Narzędzia debugowania](pet/debug-tools.md) — wspólne dla maszyn implementujących kontrakty Core.
+- [Checklisty migracji CPU](plans/2026-09-12-6502-core-migration-checklist.md) — status rodzin 6502, 6800/6809 i Z80.
 
 Ten katalog jest indeksem kodu i artefaktow z poprzednich projektow emulatorow. Nie kopiuje kodu, ROM-ow ani fontow. Sciezki wskazuja oryginalne lokalizacje do pozniejszego porownania.
 

@@ -60,7 +60,7 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
         => new(State.CaptureSnapshot(), CycleCount, InstructionCount);
 
     /// <summary>Restores state, clock and instruction count from a previous snapshot.</summary>
-    public void RestoreSnapshot(CpuDebugSnapshot snapshot)
+    public virtual void RestoreSnapshot(CpuDebugSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         State.RestoreSnapshot(snapshot.State);

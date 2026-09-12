@@ -1,11 +1,15 @@
+using PetEmulator.Core;
+
 namespace PetEmulator.Cpu6502;
 
 public static class OpcodeTables
 {
-    public static OpcodeTable CreateNmos() => Nmos;
-
-    public static Cpu6502Variant CreateNmosVariant(OpcodeTable? opcodeTable = null) =>
-        new("MOS 6502", (opcodeTable ?? Nmos).Seal(), CpuQuirk.DecimalArithmetic | CpuQuirk.JmpIndirectPageWrap);
+    public static Cpu6502Variant CreateNmosVariant(PetEmulator.Core.OpcodeTable<CpuState>? opcodeTable = null)
+    {
+        var table = opcodeTable ?? NmosCore;
+        return new("MOS 6502", table,
+            CpuQuirk.DecimalArithmetic | CpuQuirk.JmpIndirectPageWrap);
+    }
 
     /// <summary>
     /// Determines whether a 6502 opcode incurs a page-cross penalty.
@@ -82,117 +86,118 @@ public static class OpcodeTables
         };
     }
 
-    public static Cpu6502Variant CreateNesVariant(OpcodeTable? opcodeTable = null) =>
-        new("Ricoh 2A03", opcodeTable ?? CreateNmos(), CpuQuirk.None);
+    public static Cpu6502Variant CreateNesVariant(PetEmulator.Core.OpcodeTable<CpuState>? opcodeTable = null)
+    {
+        var table = opcodeTable ?? NmosCore;
+        return new("Ricoh 2A03", table, CpuQuirk.None);
+    }
 
-    public static Cpu6502Variant CreateCommodore6510Variant(OpcodeTable? opcodeTable = null) =>
-        new("Commodore 6510", opcodeTable ?? CreateNmos(), CpuQuirk.DecimalArithmetic | CpuQuirk.JmpIndirectPageWrap);
+    public static Cpu6502Variant CreateCommodore6510Variant(PetEmulator.Core.OpcodeTable<CpuState>? opcodeTable = null)
+    {
+        var table = opcodeTable ?? NmosCore;
+        return new("Commodore 6510", table,
+            CpuQuirk.DecimalArithmetic | CpuQuirk.JmpIndirectPageWrap);
+    }
 
-    public static Cpu6502Variant CreateAtari6507Variant(OpcodeTable? opcodeTable = null) =>
-        new("Atari 6507", opcodeTable ?? CreateNmos(), CpuQuirk.DecimalArithmetic | CpuQuirk.JmpIndirectPageWrap);
+    public static Cpu6502Variant CreateAtari6507Variant(PetEmulator.Core.OpcodeTable<CpuState>? opcodeTable = null)
+    {
+        var table = opcodeTable ?? NmosCore;
+        return new("Atari 6507", table,
+            CpuQuirk.DecimalArithmetic | CpuQuirk.JmpIndirectPageWrap);
+    }
 
-    public static OpcodeTable CreateCmos65C02Table() =>
-        Nmos.Derive(table =>
+    private static PetEmulator.Core.OpcodeTable<CpuState> CreateNativeCmos65C02CoreTable() =>
+        NmosCore.Derive(table =>
         {
-            table.Set(new OpcodeDefinition(0x04, "TSB", AddressingMode.ZeroPage, 2, 5, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0x0C, "TSB", AddressingMode.Absolute, 3, 6, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0x12, "ORA", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0x14, "TRB", AddressingMode.ZeroPage, 2, 5, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0x1A, "INC", AddressingMode.Accumulator, 1, 2, ExecuteAccumulatorStackCycle));
-            table.Set(new OpcodeDefinition(0x1C, "TRB", AddressingMode.Absolute, 3, 6, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0x32, "AND", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0x34, "BIT", AddressingMode.ZeroPageX, 2, 4, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0x3A, "DEC", AddressingMode.Accumulator, 1, 2, ExecuteAccumulatorStackCycle));
-            table.Set(new OpcodeDefinition(0x3C, "BIT", AddressingMode.AbsoluteX, 3, 4, Execute65C02Cycle, true));
-            table.Set(new OpcodeDefinition(0x52, "EOR", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0x5A, "PHY", AddressingMode.Implied, 1, 3, ExecuteAccumulatorStackCycle));
-            table.Set(new OpcodeDefinition(0x64, "STZ", AddressingMode.ZeroPage, 2, 3, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0x72, "ADC", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0x74, "STZ", AddressingMode.ZeroPageX, 2, 4, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0x7A, "PLY", AddressingMode.Implied, 1, 4, ExecuteAccumulatorStackCycle));
-            table.Set(new OpcodeDefinition(0x7C, "JMP", AddressingMode.Indirect, 3, 6, ExecuteControlFlowCycle));
-            table.Set(new OpcodeDefinition(0x80, "BRA", AddressingMode.Relative, 2, 2, ExecuteBranchCycle));
-            table.Set(new OpcodeDefinition(0x89, "BIT", AddressingMode.Immediate, 2, 2, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0x92, "STA", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0x9C, "STZ", AddressingMode.Absolute, 3, 4, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0x9E, "STZ", AddressingMode.AbsoluteX, 3, 5, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0xB2, "LDA", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0xD2, "CMP", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0xDA, "PHX", AddressingMode.Implied, 1, 3, ExecuteAccumulatorStackCycle));
-            table.Set(new OpcodeDefinition(0xF2, "SBC", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle));
-            table.Set(new OpcodeDefinition(0xFA, "PLX", AddressingMode.Implied, 1, 4, ExecuteAccumulatorStackCycle));
+            var replacements = new (byte Opcode, string Mnemonic, AddressingMode Mode, byte Length, byte Cycles, OpcodeHandler Handler, bool PageCross)[]
+            {
+                (0x04, "TSB", AddressingMode.ZeroPage, 2, 5, Execute65C02Cycle, false),
+                (0x0C, "TSB", AddressingMode.Absolute, 3, 6, Execute65C02Cycle, false),
+                (0x12, "ORA", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle, false),
+                (0x14, "TRB", AddressingMode.ZeroPage, 2, 5, Execute65C02Cycle, false),
+                (0x1A, "INC", AddressingMode.Accumulator, 1, 2, ExecuteAccumulatorStackCycle, false),
+                (0x1C, "TRB", AddressingMode.Absolute, 3, 6, Execute65C02Cycle, false),
+                (0x32, "AND", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle, false),
+                (0x34, "BIT", AddressingMode.ZeroPageX, 2, 4, Execute65C02Cycle, false),
+                (0x3A, "DEC", AddressingMode.Accumulator, 1, 2, ExecuteAccumulatorStackCycle, false),
+                (0x3C, "BIT", AddressingMode.AbsoluteX, 3, 4, Execute65C02Cycle, true),
+                (0x52, "EOR", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle, false),
+                (0x5A, "PHY", AddressingMode.Implied, 1, 3, ExecuteAccumulatorStackCycle, false),
+                (0x64, "STZ", AddressingMode.ZeroPage, 2, 3, Execute65C02Cycle, false),
+                (0x72, "ADC", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle, false),
+                (0x74, "STZ", AddressingMode.ZeroPageX, 2, 4, Execute65C02Cycle, false),
+                (0x7A, "PLY", AddressingMode.Implied, 1, 4, ExecuteAccumulatorStackCycle, false),
+                (0x7C, "JMP", AddressingMode.Indirect, 3, 6, ExecuteControlFlowCycle, false),
+                (0x80, "BRA", AddressingMode.Relative, 2, 2, ExecuteBranchCycle, false),
+                (0x89, "BIT", AddressingMode.Immediate, 2, 2, Execute65C02Cycle, false),
+                (0x92, "STA", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle, false),
+                (0x9C, "STZ", AddressingMode.Absolute, 3, 4, Execute65C02Cycle, false),
+                (0x9E, "STZ", AddressingMode.AbsoluteX, 3, 5, Execute65C02Cycle, false),
+                (0xB2, "LDA", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle, false),
+                (0xD2, "CMP", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle, false),
+                (0xDA, "PHX", AddressingMode.Implied, 1, 3, ExecuteAccumulatorStackCycle, false),
+                (0xF2, "SBC", AddressingMode.ZeroPageIndirect, 2, 5, Execute65C02Cycle, false),
+                (0xFA, "PLX", AddressingMode.Implied, 1, 4, ExecuteAccumulatorStackCycle, false),
+            };
 
-            // Tranche 2: remap remaining illegal-NMOS opcodes to 65C02 NOPs
-            // 59 bytes at Implied, Length 1, Cycles 1
-            table.Set(new OpcodeDefinition(0x03, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x07, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x0F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x13, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x17, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x1B, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x1F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x23, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x27, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x2F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x33, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x37, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x3B, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x3F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x43, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x47, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x4F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x53, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x57, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x5B, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x5F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x63, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x67, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x6F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x73, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x77, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x7B, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x7F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x83, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x87, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x8B, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x8F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x93, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x97, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x9B, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x9F, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xA3, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xA7, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xAB, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xAF, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xB3, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xB7, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xBB, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xBF, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xC3, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xC7, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xCF, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xD3, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xD7, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xDB, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xDF, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xE3, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xE7, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xEB, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xEF, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xF3, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xF7, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xFB, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0xFF, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
+            foreach (var replacement in replacements)
+                table.Set(CreateCoreDefinition(replacement.Opcode, replacement.Mnemonic, replacement.Mode,
+                    replacement.Length, replacement.Cycles, replacement.Handler, replacement.PageCross));
 
-            // 4 bytes at Immediate, Length 2, Cycles 2
-            table.Set(new OpcodeDefinition(0x02, "NOP", AddressingMode.Immediate, 2, 2, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x22, "NOP", AddressingMode.Immediate, 2, 2, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x42, "NOP", AddressingMode.Immediate, 2, 2, ExecuteCmosNopCycle));
-            table.Set(new OpcodeDefinition(0x62, "NOP", AddressingMode.Immediate, 2, 2, ExecuteCmosNopCycle));
+            foreach (var opcode in new byte[]
+            {
+                0x03, 0x07, 0x0F, 0x13, 0x17, 0x1B, 0x1F, 0x23, 0x27, 0x2F,
+                0x33, 0x37, 0x3B, 0x3F, 0x43, 0x47, 0x4F, 0x53, 0x57, 0x5B,
+                0x5F, 0x63, 0x67, 0x6F, 0x73, 0x77, 0x7B, 0x7F, 0x83, 0x87,
+                0x8B, 0x8F, 0x93, 0x97, 0x9B, 0x9F, 0xA3, 0xA7, 0xAB, 0xAF,
+                0xB3, 0xB7, 0xBB, 0xBF, 0xC3, 0xC7, 0xCF, 0xD3, 0xD7, 0xDB,
+                0xDF, 0xE3, 0xE7, 0xEB, 0xEF, 0xF3, 0xF7, 0xFB, 0xFF,
+            })
+                table.Set(CreateCoreDefinition(opcode, "NOP", AddressingMode.Implied, 1, 1, ExecuteCmosNopCycle));
 
-            // 0x5C - reuse Nmos handler with bumped cycle count and mnemonic
-            table.Set(Nmos[0x5C] with { Mnemonic = "NOP", BaseCycles = 8 });
+            foreach (var opcode in new byte[] { 0x02, 0x22, 0x42, 0x62 })
+                table.Set(CreateCoreDefinition(opcode, "NOP", AddressingMode.Immediate, 2, 2, ExecuteCmosNopCycle));
+
+            table.Set(NmosCore.Get(OpcodeKey.Base(0x5C)) with { Mnemonic = "NOP", BaseCycles = 8 });
         });
+
+    private static PetEmulator.Core.OpcodeTable<CpuState> CreateNativeR65C02SCoreTable() =>
+        CreateNativeCmos65C02CoreTable().Derive(table =>
+        {
+            for (var bit = 0; bit < 8; bit++)
+            {
+                table.Set(CreateCoreDefinition((byte)(0x07 + (bit << 4)), $"RMB{bit}", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+                table.Set(CreateCoreDefinition((byte)(0x87 + (bit << 4)), $"SMB{bit}", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
+                table.Set(CreateCoreDefinition((byte)(0x0F + (bit << 4)), $"BBR{bit}", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+                table.Set(CreateCoreDefinition((byte)(0x8F + (bit << 4)), $"BBS{bit}", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
+            }
+
+            table.Set(CreateCoreDefinition(0xCB, "WAI", AddressingMode.Implied, 1, 3, ExecuteWaiStpCycle));
+            table.Set(CreateCoreDefinition(0xDB, "STP", AddressingMode.Implied, 1, 3, ExecuteWaiStpCycle));
+        });
+
+    private static PetEmulator.Core.OpcodeDefinition<CpuState> CreateCoreDefinition(
+        byte opcode,
+        string mnemonic,
+        AddressingMode mode,
+        byte length,
+        byte cycles,
+        OpcodeHandler handler,
+        bool pageCross = false)
+    {
+        Action<CpuState, CpuExecutionContext, byte> executeCycle =
+            (state, _, cycle) => handler(
+                state.Owner ?? throw new InvalidOperationException("Cpu6502 state has no owner."),
+                opcode,
+                cycle);
+        return new PetEmulator.Core.OpcodeDefinition<CpuState>(
+            OpcodeKey.Base(opcode), mnemonic, length, cycles, mode.ToString(),
+            (state, context) =>
+            {
+                executeCycle(state, context, 0);
+                return CpuStepResult.Completed(cycles);
+            }, pageCross, executeCycle);
+    }
 
     private static void Execute65C02Cycle(Cpu6502 cpu, byte opcode, byte cycle) =>
         cpu.Execute65C02Cycle(opcode, cycle);
@@ -223,155 +228,106 @@ public static class OpcodeTables
     private static void ExecuteWaiStpCycle(Cpu6502 cpu, byte opcode, byte cycle) =>
         cpu.ExecuteWaiStpCycle(opcode, cycle);
 
-    public static Cpu6502Variant CreateCmos65C02Variant(OpcodeTable? opcodeTable = null) =>
-        new("WDC 65C02", (opcodeTable ?? CreateCmos65C02Table()).Seal(), CpuQuirk.DecimalArithmetic | CpuQuirk.CmosBcdExtraCycle);
-
-    public static OpcodeTable CreateR65C02STable() =>
-        CreateCmos65C02Table().Derive(table =>
-        {
-            // RMB0-7
-            table.Set(new OpcodeDefinition(0x07, "RMB0", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            table.Set(new OpcodeDefinition(0x17, "RMB1", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            table.Set(new OpcodeDefinition(0x27, "RMB2", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            table.Set(new OpcodeDefinition(0x37, "RMB3", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            table.Set(new OpcodeDefinition(0x47, "RMB4", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            table.Set(new OpcodeDefinition(0x57, "RMB5", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            table.Set(new OpcodeDefinition(0x67, "RMB6", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            table.Set(new OpcodeDefinition(0x77, "RMB7", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            // SMB0-7
-            table.Set(new OpcodeDefinition(0x87, "SMB0", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            table.Set(new OpcodeDefinition(0x97, "SMB1", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            table.Set(new OpcodeDefinition(0xA7, "SMB2", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            table.Set(new OpcodeDefinition(0xB7, "SMB3", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            table.Set(new OpcodeDefinition(0xC7, "SMB4", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            table.Set(new OpcodeDefinition(0xD7, "SMB5", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            table.Set(new OpcodeDefinition(0xE7, "SMB6", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            table.Set(new OpcodeDefinition(0xF7, "SMB7", AddressingMode.ZeroPage, 2, 5, ExecuteRockwellBitCycle));
-            // BBR0-7
-            table.Set(new OpcodeDefinition(0x0F, "BBR0", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            table.Set(new OpcodeDefinition(0x1F, "BBR1", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            table.Set(new OpcodeDefinition(0x2F, "BBR2", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            table.Set(new OpcodeDefinition(0x3F, "BBR3", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            table.Set(new OpcodeDefinition(0x4F, "BBR4", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            table.Set(new OpcodeDefinition(0x5F, "BBR5", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            table.Set(new OpcodeDefinition(0x6F, "BBR6", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            table.Set(new OpcodeDefinition(0x7F, "BBR7", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            // BBS0-7
-            table.Set(new OpcodeDefinition(0x8F, "BBS0", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            table.Set(new OpcodeDefinition(0x9F, "BBS1", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            table.Set(new OpcodeDefinition(0xAF, "BBS2", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            table.Set(new OpcodeDefinition(0xBF, "BBS3", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            table.Set(new OpcodeDefinition(0xCF, "BBS4", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            table.Set(new OpcodeDefinition(0xDF, "BBS5", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            table.Set(new OpcodeDefinition(0xEF, "BBS6", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            table.Set(new OpcodeDefinition(0xFF, "BBS7", AddressingMode.ZeroPageRelative, 3, 5, ExecuteRockwellBranchCycle));
-            // WAI / STP
-            table.Set(new OpcodeDefinition(0xCB, "WAI", AddressingMode.Implied, 1, 3, ExecuteWaiStpCycle));
-            table.Set(new OpcodeDefinition(0xDB, "STP", AddressingMode.Implied, 1, 3, ExecuteWaiStpCycle));
-        });
-
-    public static Cpu6502Variant CreateR65C02SVariant(OpcodeTable? opcodeTable = null) =>
-        new("WDC/Rockwell R65C02S", (opcodeTable ?? CreateR65C02STable()).Seal(),
-            CpuQuirk.DecimalArithmetic | CpuQuirk.CmosBcdExtraCycle | CpuQuirk.RockwellBitOps);
-
-    private static OpcodeTable CreateNmosTable()
+    public static Cpu6502Variant CreateCmos65C02Variant(PetEmulator.Core.OpcodeTable<CpuState>? opcodeTable = null)
     {
-        var table = new OpcodeTable();
+        var table = opcodeTable ?? Cmos65C02Core;
+        return new("WDC 65C02", table,
+            CpuQuirk.DecimalArithmetic | CpuQuirk.CmosBcdExtraCycle);
+    }
+
+    public static Cpu6502Variant CreateR65C02SVariant(PetEmulator.Core.OpcodeTable<CpuState>? opcodeTable = null)
+    {
+        var table = opcodeTable ?? R65C02SCore;
+        return new("WDC/Rockwell R65C02S", table,
+            CpuQuirk.DecimalArithmetic | CpuQuirk.CmosBcdExtraCycle | CpuQuirk.RockwellBitOps);
+    }
+
+    private static PetEmulator.Core.OpcodeTable<CpuState> CreateNativeNmosCoreTable()
+    {
+        var table = new PetEmulator.Core.OpcodeTable<CpuState>();
         var mnemonics = Mnemonics.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         var modes = Modes.Where(char.IsLetterOrDigit).ToArray();
-        if (mnemonics.Length != 256)
-            throw new InvalidOperationException($"Expected 256 opcode names, got {mnemonics.Length}.");
-        if (modes.Length != 256)
-            throw new InvalidOperationException($"Expected 256 opcode modes, got {modes.Length}.");
         for (var opcode = 0; opcode <= byte.MaxValue; opcode++)
         {
             var value = (byte)opcode;
-            var addressingMode = ParseMode(modes[opcode]);
-            var definition = new OpcodeDefinition(
-                value,
+            var mode = ParseMode(modes[opcode]);
+            var handler = SelectNmosHandler(value);
+            Action<CpuState, CpuExecutionContext, byte> executeCycle =
+                (state, _, cycle) => handler(
+                    state.Owner ?? throw new InvalidOperationException("Cpu6502 state has no owner."),
+                    value,
+                    cycle);
+            table.Add(new PetEmulator.Core.OpcodeDefinition<CpuState>(
+                OpcodeKey.Base(value),
                 mnemonics[opcode],
-                addressingMode,
-                InstructionLength(addressingMode),
+                InstructionLength(mode),
                 BaseCyclesFor(value),
-                ExecuteUnmappedOpcodeCycle,
-                HasPageCrossPenaltyFor(value));
-
-            if (SimpleOpcodes.Contains(value))
-                definition = definition with { Handler = ExecuteSimpleCycle };
-            else if (AccumulatorStackOpcodes.Contains(value))
-                definition = definition with { Handler = ExecuteAccumulatorStackCycle };
-            else if (LoadStoreOpcodes.Contains(value))
-                definition = definition with { Handler = ExecuteLoadStoreCycle };
-            else if (ArithmeticCompareLogicOpcodes.Contains(value))
-                definition = definition with
+                mode.ToString(),
+                (state, context) =>
                 {
-                    Handler = static (cpu, opcode, cycle) =>
-                    {
-                        if (!cpu.ExecuteCycleArithmeticCompareLogic((ushort)((opcode << 3) | cycle)))
-                            throw new InvalidOperationException($"Unsupported arithmetic opcode 0x{opcode:X2}.");
-                    }
-                };
-            else if (BranchOpcodes.Contains(value))
-                definition = definition with
-                {
-                    Handler = static (cpu, opcode, cycle) =>
-                    {
-                        if (!cpu.ExecuteCycleBranches((ushort)((opcode << 3) | cycle)))
-                            throw new InvalidOperationException($"Unsupported branch opcode 0x{opcode:X2}.");
-                    }
-                };
-            else if (ControlFlowOpcodes.Contains(value))
-                definition = definition with
-                {
-                    Handler = static (cpu, opcode, cycle) =>
-                    {
-                        if (!cpu.ExecuteCycleControlFlow((ushort)((opcode << 3) | cycle)))
-                            throw new InvalidOperationException($"Unsupported control-flow opcode 0x{opcode:X2}.");
-                    }
-                };
-            else if (RmwOpcodes.Contains(value))
-                definition = definition with { Handler = ExecuteRmwOpcodeCycle };
-            else if (IllegalRmwOpcodes.Contains(value))
-                definition = definition with
-                {
-                    Handler = static (cpu, opcode, cycle) =>
-                    {
-                        if (!cpu.ExecuteCycleIllegalRMW((ushort)((opcode << 3) | cycle)))
-                            throw new InvalidOperationException($"Unsupported illegal RMW opcode 0x{opcode:X2}.");
-                    }
-                };
-            else if (NopKilOpcodes.Contains(value))
-                definition = definition with
-                {
-                    Handler = static (cpu, opcode, cycle) =>
-                    {
-                        if (!cpu.ExecuteCycleNopKilOpcodes((ushort)((opcode << 3) | cycle)))
-                            throw new InvalidOperationException($"Unsupported NOP/KIL opcode 0x{opcode:X2}.");
-                    }
-                };
-            else if (UnstableOpcodes.Contains(value))
-                definition = definition with
-                {
-                    Handler = static (cpu, opcode, cycle) =>
-                    {
-                        if (!cpu.ExecuteCycleUnstableOpcodes((ushort)((opcode << 3) | cycle)))
-                            throw new InvalidOperationException($"Unsupported unstable opcode 0x{opcode:X2}.");
-                    }
-                };
-            else if (IllegalLoadStoreOpcodes.Contains(value))
-                definition = definition with
-                {
-                    Handler = static (cpu, opcode, cycle) =>
-                    {
-                        if (!cpu.ExecuteCycleLoadStoreTransferFlags(opcode, cycle, (ushort)((opcode << 3) | cycle)))
-                            throw new InvalidOperationException($"Unsupported illegal load/store opcode 0x{opcode:X2}.");
-                    }
-                };
-
-            table.Set(definition);
+                    executeCycle(state, context, 0);
+                    return CpuStepResult.Completed(BaseCyclesFor(value));
+                },
+                HasPageCrossPenaltyFor(value),
+                executeCycle));
         }
 
-        return table;
+        return table.Seal();
+    }
+
+    private static OpcodeHandler SelectNmosHandler(byte opcode)
+    {
+        if (SimpleOpcodes.Contains(opcode))
+            return ExecuteSimpleCycle;
+        if (AccumulatorStackOpcodes.Contains(opcode))
+            return ExecuteAccumulatorStackCycle;
+        if (LoadStoreOpcodes.Contains(opcode))
+            return ExecuteLoadStoreCycle;
+        if (ArithmeticCompareLogicOpcodes.Contains(opcode))
+            return static (cpu, value, cycle) =>
+            {
+                if (!cpu.ExecuteCycleArithmeticCompareLogic((ushort)((value << 3) | cycle)))
+                    throw new InvalidOperationException($"Unsupported arithmetic opcode 0x{value:X2}.");
+            };
+        if (BranchOpcodes.Contains(opcode))
+            return static (cpu, value, cycle) =>
+            {
+                if (!cpu.ExecuteCycleBranches((ushort)((value << 3) | cycle)))
+                    throw new InvalidOperationException($"Unsupported branch opcode 0x{value:X2}.");
+            };
+        if (ControlFlowOpcodes.Contains(opcode))
+            return static (cpu, value, cycle) =>
+            {
+                if (!cpu.ExecuteCycleControlFlow((ushort)((value << 3) | cycle)))
+                    throw new InvalidOperationException($"Unsupported control-flow opcode 0x{value:X2}.");
+            };
+        if (RmwOpcodes.Contains(opcode))
+            return ExecuteRmwOpcodeCycle;
+        if (IllegalRmwOpcodes.Contains(opcode))
+            return static (cpu, value, cycle) =>
+            {
+                if (!cpu.ExecuteCycleIllegalRMW((ushort)((value << 3) | cycle)))
+                    throw new InvalidOperationException($"Unsupported illegal RMW opcode 0x{value:X2}.");
+            };
+        if (NopKilOpcodes.Contains(opcode))
+            return static (cpu, value, cycle) =>
+            {
+                if (!cpu.ExecuteCycleNopKilOpcodes((ushort)((value << 3) | cycle)))
+                    throw new InvalidOperationException($"Unsupported NOP/KIL opcode 0x{value:X2}.");
+            };
+        if (UnstableOpcodes.Contains(opcode))
+            return static (cpu, value, cycle) =>
+            {
+                if (!cpu.ExecuteCycleUnstableOpcodes((ushort)((value << 3) | cycle)))
+                    throw new InvalidOperationException($"Unsupported unstable opcode 0x{value:X2}.");
+            };
+        if (IllegalLoadStoreOpcodes.Contains(opcode))
+            return static (cpu, value, cycle) =>
+            {
+                if (!cpu.ExecuteCycleLoadStoreTransferFlags(value, cycle, (ushort)((value << 3) | cycle)))
+                    throw new InvalidOperationException($"Unsupported illegal load/store opcode 0x{value:X2}.");
+            };
+        return ExecuteUnmappedOpcodeCycle;
     }
 
     private static void ExecuteSimpleCycle(Cpu6502 cpu, byte opcode, byte cycle) =>
@@ -487,7 +443,14 @@ public static class OpcodeTables
     private static readonly byte[] IllegalLoadStoreOpcodes =
     [0xBB, 0xA7, 0xB7, 0xAF, 0xBF, 0xA3, 0xB3, 0x87, 0x97, 0x8F, 0x83];
 
-    public static OpcodeTable Nmos { get; } = CreateNmosTable();
+
+    public static PetEmulator.Core.OpcodeTable<CpuState> NmosCore { get; } = CreateNativeNmosCoreTable();
+
+    public static PetEmulator.Core.OpcodeTable<CpuState> Cmos65C02Core { get; } =
+        CreateNativeCmos65C02CoreTable();
+
+    public static PetEmulator.Core.OpcodeTable<CpuState> R65C02SCore { get; } =
+        CreateNativeR65C02SCoreTable();
 
     private const string Mnemonics = """
         BRK ORA KIL SLO NOP ORA ASL SLO PHP ORA ASL ANC NOP ORA ASL SLO

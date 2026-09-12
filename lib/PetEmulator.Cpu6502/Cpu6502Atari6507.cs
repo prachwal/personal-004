@@ -17,7 +17,7 @@ public sealed class Cpu6502Atari6507 : Cpu6502
     /// <param name="memory">Interfejs magistrali pamięci.</param>
     /// <param name="opcodeTable">Opcjonalna tablica opcode wariantu.</param>
     /// <param name="clock">Opcjonalna instancja IClock (uses default internal clock if null).</param>
-    public Cpu6502Atari6507(IMemoryBus memory, OpcodeTable? opcodeTable = null, IClock? clock = null)
+    public Cpu6502Atari6507(IMemoryBus memory, PetEmulator.Core.OpcodeTable<CpuState>? opcodeTable = null, IClock? clock = null)
         : base(memory, OpcodeTables.CreateAtari6507Variant(opcodeTable), clock)
     {
     }

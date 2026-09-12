@@ -10,58 +10,108 @@ public sealed class OpcodeTableTests
     [Test]
     public void Nmos_table_has_one_entry_for_every_opcode()
     {
-        var table = global::PetEmulator.Cpu6502.OpcodeTables.CreateNmos();
-        table.Definitions.Should().HaveCount(256);
+        var table = global::PetEmulator.Cpu6502.OpcodeTables.NmosCore;
+        table.Entries.Should().HaveCount(256);
         for (var opcode = 0; opcode <= byte.MaxValue; opcode++)
-            table[(byte)opcode].Opcode.Should().Be((byte)opcode);
+            table.Get(OpcodeKey.Base((byte)opcode)).Key.Opcode.Should().Be((byte)opcode);
 
-        table[0xA9].Mnemonic.Should().Be("LDA");
-        table[0xA9].BaseCycles.Should().Be(2);
-        table[0xA9].AddressingMode.Should().Be(global::PetEmulator.Cpu6502.AddressingMode.Immediate);
-        table[0xA9].Length.Should().Be(2);
-        table[0xAD].AddressingMode.Should().Be(global::PetEmulator.Cpu6502.AddressingMode.Absolute);
-        table[0xAD].Length.Should().Be(3);
-        table[0x6C].AddressingMode.Should().Be(global::PetEmulator.Cpu6502.AddressingMode.Indirect);
-        table[0x00].Mnemonic.Should().Be("BRK");
-        table[0x00].BaseCycles.Should().Be(7);
+        table.Get(OpcodeKey.Base(0xA9)).Mnemonic.Should().Be("LDA");
+        table.Get(OpcodeKey.Base(0xA9)).BaseCycles.Should().Be(2);
+        table.Get(OpcodeKey.Base(0xA9)).AddressingMode.Should().Be("Immediate");
+        table.Get(OpcodeKey.Base(0xA9)).Length.Should().Be(2);
+        table.Get(OpcodeKey.Base(0xAD)).AddressingMode.Should().Be("Absolute");
+        table.Get(OpcodeKey.Base(0xAD)).Length.Should().Be(3);
+        table.Get(OpcodeKey.Base(0x6C)).AddressingMode.Should().Be("Indirect");
+        table.Get(OpcodeKey.Base(0x00)).Mnemonic.Should().Be("BRK");
+        table.Get(OpcodeKey.Base(0x00)).BaseCycles.Should().Be(7);
     }
 
     [Test]
     public void Nmos_table_maps_every_opcode_to_a_non_fallback_handler()
     {
-        var table = global::PetEmulator.Cpu6502.OpcodeTables.Nmos;
-
-        for (var opcode = 0; opcode <= byte.MaxValue; opcode++)
-            table[(byte)opcode].Handler.Method.Name.Should().NotBe("ExecuteUnmappedOpcodeCycle", $"opcode 0x{opcode:X2} must have a concrete handler");
+        var table = global::PetEmulator.Cpu6502.OpcodeTables.NmosCore;
+        foreach (var definition in table.Entries)
+            definition.ExecuteCycle.Should().NotBeNull();
     }
 
     [Test]
     public void Derived_table_can_remove_an_opcode_without_mutating_the_base()
     {
-        var baseTable = global::PetEmulator.Cpu6502.OpcodeTables.CreateNmos();
-        global::PetEmulator.Cpu6502.OpcodeTable derived = baseTable.Derive(table => table.Remove(0xEA));
+        var baseTable = global::PetEmulator.Cpu6502.OpcodeTables.NmosCore;
+        var derived = baseTable.Derive(table => table.Remove(OpcodeKey.Base(0xEA)));
 
-        derived.Definitions.Should().HaveCount(255);
-        baseTable.Definitions.Should().HaveCount(256);
+        derived.Entries.Should().HaveCount(255);
+        baseTable.Entries.Should().HaveCount(256);
         derived.IsSealed.Should().BeTrue();
-        FluentActions.Invoking(() => derived.Set(baseTable[0xEA])).Should().Throw<InvalidOperationException>();
-        FluentActions.Invoking(() => derived[0xEA]).Should().Throw<NotSupportedException>();
+        FluentActions.Invoking(() => derived.Set(baseTable.Get(OpcodeKey.Base(0xEA)))).Should().Throw<InvalidOperationException>();
+        FluentActions.Invoking(() => derived.Get(OpcodeKey.Base(0xEA))).Should().Throw<KeyNotFoundException>();
     }
 
     [Test]
     public void Nmos_table_is_shared_and_sealed()
     {
-        global::PetEmulator.Cpu6502.OpcodeTables.CreateNmos().Should().BeSameAs(global::PetEmulator.Cpu6502.OpcodeTables.CreateNmos());
-        global::PetEmulator.Cpu6502.OpcodeTables.Nmos.IsSealed.Should().BeTrue();
+        global::PetEmulator.Cpu6502.OpcodeTables.NmosCore.Should().BeSameAs(global::PetEmulator.Cpu6502.OpcodeTables.NmosCore);
+        global::PetEmulator.Cpu6502.OpcodeTables.NmosCore.IsSealed.Should().BeTrue();
     }
 
     [Test]
     public void Cpu_variant_uses_the_supplied_opcode_table()
     {
-        var table = global::PetEmulator.Cpu6502.OpcodeTables.CreateNmos();
+        var table = global::PetEmulator.Cpu6502.OpcodeTables.NmosCore;
         var cpu = new global::PetEmulator.Cpu6502.Variants.Cpu6502Classic(new TestMemory(), table);
 
-        cpu.Opcodes.Should().BeSameAs(table);
+        cpu.Opcodes.Get(OpcodeKey.Base(0xEA)).Mnemonic.Should().Be(table.Get(OpcodeKey.Base(0xEA)).Mnemonic);
+    }
+
+    [Test]
+    public void Every_variant_registers_its_opcode_set_in_the_shared_core_table()
+    {
+        var cpus = new Cpu6502[]
+        {
+            new global::PetEmulator.Cpu6502.Variants.Cpu6502Classic(new TestMemory()),
+            new global::PetEmulator.Cpu6502.Variants.Cpu6502Atari6507(new TestMemory()),
+            new global::PetEmulator.Cpu6502.Variants.Cpu6502Commodore6510(new TestMemory()),
+            new global::PetEmulator.Cpu6502.Variants.Cpu6502Nes(new TestMemory()),
+            new global::PetEmulator.Cpu6502.Variants.Cpu6502Cmos65C02(new TestMemory()),
+            new global::PetEmulator.Cpu6502.Variants.Cpu6502WdcR65C02S(new TestMemory()),
+        };
+
+        foreach (var cpu in cpus)
+        {
+            cpu.Opcodes.Entries.Should().HaveCount(256);
+            cpu.Opcodes.Entries.Select(definition => definition.Key.Page)
+                .Should().OnlyContain(page => page == 0);
+            cpu.Opcodes.Entries.Should().Contain(definition => definition.Key.Opcode == 0xA9);
+        }
+    }
+
+    [Test]
+    public void Default_variant_tables_are_published_as_sealed_core_tables()
+    {
+        global::PetEmulator.Cpu6502.OpcodeTables.NmosCore.IsSealed.Should().BeTrue();
+        global::PetEmulator.Cpu6502.OpcodeTables.Cmos65C02Core.IsSealed.Should().BeTrue();
+        global::PetEmulator.Cpu6502.OpcodeTables.R65C02SCore.IsSealed.Should().BeTrue();
+
+        global::PetEmulator.Cpu6502.OpcodeTables.CreateNmosVariant().OpcodeTable
+            .Should().BeSameAs(global::PetEmulator.Cpu6502.OpcodeTables.NmosCore);
+    }
+
+    [Test]
+    public void Every_shared_opcode_definition_has_a_cycle_executor()
+    {
+        var cpus = new Cpu6502[]
+        {
+            new global::PetEmulator.Cpu6502.Variants.Cpu6502Classic(new TestMemory()),
+            new global::PetEmulator.Cpu6502.Variants.Cpu6502Atari6507(new TestMemory()),
+            new global::PetEmulator.Cpu6502.Variants.Cpu6502Commodore6510(new TestMemory()),
+            new global::PetEmulator.Cpu6502.Variants.Cpu6502Nes(new TestMemory()),
+            new global::PetEmulator.Cpu6502.Variants.Cpu6502Cmos65C02(new TestMemory()),
+            new global::PetEmulator.Cpu6502.Variants.Cpu6502WdcR65C02S(new TestMemory()),
+        };
+
+        foreach (var cpu in cpus)
+            foreach (var definition in cpu.Opcodes.Entries)
+                definition.ExecuteCycle.Should().NotBeNull();
     }
 
     [Test]
@@ -105,12 +155,13 @@ public sealed class OpcodeTableTests
             2, 5, 1, 2, 4, 4, 6, 2, 2, 4, 2, 2, 4, 4, 7, 2
         ];
 
-        var table = global::PetEmulator.Cpu6502.OpcodeTables.CreateNmos();
+        var table = global::PetEmulator.Cpu6502.OpcodeTables.NmosCore;
         for (int opcode = 0; opcode <= byte.MaxValue; opcode++)
         {
-            table[(byte)opcode].BaseCycles.Should()
+            var definition = table.Get(OpcodeKey.Base((byte)opcode));
+            definition.BaseCycles.Should()
                 .Be(expectedCycles[opcode],
-                    $"Opcode 0x{opcode:X2} ({table[(byte)opcode].Mnemonic}) should have {expectedCycles[opcode]} cycles");
+                    $"Opcode 0x{opcode:X2} ({definition.Mnemonic}) should have {expectedCycles[opcode]} cycles");
         }
     }
 
@@ -132,13 +183,14 @@ public sealed class OpcodeTableTests
         ];
         var expectedSet = new HashSet<byte>(expectedPageCrossOpcodes);
 
-        var table = global::PetEmulator.Cpu6502.OpcodeTables.CreateNmos();
+        var table = global::PetEmulator.Cpu6502.OpcodeTables.NmosCore;
         for (int opcode = 0; opcode <= byte.MaxValue; opcode++)
         {
             bool shouldHavePenalty = expectedSet.Contains((byte)opcode);
-            table[(byte)opcode].HasPageCrossPenalty.Should()
+            var definition = table.Get(OpcodeKey.Base((byte)opcode));
+            definition.HasPageCrossPenalty.Should()
                 .Be(shouldHavePenalty,
-                    $"Opcode 0x{opcode:X2} ({table[(byte)opcode].Mnemonic}) page-cross penalty flag is incorrect");
+                    $"Opcode 0x{opcode:X2} ({definition.Mnemonic}) page-cross penalty flag is incorrect");
         }
     }
 

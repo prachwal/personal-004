@@ -20,13 +20,4 @@ public enum AddressingMode
     Unknown
 }
 
-public delegate void OpcodeHandler(Cpu6502 cpu, byte opcode, byte cycle);
-
-public sealed record OpcodeDefinition(
-    byte Opcode,
-    string Mnemonic,
-    AddressingMode AddressingMode,
-    byte Length,
-    byte BaseCycles,
-    OpcodeHandler Handler,
-    bool HasPageCrossPenalty = false);
+internal delegate void OpcodeHandler(Cpu6502 cpu, byte opcode, byte cycle);

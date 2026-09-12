@@ -7,15 +7,14 @@ namespace PetEmulator.Cpu6502;
 /// </summary>
 public partial class Cpu6502
 {
-    private readonly OpcodeTable _opcodeTable;
-
     public Cpu6502Registers Registers { get; }
 
-    public OpcodeTable Opcodes => _opcodeTable;
+    /// <summary>Shared Core opcode registry used by the processor runtime.</summary>
+    public new PetEmulator.Core.OpcodeTable<CpuState> Opcodes => base.Opcodes;
 
     public Cpu6502Variant Variant { get; }
 
-    public IClock Clock => _clock;
+    public new IClock Clock => _clock;
 
     #region Rejestry CPU
 
@@ -86,10 +85,10 @@ public partial class Cpu6502
     private ulong _instructionCount;
 
     /// <summary>
-    /// Definicja bieżącego opcodu (cached z _opcodeTable[_currentOpcode]).
+    /// Definicja bieżącego opcode’u z tabeli Core.
     /// Oszczędza wielokrotne wyszukiwania w tablicy podczas wielocyklowych instrukcji.
     /// </summary>
-    private OpcodeDefinition? _currentDefinition;
+    private PetEmulator.Core.OpcodeDefinition<CpuState>? _currentDefinition;
 
     #endregion
 

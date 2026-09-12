@@ -16,7 +16,7 @@ public sealed class Cpu6502WdcR65C02S : Cpu6502
     /// <param name="memory">Memory bus interface for the CPU.</param>
     /// <param name="opcodeTable">Optional custom opcode table (uses default R65C02S table if not provided).</param>
     /// <param name="clock">Optional injected IClock instance (uses default internal clock if null).</param>
-    public Cpu6502WdcR65C02S(IMemoryBus memory, OpcodeTable? opcodeTable = null, IClock? clock = null)
+    public Cpu6502WdcR65C02S(IMemoryBus memory, PetEmulator.Core.OpcodeTable<CpuState>? opcodeTable = null, IClock? clock = null)
         : base(memory, OpcodeTables.CreateR65C02SVariant(opcodeTable), clock)
     {
     }
