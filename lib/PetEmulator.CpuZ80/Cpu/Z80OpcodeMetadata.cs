@@ -44,6 +44,9 @@ internal readonly record struct Z80OpcodeMetadata(
         if (page == 0x00 && CreateBaseMatrixMetadata(opcode) is { } matrix)
             return matrix;
 
+        if (page == 0x00 && CreateBaseControlMetadata(opcode) is { } control)
+            return control;
+
         var length = opcode switch
         {
             0x01 or 0x11 or 0x21 or 0x31 or 0x22 or 0x2A or 0xC3 or 0xCD or
@@ -65,6 +68,81 @@ internal readonly record struct Z80OpcodeMetadata(
 
         return new($"OP {opcode:X2}", length, addressingMode, 4);
     }
+
+    private static Z80OpcodeMetadata? CreateBaseControlMetadata(byte opcode)
+    {
+        if ((opcode & 0xCF) == 0x01)
+            return new($"LD {PairName((opcode >> 4) & 3)},nn", 3, "Immediate16", 10);
+
+        if ((opcode & 0xCF) == 0x09)
+            return new($"ADD HL,{PairName((opcode >> 4) & 3)}", 1, "RegisterPair", 11);
+
+        if ((opcode & 0xC7) == 0x03)
+            return new($"{((opcode & 8) == 0 ? "INC" : "DEC")} {PairName((opcode >> 4) & 3)}", 1, "RegisterPair", 6);
+
+        if ((opcode & 0xC7) is 0x04 or 0x05)
+        {
+            var register = BaseRegisterName((opcode >> 3) & 7);
+            var memory = ((opcode >> 3) & 7) == 6;
+            return new($"{((opcode & 1) == 0 ? "INC" : "DEC")} {register}", 1, memory ? "Memory" : "Register", (byte)(memory ? 11 : 4));
+        }
+
+        if ((opcode & 0xC7) == 0x06)
+            return null;
+
+        if ((opcode & 0xC7) == 0xC6)
+            return new(AluMnemonic((opcode >> 3) & 7, "n"), 2, "Immediate8", 7);
+
+        return opcode switch
+        {
+            0x02 => new("LD (BC),A", 1, "Memory", 7),
+            0x0A => new("LD A,(BC)", 1, "Memory", 7),
+            0x12 => new("LD (DE),A", 1, "Memory", 7),
+            0x1A => new("LD A,(DE)", 1, "Memory", 7),
+            0x22 => new("LD (nn),HL", 3, "Absolute16", 16),
+            0x2A => new("LD HL,(nn)", 3, "Absolute16", 16),
+            0x32 => new("LD (nn),A", 3, "Absolute16", 13),
+            0x3A => new("LD A,(nn)", 3, "Absolute16", 13),
+            0x07 => new("RLCA", 1, "Implied", 4),
+            0x0F => new("RRCA", 1, "Implied", 4),
+            0x17 => new("RLA", 1, "Implied", 4),
+            0x1F => new("RRA", 1, "Implied", 4),
+            0x27 => new("DAA", 1, "Implied", 4),
+            0x2F => new("CPL", 1, "Implied", 4),
+            0x37 => new("SCF", 1, "Implied", 4),
+            0x3F => new("CCF", 1, "Implied", 4),
+            0x10 => new("DJNZ e", 2, "Relative", 13),
+            0x18 => new("JR e", 2, "Relative", 12),
+            0x20 or 0x28 or 0x30 or 0x38 => new($"JR {ConditionName((opcode >> 3) & 3)},e", 2, "Relative", 12),
+            0xC3 => new("JP nn", 3, "Absolute16", 10),
+            0xC2 or 0xCA or 0xD2 or 0xDA or 0xE2 or 0xEA or 0xF2 or 0xFA => new($"JP {ConditionName((opcode >> 3) & 7)},nn", 3, "Absolute16", 10),
+            0xCD => new("CALL nn", 3, "Absolute16", 17),
+            0xC4 or 0xCC or 0xD4 or 0xDC or 0xE4 or 0xEC or 0xF4 or 0xFC => new($"CALL {ConditionName((opcode >> 3) & 7)},nn", 3, "Absolute16", 17),
+            0xC9 => new("RET", 1, "Implied", 10),
+            0xC0 or 0xC8 or 0xD0 or 0xD8 or 0xE0 or 0xE8 or 0xF0 or 0xF8 => new($"RET {ConditionName((opcode >> 3) & 7)}", 1, "Implied", 11),
+            0xE9 => new("JP (HL)", 1, "Register", 4),
+            0xE3 => new("EX (SP),HL", 1, "StackMemory", 19),
+            0xE5 => new("PUSH HL", 1, "Stack", 11),
+            0xE1 => new("POP HL", 1, "Stack", 10),
+            0xF9 => new("LD SP,HL", 1, "RegisterPair", 6),
+            0xD9 => new("EXX", 1, "Implied", 4),
+            0xEB => new("EX DE,HL", 1, "RegisterPair", 4),
+            0xC7 or 0xCF or 0xD7 or 0xDF or 0xE7 or 0xEF or 0xF7 or 0xFF => new($"RST {opcode & 0x38:X2}H", 1, "Restart", 11),
+            _ => null,
+        };
+    }
+
+    private static string ConditionName(int condition) => condition switch
+    {
+        0 => "NZ",
+        1 => "Z",
+        2 => "NC",
+        3 => "C",
+        4 => "PO",
+        5 => "PE",
+        6 => "P",
+        _ => "M",
+    };
 
     private static Z80OpcodeMetadata? CreateBaseMatrixMetadata(byte opcode)
     {

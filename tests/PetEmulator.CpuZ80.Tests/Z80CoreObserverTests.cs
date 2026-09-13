@@ -409,6 +409,21 @@ public sealed class Z80CoreObserverTests
     }
 
     [Fact]
+    public void Z80BaseMetadataUsesControlStackAndAccumulatorFamilies()
+    {
+        var cpu = new MetadataProbeZ80Cpu(new TestBus(), new InterruptLines());
+
+        AssertMetadata(cpu.Definition(0x00, 0x01), "LD BC,nn", 3, "Immediate16", 10);
+        AssertMetadata(cpu.Definition(0x00, 0x23), "INC HL", 1, "RegisterPair", 6);
+        AssertMetadata(cpu.Definition(0x00, 0x34), "INC (HL)", 1, "Memory", 11);
+        AssertMetadata(cpu.Definition(0x00, 0xC3), "JP nn", 3, "Absolute16", 10);
+        AssertMetadata(cpu.Definition(0x00, 0xCD), "CALL nn", 3, "Absolute16", 17);
+        AssertMetadata(cpu.Definition(0x00, 0xE5), "PUSH HL", 1, "Stack", 11);
+        AssertMetadata(cpu.Definition(0x00, 0xC9), "RET", 1, "Implied", 10);
+        AssertMetadata(cpu.Definition(0x00, 0x27), "DAA", 1, "Implied", 4);
+    }
+
+    [Fact]
     public void Z80DerivedVariantExecutesItsCustomOpcodeThroughTheCommonDecoder()
     {
         var bus = new TestBus { Memory = { [0] = 0xED, [1] = 0x00 } };

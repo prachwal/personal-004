@@ -102,6 +102,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Test metadanych zarejestrowanych rodzin ED: 1/1 zaliczony.
 - [x] Test metadanych DD/FD dla IX/IY, displacement i prefiksu CB: 1/1 zaliczony.
 - [x] Test bazowych macierzy metadanych `LD` i ALU: 1/1 zaliczony.
+- [x] Test bazowych metadanych sterowania, stosu, skoków i akumulatora: 1/1 zaliczony.
 - [x] Test wykonania własnego opcode’u przez wariant potomny Z80: 1/1 zaliczony.
 - [x] `z80doc.tap` i `zexdoc.com` są obecne w repozytorium.
 - [x] Test ZEXDOC ma inicjalizację wektora stosu CP/M pod `0006h`.
@@ -119,12 +120,12 @@ Stan na 2026-09-13:
 
 - 324 testy `[Fact]/[Theory]` w `tests/PetEmulator.CpuZ80.Tests`.
 - 29 testów w `Z80CoreObserverTests.cs` obejmujących kontrakty Core, lifecycle, magistralę, metadane i warianty potomne.
-- 9 istniejących nieodhaczonych pozycji checklisty; po dopisaniu poniższych testów backlog wynosi 13 pozycji.
+- 8 istniejących nieodhaczonych pozycji checklisty; po dopisaniu poniższych testów backlog wynosi 12 pozycji.
 - Testy binarne nie są wliczane do szybkich testów migracyjnych i pozostają osobnym końcowym etapem.
 
 Potencjalne testy uzupełniające metadanych i kontraktów — 4 pozycje:
 
-- [ ] Pełna asercja metadanych bazowej strony dla pozostałych grup: `INC/DEC`, skoki, wywołania, stos, akumulatory, `RST` i prefiksy.
+- [x] Uzupełnić dokładne metadane bazowych rodzin sterowania, stosu, skoków, `RST` i akumulatora.
 - [ ] Pełna asercja metadanych wszystkich zarejestrowanych wpisów `CB`, `ED`, `DD` i `FD`, a nie tylko reprezentantów każdej rodziny.
 - [ ] Test zgodności metadanych timingowych z rzeczywistym wynikiem wykonania dla macierzy reprezentatywnych opcode’ów.
 - [ ] Rozszerzenie testu `IProcessor` o ścieżki `SetIRQ` i `SetNMI`, ponieważ są częścią wspólnego kontraktu.
