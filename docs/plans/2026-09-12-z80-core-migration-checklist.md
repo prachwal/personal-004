@@ -113,6 +113,24 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Dodać test kontraktu `IProcessor` dla `Reset`, `StepInstruction`, `CycleCount` i `InstructionCount`.
 - [x] Dodać test kompatybilności wariantu potomnego z własnym opcode’em.
 
+### Bilans testów i pozostały backlog
+
+Stan na 2026-09-13:
+
+- 324 testy `[Fact]/[Theory]` w `tests/PetEmulator.CpuZ80.Tests`.
+- 29 testów w `Z80CoreObserverTests.cs` obejmujących kontrakty Core, lifecycle, magistralę, metadane i warianty potomne.
+- 9 istniejących nieodhaczonych pozycji checklisty; po dopisaniu poniższych testów backlog wynosi 13 pozycji.
+- Testy binarne nie są wliczane do szybkich testów migracyjnych i pozostają osobnym końcowym etapem.
+
+Potencjalne testy uzupełniające metadanych i kontraktów — 4 pozycje:
+
+- [ ] Pełna asercja metadanych bazowej strony dla pozostałych grup: `INC/DEC`, skoki, wywołania, stos, akumulatory, `RST` i prefiksy.
+- [ ] Pełna asercja metadanych wszystkich zarejestrowanych wpisów `CB`, `ED`, `DD` i `FD`, a nie tylko reprezentantów każdej rodziny.
+- [ ] Test zgodności metadanych timingowych z rzeczywistym wynikiem wykonania dla macierzy reprezentatywnych opcode’ów.
+- [ ] Rozszerzenie testu `IProcessor` o ścieżki `SetIRQ` i `SetNMI`, ponieważ są częścią wspólnego kontraktu.
+
+Minimalny wymagany koniec migracji to 5 czynności weryfikacyjnych: pełny `ZEXDOC`, zapis jego wyniku, pełny `z80doc.tap`, pełny build rozwiązania i pełna regresja rozwiązania. Pozycje „zapis wyniku” i „analiza GitNexus” są czynnościami kontrolnymi, nie dodatkowymi testami jednostkowymi.
+
 ## 7. Porządki końcowe
 
 - [ ] Usunąć potwierdzone martwe adaptery i lokalny kod lifecycle.
