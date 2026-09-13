@@ -56,7 +56,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Istnieje kompatybilny `CpuHookCollection`.
 - [x] Z80 korzysta ze wspólnego `ExecutionObserver` przez `CpuProcessorBase`; dodano test pełnego śladu instrukcji.
 - [ ] Zachować hooki jako adapter kompatybilności dla istniejących callerów.
-- [ ] Dodać breakpoint przed/po instrukcji i obserwację wyjątków.
+- [x] Dodać breakpoint przed instrukcją przez wspólny `ExecutionObserver`; obserwacja wyjątków pozostaje osobnym testem.
 - [x] Dodać watchpoint pamięci przez wspólny kontrakt `ExecutionObserver`; I/O pozostaje osobnym rozszerzeniem.
 - [ ] Zweryfikować debug snapshot dla instrukcji, WAIT, HALT i interruptów.
 
@@ -74,6 +74,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Po usunięciu prywatnych wrapperów wykonano testy Base/CB/ED/Indexed/I/O i rozszerzania rejestracji; 86/86 przeszło, czas 59 s.
 - [x] Test kontraktu wspólnego `ExecutionObserver` dla Z80: 1/1 zaliczony.
 - [x] Test wspólnego watchpointu pamięci Z80: 1/1 zaliczony.
+- [x] Test breakpointu przed instrukcją Z80 przez wspólny observer: 1/1 zaliczony.
 - [x] `z80doc.tap` i `zexdoc.com` są obecne w repozytorium.
 - [x] Test ZEXDOC ma inicjalizację wektora stosu CP/M pod `0006h`.
 - [x] Test ZEXDOC raportuje postęp co 100 milionów instrukcji.

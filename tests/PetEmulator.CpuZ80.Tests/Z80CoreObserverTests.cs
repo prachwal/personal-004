@@ -48,15 +48,34 @@ public sealed class Z80CoreObserverTests
         Assert.Contains(observer.Accesses, access => access.Address == 0x4000);
     }
 
+    [Fact]
+    public void CommonExecutionObserverCanBreakBeforeZ80Instruction()
+    {
+        var bus = new TestBus();
+        bus.Memory[0] = 0x00;
+        var cpu = new Z80Cpu(bus, new InterruptLines());
+        var observer = new TestObserver { Break = true };
+        cpu.ExecutionObserver = observer;
+
+        cpu.StepInstruction();
+
+        var trace = Assert.Single(observer.Completed);
+        Assert.True(trace.Result.BreakpointHit);
+        Assert.Equal((ushort)0, cpu.Registers.PC);
+        Assert.Equal((ulong)0, cpu.InstructionCount);
+    }
+
     private sealed class TestObserver : ICpuExecutionObserver
     {
         public List<CpuStepTrace> Completed { get; } = [];
 
         public List<BusAccess> Accesses { get; } = [];
 
+        public bool Break { get; init; }
+
         public ushort? WatchAddress { get; init; }
 
-        public bool ShouldBreak(CpuDebugSnapshot snapshot) => false;
+        public bool ShouldBreak(CpuDebugSnapshot snapshot) => Break;
 
         public bool ShouldBreakOnMemoryAccess(BusAccess access)
         {
