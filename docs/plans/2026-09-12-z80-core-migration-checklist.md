@@ -119,11 +119,11 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 Stan na 2026-09-13:
 
 - 324 testy `[Fact]/[Theory]` w `tests/PetEmulator.CpuZ80.Tests`.
-- 29 testów w `Z80CoreObserverTests.cs` obejmujących kontrakty Core, lifecycle, magistralę, metadane i warianty potomne.
-- 8 istniejących nieodhaczonych pozycji checklisty; po dopisaniu poniższych testów backlog wynosi 12 pozycji.
+- 30 testów w `Z80CoreObserverTests.cs` obejmujących kontrakty Core, lifecycle, magistralę, metadane i warianty potomne.
+- 13 nieodhaczonych pozycji checklisty: 3 pozostałe potencjalne testy oraz 10 czynności końcowych/integracyjnych.
 - Testy binarne nie są wliczane do szybkich testów migracyjnych i pozostają osobnym końcowym etapem.
 
-Potencjalne testy uzupełniające metadanych i kontraktów — 4 pozycje:
+Potencjalne testy uzupełniające metadanych i kontraktów — 4 pozycje, 1 wykonana i 3 pozostałe:
 
 - [x] Uzupełnić dokładne metadane bazowych rodzin sterowania, stosu, skoków, `RST` i akumulatora.
 - [ ] Pełna asercja metadanych wszystkich zarejestrowanych wpisów `CB`, `ED`, `DD` i `FD`, a nie tylko reprezentantów każdej rodziny.
