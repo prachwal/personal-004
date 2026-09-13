@@ -11,7 +11,7 @@
 Weryfikacja wykonana po etapach 1–2:
 
 - `dotnet build PetEmulator.slnx --no-restore --disable-build-servers` — PASS, 0 ostrzeżeń, 0 błędów.
-- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 52/52.
+- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 58/58.
 - Macierz dispatchu obejmuje wszystkie 256 wartości opcode — PASS.
 - Macierz flag obejmuje ADD/SUB/INR/DCR/ANA/DAA — PASS.
 - Własny test binarny `.COM` ładowany pod `0x0100` — PASS; obejmuje ALU, skok warunkowy, zapis pamięci i `HLT`.
@@ -24,6 +24,7 @@ Weryfikacja wykonana po etapach 1–2:
 - Test oczekującego przerwania po `EI` oraz niespełnionych warunków skoków — PASS.
 - Test callbacku obserwatora `OnStepFailed` z zachowaniem snapshotu — PASS.
 - Differential ALU względem niezależnego modelu referencyjnego, 4096 przypadków — PASS.
+- Macierz transferu danych i adresowania, w tym granica `0xFFFF` oraz alias `M=[HL]` — PASS.
 - Długi test ZEXDOC Z80 pozostaje uruchomiony niezależnie od tej zmiany.
 
 ## Cel
@@ -107,7 +108,7 @@ Kryterium: debugger może odczytać opis każdej wartości opcode, a dispatch ni
 - [x] `MVI r,data`, `MVI M,data`, `LXI B/D/H/SP`.
 - [x] `LDAX B/D`, `STAX B/D`, `LDA`, `STA`, `LHLD`, `SHLD`.
 - [x] `XCHG`, `SPHL`, `PCHL`.
-- [ ] Obsłużyć alias `M` jako pamięć pod adresem `HL`, bez tworzenia sztucznego rejestru.
+- [x] Obsłużyć alias `M` jako pamięć pod adresem `HL`, bez tworzenia sztucznego rejestru.
 - [x] Testy: PC, odczyt/zapis pamięci, cykle, przypadki graniczne `0xFFFF` i wrap argumentu 16-bitowego.
 
 Kryterium: pełna grupa transferu danych działa i ma testy wszystkich trybów adresowania.
