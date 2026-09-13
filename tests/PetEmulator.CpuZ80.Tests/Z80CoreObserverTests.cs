@@ -341,6 +341,21 @@ public sealed class Z80CoreObserverTests
     }
 
     [Fact]
+    public void Z80OpcodeRegistrationProvidesMetadataForEveryRegisteredDefinition()
+    {
+        var cpu = new MetadataProbeZ80Cpu(new TestBus(), new InterruptLines());
+
+        Assert.NotEmpty(cpu.Definitions);
+        Assert.All(cpu.Definitions, definition =>
+        {
+            Assert.NotEqual("Unknown", definition.AddressingMode);
+            Assert.NotEmpty(definition.Mnemonic);
+            Assert.True(definition.Length > 0);
+            Assert.True(definition.BaseCycles > 0);
+        });
+    }
+
+    [Fact]
     public void Z80OpcodeRegistrationHasCompleteIndexedPagesAndUniqueKeys()
     {
         var cpu = new MetadataProbeZ80Cpu(new TestBus(), new InterruptLines());
