@@ -11,7 +11,7 @@
 Weryfikacja wykonana po etapie 1:
 
 - `dotnet build PetEmulator.slnx --no-restore --disable-build-servers` — PASS, 0 ostrzeżeń, 0 błędów.
-- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 42/42.
+- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 47/47.
 - Macierz dispatchu obejmuje wszystkie 256 wartości opcode — PASS.
 - Macierz flag obejmuje ADD/SUB/INR/DCR/ANA/DAA — PASS.
 - Własny test binarny `.COM` ładowany pod `0x0100` — PASS; obejmuje ALU, skok warunkowy, zapis pamięci i `HLT`.
@@ -20,6 +20,8 @@ Weryfikacja wykonana po etapie 1:
 - Testy granic pamięci/stosu, warunków i timingów — PASS.
 - Testy obserwatora breakpoint/trace — PASS.
 - Macierze `MOV`, ALU, warunków, `RST` i `PUSH/POP` — PASS.
+- Testy negatywne braku I/O, niepoprawnego acknowledge i niepełnego snapshotu — PASS.
+- Test oczekującego przerwania po `EI` oraz niespełnionych warunków skoków — PASS.
 - Długi test ZEXDOC Z80 pozostaje uruchomiony niezależnie od tej zmiany.
 
 ## Cel
@@ -140,10 +142,10 @@ Kryterium: kontrola przepływu i stos mają testy śladu PC/SP oraz cykli dla ga
 - [x] `EI` i `DI` aktualizują `INTE` z opóźnieniem `EI`.
 - [x] `HLT` zatrzymuje normalne wykonywanie i nie zwiększa `InstructionCount` podczas bezczynnego kroku.
 - [x] Przerwanie jest akceptowane tylko przy `INTE`; acknowledge dostarcza opcode RST.
-- [ ] Po zaakceptowaniu przerwania `INTE` jest wyłączane, a stan stosu/PC odpowiada dokumentowanemu modelowi 8080.
+- [x] Po zaakceptowaniu przerwania `INTE` jest wyłączane, a stan stosu/PC odpowiada dokumentowanemu modelowi 8080.
 - [x] Dodać testy reset → `EI` → interrupt i `DI` → interrupt.
 - [x] Dodać test `HLT` → interrupt.
-- [ ] Dodać test interrupt podczas oczekiwania.
+- [x] Dodać test interrupt podczas oczekiwania.
 
 Kryterium: pełna ścieżka urządzenie → acknowledge → wykonanie opcode’u przerwania jest deterministyczna.
 
@@ -162,7 +164,7 @@ Kryterium: Z80 korzysta z kodu wspólnego tylko tam, gdzie test zgodności potwi
 
 - [x] Testy kontraktów Core: lifecycle, snapshot, observer, debug registers, counters.
 - [x] Testy 8080: rejestracja, rodziny opcode, flags matrix, memory matrix, stack, I/O, HLT, interrupts i timing.
-- [ ] Testy negatywne: nielegalny opcode, brak I/O, przerwanie przy `INTE=0`, restore niepełnego/niezgodnego snapshotu.
+- [x] Testy negatywne: brak I/O, niepoprawny acknowledge, przerwanie przy `INTE=0`, restore niepełnego snapshotu; nielegalne opcode’y są osobnym kontraktem tabeli 256 wpisów.
 - [ ] Dodać testy parametrów i testy losowe/differential dla ALU względem niezależnego modelu referencyjnego.
 - [x] Dodać krótką, własną walidację binarną 8080-compatible uruchamianą w CI.
 - [ ] Dodać dłuższą walidację zewnętrznym diagnostycznym `TST8080.COM`/`8080PRE.COM`; w poprzednich iteracjach znaleziono tylko programy demonstracyjne `.com`, brak zweryfikowanego obrazu w checkoutach.

@@ -177,11 +177,17 @@ public partial class Cpu8080
             case 0xF9: State.SP = State.HL; break;
 
             case 0xD3:
-                context.Ports?.Write(Fetch8(), State.A);
+            {
+                var port = Fetch8();
+                context.Ports?.Write(port, State.A);
                 break;
+            }
             case 0xDB:
-                State.A = context.Ports?.Read(Fetch8()) ?? 0xFF;
+            {
+                var port = Fetch8();
+                State.A = context.Ports?.Read(port) ?? 0xFF;
                 break;
+            }
             case 0xF3:
                 State.InterruptsEnabled = false;
                 State.EiPending = false;

@@ -90,6 +90,33 @@ public sealed class Cpu8080OpcodeMatrixTests
     }
 
     [Test]
+    public void Conditional_jump_matrix_consumes_operands_when_all_conditions_are_false()
+    {
+        for (var condition = 0; condition < 8; condition++)
+        {
+            var opcode = (byte)(0xC2 | (condition << 3));
+            var memory = new TestMemory { Bytes = { [0] = opcode, [1] = 0x34, [2] = 0x12 } };
+            var cpu = new Cpu8080(memory);
+            cpu.CpuState.Flags = condition switch
+            {
+                0 => 0x40,
+                1 => 0,
+                2 => 0x01,
+                3 => 0,
+                4 => 0x04,
+                5 => 0,
+                6 => 0x80,
+                7 => 0,
+                _ => 0,
+            };
+
+            cpu.StepInstruction();
+
+            cpu.CpuState.PC.Should().Be(3, $"condition={condition}");
+        }
+    }
+
+    [Test]
     public void Rst_matrix_pushes_return_address_and_selects_all_vectors()
     {
         for (var vector = 0; vector < 8; vector++)
