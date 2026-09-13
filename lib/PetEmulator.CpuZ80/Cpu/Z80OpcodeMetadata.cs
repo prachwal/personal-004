@@ -39,12 +39,7 @@ internal readonly record struct Z80OpcodeMetadata(
             return CreateEdMetadata(opcode);
 
         if (page is 0xDD or 0xFD)
-        {
-            if (opcode == 0xCB)
-                return new($"{(page == 0xDD ? "DD" : "FD")} CB", 4, "IndexedBit", 20);
-
-            return new($"{(page == 0xDD ? "DD" : "FD")} {opcode:X2}", 2, "Indexed", 8);
-        }
+            return CreateIndexedMetadata(page, opcode);
 
         var length = opcode switch
         {
@@ -67,6 +62,85 @@ internal readonly record struct Z80OpcodeMetadata(
 
         return new($"OP {opcode:X2}", length, addressingMode, 4);
     }
+
+    private static Z80OpcodeMetadata CreateIndexedMetadata(byte page, byte opcode)
+    {
+        var index = page == 0xDD ? "IX" : "IY";
+        var prefix = page == 0xDD ? "DD" : "FD";
+
+        if (opcode == 0xCB)
+            return new($"{prefix} CB", 4, "IndexedBit", 20);
+
+        if ((opcode & 0xC0) == 0x40 && opcode != 0x76)
+        {
+            var destination = IndexedRegisterName((opcode >> 3) & 7, index, opcode & 7);
+            var source = IndexedRegisterName(opcode & 7, index, (opcode >> 3) & 7);
+            var memory = ((opcode >> 3) & 7) == 6 || (opcode & 7) == 6;
+            return new($"LD {destination},{source}", (byte)(memory ? 3 : 2), memory ? "IndexedMemory" : "IndexedRegister", (byte)(memory ? 19 : 8));
+        }
+
+        if ((opcode & 0xC7) == 0x06 && ((opcode >> 3) & 7) is 4 or 5)
+            return new($"LD {IndexedRegisterName((opcode >> 3) & 7, index, 0)},n", 3, "IndexedImmediate8", 11);
+
+        if (((opcode & 0xC7) is 0x04 or 0x05) && ((opcode >> 3) & 7) is 4 or 5)
+            return new($"{((opcode & 1) == 0 ? "INC" : "DEC")} {IndexedRegisterName((opcode >> 3) & 7, index, 0)}", 2, "IndexedRegister", 8);
+
+        if ((opcode & 0xC0) == 0x80)
+        {
+            var sourceCode = opcode & 7;
+            var source = IndexedRegisterName(sourceCode, index, sourceCode);
+            var memory = sourceCode == 6;
+            return new($"{AluName((opcode >> 3) & 7)} {source}", (byte)(memory ? 3 : 2), memory ? "IndexedMemory" : "IndexedRegister", (byte)(memory ? 19 : 8));
+        }
+
+        return opcode switch
+        {
+            0x21 => new($"LD {index},nn", 4, "Immediate16", 14),
+            0x22 => new($"LD (nn),{index}", 4, "Absolute16", 20),
+            0x2A => new($"LD {index},(nn)", 4, "Absolute16", 20),
+            0x23 => new($"INC {index}", 2, "IndexedRegister", 10),
+            0x2B => new($"DEC {index}", 2, "IndexedRegister", 10),
+            0x09 or 0x19 or 0x29 or 0x39 => new($"ADD {index},{IndexedPairName((opcode >> 4) & 3, index)}", 2, "IndexedRegisterPair", 15),
+            0xE9 => new($"JP ({index})", 2, "IndexedRegister", 8),
+            0xE5 => new($"PUSH {index}", 2, "IndexedRegister", 15),
+            0xE1 => new($"POP {index}", 2, "IndexedRegister", 14),
+            0xE3 => new($"EX (SP),{index}", 2, "IndexedMemory", 23),
+            0xF9 => new($"LD SP,{index}", 2, "IndexedRegister", 10),
+            0x36 => new($"LD ({index}+d),n", 4, "IndexedImmediate8", 19),
+            0x34 => new($"INC ({index}+d)", 3, "IndexedMemory", 23),
+            0x35 => new($"DEC ({index}+d)", 3, "IndexedMemory", 23),
+            _ => CreateIndexedFallback(page, opcode),
+        };
+    }
+
+    private static Z80OpcodeMetadata CreateIndexedFallback(byte page, byte opcode)
+    {
+        var prefix = page == 0xDD ? "DD" : "FD";
+        var baseMetadata = For(0, opcode);
+        return new($"{prefix} {baseMetadata.Mnemonic}", (byte)(baseMetadata.Length + 1), "Indexed", (byte)(baseMetadata.BaseCycles + 4));
+    }
+
+    private static string IndexedRegisterName(int register, string index, int otherRegister) => register switch
+    {
+        4 when otherRegister != 6 => $"{index}H",
+        5 when otherRegister != 6 => $"{index}L",
+        6 => $"({index}+d)",
+        _ => RegisterName(register),
+    };
+
+    private static string IndexedPairName(int pair, string index) => pair == 2 ? index : PairName(pair);
+
+    private static string AluName(int operation) => operation switch
+    {
+        0 => "ADD A,",
+        1 => "ADC A,",
+        2 => "SUB ",
+        3 => "SBC A,",
+        4 => "AND ",
+        5 => "XOR ",
+        6 => "OR ",
+        _ => "CP ",
+    };
 
     private static Z80OpcodeMetadata CreateEdMetadata(byte opcode)
     {

@@ -383,6 +383,19 @@ public sealed class Z80CoreObserverTests
     }
 
     [Fact]
+    public void Z80IndexedMetadataUsesIxIyDisplacementAndPrefixFamilies()
+    {
+        var cpu = new MetadataProbeZ80Cpu(new TestBus(), new InterruptLines());
+
+        AssertMetadata(cpu.Definition(0xDD, 0x21), "LD IX,nn", 4, "Immediate16", 14);
+        AssertMetadata(cpu.Definition(0xFD, 0x21), "LD IY,nn", 4, "Immediate16", 14);
+        AssertMetadata(cpu.Definition(0xDD, 0x7E), "LD A,(IX+d)", 3, "IndexedMemory", 19);
+        AssertMetadata(cpu.Definition(0xFD, 0x36), "LD (IY+d),n", 4, "IndexedImmediate8", 19);
+        AssertMetadata(cpu.Definition(0xDD, 0x24), "INC IXH", 2, "IndexedRegister", 8);
+        AssertMetadata(cpu.Definition(0xFD, 0xCB), "FD CB", 4, "IndexedBit", 20);
+    }
+
+    [Fact]
     public void Z80DerivedVariantExecutesItsCustomOpcodeThroughTheCommonDecoder()
     {
         var bus = new TestBus { Memory = { [0] = 0xED, [1] = 0x00 } };
