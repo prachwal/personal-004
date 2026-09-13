@@ -3,11 +3,22 @@ using PetEmulator.CpuZ80.Bus;
 
 namespace PetEmulator.CpuZ80.Cpu;
 
-internal sealed class Z80MemoryBusAdapter(IBus bus) : IMemoryBus
+internal sealed class Z80MemoryBusAdapter(IBus bus) : IMemoryBus, IMemoryAccessObservable
 {
-    public byte Read(ushort address) => bus.ReadMemory(address);
+    public event Action<BusAccess>? Accessed;
 
-    public void Write(ushort address, byte value) => bus.WriteMemory(address, value);
+    public byte Read(ushort address)
+    {
+        var value = bus.ReadMemory(address);
+        Accessed?.Invoke(new BusAccess(false, address, value));
+        return value;
+    }
+
+    public void Write(ushort address, byte value)
+    {
+        bus.WriteMemory(address, value);
+        Accessed?.Invoke(new BusAccess(true, address, value));
+    }
 }
 
 internal sealed class Z80PortBusAdapter(IBus bus) : IPortBus

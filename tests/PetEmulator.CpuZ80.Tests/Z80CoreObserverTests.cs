@@ -28,13 +28,41 @@ public sealed class Z80CoreObserverTests
         Assert.True(trace.Result.InstructionCompleted);
     }
 
+    [Fact]
+    public void CommonExecutionObserverReportsZ80MemoryWatchpoint()
+    {
+        var bus = new TestBus();
+        bus.Memory[0] = 0x3A; // LD A,(nn)
+        bus.Memory[1] = 0x00;
+        bus.Memory[2] = 0x40;
+        bus.Memory[0x4000] = 0x5A;
+        var cpu = new Z80Cpu(bus, new InterruptLines());
+        var observer = new TestObserver { WatchAddress = 0x4000 };
+        cpu.ExecutionObserver = observer;
+
+        cpu.StepInstruction();
+
+        var trace = Assert.Single(observer.Completed);
+        Assert.True(trace.Result.WatchpointHit);
+        Assert.Equal((byte)0x5A, cpu.Registers.A);
+        Assert.Contains(observer.Accesses, access => access.Address == 0x4000);
+    }
+
     private sealed class TestObserver : ICpuExecutionObserver
     {
         public List<CpuStepTrace> Completed { get; } = [];
 
+        public List<BusAccess> Accesses { get; } = [];
+
+        public ushort? WatchAddress { get; init; }
+
         public bool ShouldBreak(CpuDebugSnapshot snapshot) => false;
 
-        public bool ShouldBreakOnMemoryAccess(BusAccess access) => false;
+        public bool ShouldBreakOnMemoryAccess(BusAccess access)
+        {
+            Accesses.Add(access);
+            return WatchAddress == access.Address;
+        }
 
         public void OnStepCompleted(CpuStepTrace trace) => Completed.Add(trace);
 

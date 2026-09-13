@@ -1166,14 +1166,14 @@ public partial class Z80Cpu : CpuProcessorBase<Z80State>
 
     private byte ReadMemory(ushort address)
     {
-        var value = bus.ReadMemory(address);
+        var value = Memory.Read(address);
         Trace(BusCycleKind.MemoryRead, address, value);
         return value;
     }
 
     private void WriteMemory(ushort address, byte value)
     {
-        bus.WriteMemory(address, value);
+        Memory.Write(address, value);
         Trace(BusCycleKind.MemoryWrite, address, value);
     }
 
