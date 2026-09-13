@@ -37,7 +37,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Usunąć prywatne wrappery `RegisterEdOpcode` i `RegisterPageOpcode`; chroniony `RegisterOpcode` zachowano dla rozszerzeń potomnych.
 - [ ] Ujednolicić metadane `OpcodeDefinition`: mnemonic, długość, tryb adresowania i timing.
 - [x] Wprowadzić wspólny resolver metadanych Z80 dla reprezentatywnych opcode’ów bazowych, CB, ED, DD/FD i I/O; pełne pokrycie pozostaje w punkcie powyżej.
-- [ ] Dodać test kompletności stron opcode’ów i braku kolizji kluczy.
+- [x] Dodać test kompletności stron CB/DD/FD i braku kolizji kluczy; strona ED pozostaje częściowo zdefiniowana zgodnie ze specyfiką Z80.
 - [ ] Dodać test rozszerzania tabeli w klasie potomnej przez `ConfigureOpcodes`/`Replace`/`Derive`.
 - [ ] Potwierdzić, że tabela bazowa pozostaje niemutowalna po utworzeniu wariantu potomnego.
 
@@ -84,6 +84,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Test delegacji resetu Z80 do wspólnego Core: 1/1 zaliczony.
 - [x] Test dokładnego zwiększania zegara i licznika instrukcji Z80: 1/1 zaliczony.
 - [x] Test metadanych `OpcodeDefinition` dla reprezentatywnych stron Z80: 1/1 zaliczony.
+- [x] Test kompletności stron CB/DD/FD i unikalności kluczy opcode’ów Z80: 1/1 zaliczony.
 - [x] `z80doc.tap` i `zexdoc.com` są obecne w repozytorium.
 - [x] Test ZEXDOC ma inicjalizację wektora stosu CP/M pod `0006h`.
 - [x] Test ZEXDOC raportuje postęp co 100 milionów instrukcji.

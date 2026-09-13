@@ -291,6 +291,19 @@ public sealed class Z80CoreObserverTests
         AssertMetadata(cpu.Definition(0x00, 0xDB), "IN A,(n)", 2, "ImmediatePort", 11);
     }
 
+    [Fact]
+    public void Z80OpcodeRegistrationHasCompleteIndexedPagesAndUniqueKeys()
+    {
+        var cpu = new MetadataProbeZ80Cpu(new TestBus(), new InterruptLines());
+        var definitions = cpu.Definitions.ToArray();
+
+        Assert.Equal(definitions.Length, definitions.Select(definition => definition.Key).Distinct().Count());
+        Assert.Equal(256, definitions.Count(definition => definition.Key.Page == 0xCB));
+        Assert.Equal(256, definitions.Count(definition => definition.Key.Page == 0xDD));
+        Assert.Equal(256, definitions.Count(definition => definition.Key.Page == 0xFD));
+        Assert.Contains(definitions, definition => definition.Key.Page == 0xED);
+    }
+
     private static void AssertMetadata(
         OpcodeDefinition<Z80State> definition,
         string mnemonic,
@@ -342,6 +355,8 @@ public sealed class Z80CoreObserverTests
 
     private sealed class MetadataProbeZ80Cpu(IBus bus, PetEmulator.CpuZ80.Interrupts.IInterruptLines interruptLines) : Z80Cpu(bus, interruptLines)
     {
+        public IReadOnlyCollection<OpcodeDefinition<Z80State>> Definitions => Opcodes.Entries;
+
         public OpcodeDefinition<Z80State> Definition(byte page, byte opcode)
             => Opcodes.Get(new OpcodeKey(page, opcode));
     }
