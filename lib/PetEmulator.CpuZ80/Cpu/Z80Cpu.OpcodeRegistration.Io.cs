@@ -14,12 +14,12 @@ public partial class Z80Cpu
             if ((edOpcode & 0xC7) == 0x40)
             {
                 var inputOpcode = (byte)edOpcode;
-                RegisterEdOpcode(inputOpcode, () => InputRegister((inputOpcode >> 3) & 7));
+                RegisterOpcode(0xED, inputOpcode, () => InputRegister((inputOpcode >> 3) & 7));
             }
             else if ((edOpcode & 0xC7) == 0x41)
             {
                 var outputOpcode = (byte)edOpcode;
-                RegisterEdOpcode(outputOpcode, () => OutputRegister((outputOpcode >> 3) & 7));
+                RegisterOpcode(0xED, outputOpcode, () => OutputRegister((outputOpcode >> 3) & 7));
             }
         }
     }

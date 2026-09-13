@@ -157,16 +157,9 @@ public partial class Z80Cpu : CpuProcessorBase<Z80State>
 
 
     protected void RegisterOpcode(byte opcode, Func<int> execute)
-    {
-        Opcodes.Set(CreateDefinition(0, opcode, execute));
-    }
+        => RegisterOpcode(0, opcode, execute);
 
-    protected void RegisterEdOpcode(byte opcode, Func<int> execute)
-    {
-        Opcodes.Set(CreateDefinition(0xED, opcode, execute));
-    }
-
-    private void RegisterPageOpcode(byte page, byte opcode, Func<int> execute)
+    protected void RegisterOpcode(byte page, byte opcode, Func<int> execute)
     {
         Opcodes.Set(CreateDefinition(page, opcode, execute));
     }

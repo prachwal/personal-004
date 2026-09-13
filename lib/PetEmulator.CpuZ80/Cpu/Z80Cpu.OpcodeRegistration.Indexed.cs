@@ -9,8 +9,8 @@ public partial class Z80Cpu
         for (var indexedOpcode = 0; indexedOpcode <= byte.MaxValue; indexedOpcode++)
         {
             var subOpcode = (byte)indexedOpcode;
-            RegisterPageOpcode(0xDD, subOpcode, () => ExecuteIndexedOpcode(false, subOpcode));
-            RegisterPageOpcode(0xFD, subOpcode, () => ExecuteIndexedOpcode(true, subOpcode));
+            RegisterOpcode(0xDD, subOpcode, () => ExecuteIndexedOpcode(false, subOpcode));
+            RegisterOpcode(0xFD, subOpcode, () => ExecuteIndexedOpcode(true, subOpcode));
         }
     }
 }

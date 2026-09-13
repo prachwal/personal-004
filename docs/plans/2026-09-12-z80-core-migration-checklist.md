@@ -33,8 +33,8 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Opcode’y CB przeniesiono do `Z80Cpu.OpcodeRegistration.Cb`.
 - [x] Opcode’y indeksowane DD/FD przeniesiono do `Z80Cpu.OpcodeRegistration.Indexed`.
 - [x] Rejestrację I/O (`IN/OUT` bazowe i ED) przeniesiono do `Z80Cpu.OpcodeRegistration.Io`.
-- [ ] Rozdzielić rejestrację opcode’ów na partiale: Base, CB, ED, Indexed i I/O.
-- [ ] Usunąć wrappery `RegisterOpcode`, `RegisterEdOpcode` i `RegisterPageOpcode`, jeśli nie są już potrzebne do kompatybilności.
+- [x] Rozdzielić rejestrację opcode’ów na partiale: Base, CB, ED, Indexed i I/O.
+- [x] Usunąć prywatne wrappery `RegisterEdOpcode` i `RegisterPageOpcode`; chroniony `RegisterOpcode` zachowano dla rozszerzeń potomnych.
 - [ ] Ujednolicić metadane `OpcodeDefinition`: mnemonic, długość, tryb adresowania i timing.
 - [ ] Dodać test kompletności stron opcode’ów i braku kolizji kluczy.
 - [ ] Dodać test rozszerzania tabeli w klasie potomnej przez `ConfigureOpcodes`/`Replace`/`Derive`.
@@ -71,6 +71,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Po wydzieleniu opcode’ów CB wykonano 14 testów CB i rozszerzania rejestracji; 14/14 przeszło, czas 20 s.
 - [x] Po wydzieleniu opcode’ów DD/FD wykonano 48 testów indexed i rozszerzania rejestracji; 48/48 przeszło, czas 43 s.
 - [x] Po wydzieleniu rejestracji I/O wykonano 19 testów I/O/timingu i rozszerzania rejestracji; 19/19 przeszło, czas 935 ms.
+- [x] Po usunięciu prywatnych wrapperów wykonano testy Base/CB/ED/Indexed/I/O i rozszerzania rejestracji; 86/86 przeszło, czas 59 s.
 - [x] `z80doc.tap` i `zexdoc.com` są obecne w repozytorium.
 - [x] Test ZEXDOC ma inicjalizację wektora stosu CP/M pod `0006h`.
 - [x] Test ZEXDOC raportuje postęp co 100 milionów instrukcji.
