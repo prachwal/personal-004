@@ -12,6 +12,8 @@ public partial class Z80Cpu
 
         RegisterCbOpcodes();
 
+        RegisterIoOpcodes();
+
         RegisterIndexedOpcodes();
     }
 }

@@ -41,17 +41,7 @@ public partial class Z80Cpu
 
         for (var edOpcode = 0; edOpcode <= byte.MaxValue; edOpcode++)
         {
-            if ((edOpcode & 0xC7) == 0x40)
-            {
-                var inputOpcode = (byte)edOpcode;
-                RegisterEdOpcode(inputOpcode, () => InputRegister((inputOpcode >> 3) & 7));
-            }
-            else if ((edOpcode & 0xC7) == 0x41)
-            {
-                var outputOpcode = (byte)edOpcode;
-                RegisterEdOpcode(outputOpcode, () => OutputRegister((outputOpcode >> 3) & 7));
-            }
-            else if ((edOpcode & 0xCF) == 0x42)
+            if ((edOpcode & 0xCF) == 0x42)
             {
                 var arithmeticOpcode = (byte)edOpcode;
                 RegisterEdOpcode(arithmeticOpcode, () => AddPairWithCarry(arithmeticOpcode, true));

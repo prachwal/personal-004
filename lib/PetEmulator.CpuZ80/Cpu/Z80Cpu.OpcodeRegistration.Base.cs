@@ -78,8 +78,6 @@ public partial class Z80Cpu
         RegisterOpcode(0xEE, () => ImmediateAlu(5));
         RegisterOpcode(0xF6, () => ImmediateAlu(6));
         RegisterOpcode(0xFE, () => ImmediateAlu(7));
-        RegisterOpcode(0xDB, InputImmediate);
-        RegisterOpcode(0xD3, OutputImmediate);
         RegisterOpcode(0xF3, DisableInterrupts);
         RegisterOpcode(0xFB, EnableInterrupts);
         RegisterOpcode(0xE9, JumpToHl);
