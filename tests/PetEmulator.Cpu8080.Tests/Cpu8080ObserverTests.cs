@@ -42,10 +42,28 @@ public sealed class Cpu8080ObserverTests
             .Which.Result.BreakpointHit.Should().BeTrue();
     }
 
+    [Test]
+    public void Observer_receives_step_failure_before_exception_is_rethrown()
+    {
+        var memory = new TestMemory { ThrowOnRead = true };
+        var observer = new TestObserver();
+        var cpu = new Cpu8080(memory) { ExecutionObserver = observer };
+
+        var act = () => cpu.StepInstruction();
+
+        act.Should().Throw<InvalidOperationException>();
+        observer.Failure.Should().BeOfType<InvalidOperationException>();
+        observer.FailureSnapshot.Should().NotBeNull();
+        observer.FailureSnapshot!.InstructionCount.Should().Be(0);
+        observer.FailureSnapshot.CycleCount.Should().Be(0);
+    }
+
     private sealed class TestObserver : ICpuExecutionObserver
     {
         public bool BreakBeforeStep { get; init; }
         public List<CpuStepTrace> Completed { get; } = [];
+        public Exception? Failure { get; private set; }
+        public CpuDebugSnapshot? FailureSnapshot { get; private set; }
 
         public bool ShouldBreak(CpuDebugSnapshot snapshot) => BreakBeforeStep;
 
@@ -54,14 +72,19 @@ public sealed class Cpu8080ObserverTests
         public void OnStepCompleted(CpuStepTrace trace) => Completed.Add(trace);
 
         public void OnStepFailed(CpuDebugSnapshot snapshot, Exception exception)
-            => throw new AssertionException($"Unexpected CPU step failure: {exception.Message}");
+        {
+            FailureSnapshot = snapshot;
+            Failure = exception;
+        }
     }
 
     private sealed class TestMemory : IMemoryBus
     {
         public byte[] Bytes { get; } = new byte[ushort.MaxValue + 1];
+        public bool ThrowOnRead { get; init; }
 
-        public byte Read(ushort address) => Bytes[address];
+        public byte Read(ushort address)
+            => ThrowOnRead ? throw new InvalidOperationException("Synthetic memory failure.") : Bytes[address];
 
         public void Write(ushort address, byte value) => Bytes[address] = value;
     }

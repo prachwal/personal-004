@@ -11,7 +11,7 @@
 Weryfikacja wykonana po etapie 1:
 
 - `dotnet build PetEmulator.slnx --no-restore --disable-build-servers` — PASS, 0 ostrzeżeń, 0 błędów.
-- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 47/47.
+- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 49/49.
 - Macierz dispatchu obejmuje wszystkie 256 wartości opcode — PASS.
 - Macierz flag obejmuje ADD/SUB/INR/DCR/ANA/DAA — PASS.
 - Własny test binarny `.COM` ładowany pod `0x0100` — PASS; obejmuje ALU, skok warunkowy, zapis pamięci i `HLT`.
@@ -22,6 +22,8 @@ Weryfikacja wykonana po etapie 1:
 - Macierze `MOV`, ALU, warunków, `RST` i `PUSH/POP` — PASS.
 - Testy negatywne braku I/O, niepoprawnego acknowledge i niepełnego snapshotu — PASS.
 - Test oczekującego przerwania po `EI` oraz niespełnionych warunków skoków — PASS.
+- Test callbacku obserwatora `OnStepFailed` z zachowaniem snapshotu — PASS.
+- Differential ALU względem niezależnego modelu referencyjnego, 4096 przypadków — PASS.
 - Długi test ZEXDOC Z80 pozostaje uruchomiony niezależnie od tej zmiany.
 
 ## Cel
@@ -84,7 +86,7 @@ Kryterium: projekt jest pustym, kompilującym się szkieletem z publicznym proce
 - [x] Podłączyć `StepInstruction`, `Reset`, `CycleCount`, `InstructionCount` i `Halted` do `CpuProcessorBase`.
 - [x] Zaimplementować fetch opcode’u i inkrementację `PC` w jednym kontekście wykonania.
 - [x] Dodać snapshot/restore oraz testy round-trip dla rejestrów i bitu `INTE`.
-- [ ] Dodać pełny test obserwatora: before-step, opcode fetch, after-step i exception.
+- [x] Dodać pełny test obserwatora: before-step, opcode fetch, after-step i exception.
 
 Kryterium: `NOP`, reset i zatrzymanie procesora działają bez opcode’ów rodziny.
 
@@ -165,7 +167,7 @@ Kryterium: Z80 korzysta z kodu wspólnego tylko tam, gdzie test zgodności potwi
 - [x] Testy kontraktów Core: lifecycle, snapshot, observer, debug registers, counters.
 - [x] Testy 8080: rejestracja, rodziny opcode, flags matrix, memory matrix, stack, I/O, HLT, interrupts i timing.
 - [x] Testy negatywne: brak I/O, niepoprawny acknowledge, przerwanie przy `INTE=0`, restore niepełnego snapshotu; nielegalne opcode’y są osobnym kontraktem tabeli 256 wpisów.
-- [ ] Dodać testy parametrów i testy losowe/differential dla ALU względem niezależnego modelu referencyjnego.
+- [x] Dodać testy parametrów i testy losowe/differential dla ALU względem niezależnego modelu referencyjnego.
 - [x] Dodać krótką, własną walidację binarną 8080-compatible uruchamianą w CI.
 - [ ] Dodać dłuższą walidację zewnętrznym diagnostycznym `TST8080.COM`/`8080PRE.COM`; w poprzednich iteracjach znaleziono tylko programy demonstracyjne `.com`, brak zweryfikowanego obrazu w checkoutach.
 - [ ] Uruchomić regresję Z80 po ekstrakcji wspólnych helperów.
