@@ -11,9 +11,11 @@
 Weryfikacja wykonana po etapie 1:
 
 - `dotnet build PetEmulator.slnx --no-restore --disable-build-servers` — PASS, 0 ostrzeżeń, 0 błędów.
-- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 24/24.
+- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 28/28.
 - Macierz dispatchu obejmuje wszystkie 256 wartości opcode — PASS.
 - Macierz flag obejmuje ADD/SUB/INR/DCR/ANA/DAA — PASS.
+- Własny test binarny `.COM` ładowany pod `0x0100` — PASS; obejmuje ALU, skok warunkowy, zapis pamięci i `HLT`.
+- Testy I/O, `EI/DI`, `INTE` i interrupt acknowledge — PASS.
 - Długi test ZEXDOC Z80 pozostaje uruchomiony niezależnie od tej zmiany.
 
 ## Cel
@@ -135,7 +137,8 @@ Kryterium: kontrola przepływu i stos mają testy śladu PC/SP oraz cykli dla ga
 - [x] `HLT` zatrzymuje normalne wykonywanie i nie zwiększa `InstructionCount` podczas bezczynnego kroku.
 - [x] Przerwanie jest akceptowane tylko przy `INTE`; acknowledge dostarcza opcode RST.
 - [ ] Po zaakceptowaniu przerwania `INTE` jest wyłączane, a stan stosu/PC odpowiada dokumentowanemu modelowi 8080.
-- [ ] Dodać testy reset → `EI` → interrupt, `DI` → interrupt, `HLT` → interrupt oraz interrupt podczas oczekiwania.
+- [x] Dodać testy reset → `EI` → interrupt i `DI` → interrupt.
+- [ ] Dodać test `HLT` → interrupt oraz interrupt podczas oczekiwania.
 
 Kryterium: pełna ścieżka urządzenie → acknowledge → wykonanie opcode’u przerwania jest deterministyczna.
 
@@ -156,7 +159,8 @@ Kryterium: Z80 korzysta z kodu wspólnego tylko tam, gdzie test zgodności potwi
 - [ ] Testy 8080: rejestracja, każda rodzina opcode, flags matrix, memory matrix, stack, I/O, HLT, interrupts i timing.
 - [ ] Testy negatywne: nielegalny opcode, brak I/O, przerwanie przy `INTE=0`, restore niepełnego/niezgodnego snapshotu.
 - [ ] Dodać testy parametrów i testy losowe/differential dla ALU względem niezależnego modelu referencyjnego.
-- [ ] Dodać walidację binarną 8080-compatible: krótki test diagnostyczny uruchamiany w CI oraz dłuższy test opt-in. W poprzednich iteracjach znaleziono tylko programy demonstracyjne `.com`; brak zweryfikowanego `TST8080.COM` w checkoutach.
+- [x] Dodać krótką, własną walidację binarną 8080-compatible uruchamianą w CI.
+- [ ] Dodać dłuższą walidację zewnętrznym diagnostycznym `TST8080.COM`/`8080PRE.COM`; w poprzednich iteracjach znaleziono tylko programy demonstracyjne `.com`, brak zweryfikowanego obrazu w checkoutach.
 - [ ] Uruchomić regresję Z80 po ekstrakcji wspólnych helperów.
 - [ ] Wykonać `dotnet build PetEmulator.slnx --no-restore`, testy projektów CPU, pełne testy rozwiązania i analizę zmian GitNexus przed commitem.
 
