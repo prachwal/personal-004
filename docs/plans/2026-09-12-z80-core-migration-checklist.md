@@ -27,6 +27,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Opcode’y bazowe, CB, ED, DD i FD są przechowywane w `Core.OpcodeTable`.
 - [x] Prefiksy DD/FD oraz DD/FD+CB mają jawny decoder rodzinny.
 - [x] Zachowano rozszerzenia Z80: IXH/IXL, IYH/IYL, displacement, I/O i nieużywane ED.
+- [x] Główny punkt rejestracji opcode’ów przeniesiono do partiala `Z80Cpu.OpcodeRegistration`.
 - [ ] Rozdzielić rejestrację opcode’ów na partiale: Base, CB, ED, Indexed i I/O.
 - [ ] Usunąć wrappery `RegisterOpcode`, `RegisterEdOpcode` i `RegisterPageOpcode`, jeśli nie są już potrzebne do kompatybilności.
 - [ ] Ujednolicić metadane `OpcodeDefinition`: mnemonic, długość, tryb adresowania i timing.
@@ -59,6 +60,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Testy bazowych opcode’ów, CB, ED, indexed i flag matrix.
 - [x] Testy magistrali, pamięci, WAIT, interruptów i timingów.
 - [x] Po zmianie typu bazowego wykonano 517 testów jednostkowych Z80 bez testów binarnych; 517/517 przeszło, czas 9 min 11 s.
+- [x] Po przeniesieniu rejestracji opcode’ów do partiala wykonano 517 testów jednostkowych Z80 bez testów binarnych; 517/517 przeszło, czas 9 min 50 s.
 - [x] `z80doc.tap` i `zexdoc.com` są obecne w repozytorium.
 - [x] Test ZEXDOC ma inicjalizację wektora stosu CP/M pod `0006h`.
 - [x] Test ZEXDOC raportuje postęp co 100 milionów instrukcji.
