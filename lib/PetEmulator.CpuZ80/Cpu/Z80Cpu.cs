@@ -164,13 +164,16 @@ public partial class Z80Cpu : CpuProcessorBase<Z80State>
     }
 
     private OpcodeDefinition<Z80State> CreateDefinition(byte page, byte opcode, Func<int> execute)
-        => new(
+    {
+        var metadata = Z80OpcodeMetadata.For(page, opcode);
+        return new(
             new OpcodeKey(page, opcode),
-            $"OP {page:X2}:{opcode:X2}",
-            1,
-            0,
-            "Z80",
+            metadata.Mnemonic,
+            metadata.Length,
+            metadata.BaseCycles,
+            metadata.AddressingMode,
             (_, _) => CpuStepResult.Completed((ulong)execute()));
+    }
 
     private int ExecuteRegistered(OpcodeKey key, int fallbackCycles = 8)
     {

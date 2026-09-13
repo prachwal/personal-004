@@ -277,6 +277,33 @@ public sealed class Z80CoreObserverTests
         Assert.Equal((ulong)2, cpu.InstructionCount);
     }
 
+    [Fact]
+    public void Z80OpcodeRegistrationUsesCommonMetadataForRepresentativePages()
+    {
+        var cpu = new MetadataProbeZ80Cpu(new TestBus(), new InterruptLines());
+
+        AssertMetadata(cpu.Definition(0x00, 0x00), "NOP", 1, "Implied", 4);
+        AssertMetadata(cpu.Definition(0x00, 0x76), "HALT", 1, "Implied", 4);
+        AssertMetadata(cpu.Definition(0xCB, 0x00), "RLC B", 2, "Register", 8);
+        AssertMetadata(cpu.Definition(0xED, 0x47), "LD I,A", 2, "Implied", 9);
+        AssertMetadata(cpu.Definition(0xDD, 0x21), "LD IX,nn", 4, "Immediate16", 14);
+        AssertMetadata(cpu.Definition(0xFD, 0x21), "LD IY,nn", 4, "Immediate16", 14);
+        AssertMetadata(cpu.Definition(0x00, 0xDB), "IN A,(n)", 2, "ImmediatePort", 11);
+    }
+
+    private static void AssertMetadata(
+        OpcodeDefinition<Z80State> definition,
+        string mnemonic,
+        byte length,
+        string addressingMode,
+        byte baseCycles)
+    {
+        Assert.Equal(mnemonic, definition.Mnemonic);
+        Assert.Equal(length, definition.Length);
+        Assert.Equal(addressingMode, definition.AddressingMode);
+        Assert.Equal(baseCycles, definition.BaseCycles);
+    }
+
     private sealed class TestObserver : ICpuExecutionObserver
     {
         public List<CpuStepTrace> Completed { get; } = [];
@@ -311,6 +338,12 @@ public sealed class Z80CoreObserverTests
         }
 
         private static int ThrowFromOpcode() => throw new InvalidOperationException("test opcode failure");
+    }
+
+    private sealed class MetadataProbeZ80Cpu(IBus bus, PetEmulator.CpuZ80.Interrupts.IInterruptLines interruptLines) : Z80Cpu(bus, interruptLines)
+    {
+        public OpcodeDefinition<Z80State> Definition(byte page, byte opcode)
+            => Opcodes.Get(new OpcodeKey(page, opcode));
     }
 
     private sealed class TestBus : IBus
