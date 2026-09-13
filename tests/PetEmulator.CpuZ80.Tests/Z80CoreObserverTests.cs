@@ -21,7 +21,7 @@ public sealed class Z80CoreObserverTests
 
         var trace = Assert.Single(observer.Completed);
         Assert.Equal(OpcodeKey.Base(0x00), trace.Opcode);
-        Assert.Equal("OP 00:00", trace.Mnemonic);
+        Assert.Equal("NOP", trace.Mnemonic);
         Assert.Equal((ulong)0, trace.Before.InstructionCount);
         Assert.Equal((ulong)1, trace.After.InstructionCount);
         Assert.Equal((ushort)0, trace.Before.State.Registers["PC"]);

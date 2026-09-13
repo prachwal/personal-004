@@ -71,6 +71,14 @@ internal readonly record struct Z80OpcodeMetadata(
 
     private static Z80OpcodeMetadata? CreateBaseControlMetadata(byte opcode)
     {
+        // 0xCD (CALL nn) aliases the PUSH mask below, but is a control-flow
+        // instruction and must retain its own length, addressing mode and cycles.
+        if (opcode == 0xCD)
+            return new("CALL nn", 3, "Absolute16", 17);
+
+        if (opcode == 0xC9)
+            return new("RET", 1, "Implied", 10);
+
         if ((opcode & 0xC7) == 0xC1)
             return new($"POP {PairName((opcode >> 4) & 3)}", 1, "Stack", 10);
 
@@ -123,9 +131,7 @@ internal readonly record struct Z80OpcodeMetadata(
             0x20 or 0x28 or 0x30 or 0x38 => new($"JR {ConditionName((opcode >> 3) & 3)},e", 2, "Relative", 12),
             0xC3 => new("JP nn", 3, "Absolute16", 10),
             0xC2 or 0xCA or 0xD2 or 0xDA or 0xE2 or 0xEA or 0xF2 or 0xFA => new($"JP {ConditionName((opcode >> 3) & 7)},nn", 3, "Absolute16", 10),
-            0xCD => new("CALL nn", 3, "Absolute16", 17),
             0xC4 or 0xCC or 0xD4 or 0xDC or 0xE4 or 0xEC or 0xF4 or 0xFC => new($"CALL {ConditionName((opcode >> 3) & 7)},nn", 3, "Absolute16", 17),
-            0xC9 => new("RET", 1, "Implied", 10),
             0xC0 or 0xC8 or 0xD0 or 0xD8 or 0xE0 or 0xE8 or 0xF0 or 0xF8 => new($"RET {ConditionName((opcode >> 3) & 7)}", 1, "Implied", 11),
             0xE9 => new("JP (HL)", 1, "Register", 4),
             0xE3 => new("EX (SP),HL", 1, "StackMemory", 19),
