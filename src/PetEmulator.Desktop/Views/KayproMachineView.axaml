@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:PetEmulator.Desktop.Views"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
+             x:Class="PetEmulator.Desktop.Views.KayproMachineView"
+             x:DataType="viewModels:KayproMachineViewModel">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <controls:DiskDriveControl />
+                <TextBlock FontFamily="monospace" Foreground="{DynamicResource DeviceStatusTextBrush}" Text="Drive A: Kaypro II" />
+            </StackPanel>
+        </Border>
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBackgroundBrush}" Padding="8,4">
+            <TextBlock FontFamily="monospace" Foreground="{DynamicResource StatusTextBrush}" Text="{Binding StatusText}" />
+        </Border>
+        <Border DockPanel.Dock="Top" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4">
+            <TextBlock Text="KAYPRO II TERMINAL  |  80×24  |  81-146A font ROM  |  ENTER sends CR" />
+        </Border>
+        <Border Background="#FF000000" Padding="8">
+            <controls:PetScreenControl Name="Screen" Focusable="True" />
+        </Border>
+    </DockPanel>
+</UserControl>

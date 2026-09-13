@@ -13,6 +13,7 @@
 - [Plan migracji VIC-20](vic20/migration-plan.md) i [strategia testów VIC-20](vic20/testing-strategy.md).
 - [Narzędzia debugowania](pet/debug-tools.md) — wspólne dla maszyn implementujących kontrakty Core.
 - [Checklisty migracji CPU](plans/2026-09-12-6502-core-migration-checklist.md) — status rodzin 6502, 6800/6809 i Z80.
+- [Implementacja Kaypro II](kaypro/README.md) — maszyna Z80, FD1793, pamięć, SIO, video i status migracji.
 
 Ten katalog jest indeksem kodu i artefaktow z poprzednich projektow emulatorow. Nie kopiuje kodu, ROM-ow ani fontow. Sciezki wskazuja oryginalne lokalizacje do pozniejszego porownania.
 

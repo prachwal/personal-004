@@ -12,7 +12,7 @@ public sealed class AvaloniaFilePickerService(Window window) : IFilePickerServic
 
     public async Task<string?> PickDiskToOpenAsync()
     {
-        return await PickOpenFileAsync("Load disk", "Disk images", ["*.d64"]);
+        return await PickOpenFileAsync("Load disk", "Disk images", ["*.d64", "*.dsk", "*.td0"]);
     }
 
     public async Task<string?> PickDiskToSaveAsync()
