@@ -7,7 +7,7 @@ using Z80InterruptLines = PetEmulator.CpuZ80.Interrupts.IInterruptLines;
 
 namespace PetEmulator.CpuZ80.Cpu;
 
-public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
+public partial class Z80Cpu : CpuProcessorBase<Z80State>
 {
     private readonly IBus bus;
     private readonly Z80InterruptLines interruptLines;
@@ -36,7 +36,7 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
     [LoggerMessage(Level = LogLevel.Trace, Message = "PC={PC:X4} opcode={Opcode:X2}")]
     private static partial void LogInstruction(ILogger logger, ushort pc, byte opcode);
 
-    public Z80Registers Registers => State;
+    public Z80Registers Registers => (Z80Registers)State;
 
     /// <summary>
     /// Condition-checked diagnostic actions, run in order at the start of
@@ -142,7 +142,7 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
         return OpcodeKey.Base(opcode);
     }
 
-    protected override CpuStepResult ExecuteOpcode(OpcodeDefinition<Z80Registers> definition)
+    protected override CpuStepResult ExecuteOpcode(OpcodeDefinition<Z80State> definition)
     {
         var result = definition.Execute(Registers, ExecutionContext);
         if (Registers.InterruptDelay > 0)
@@ -150,12 +150,12 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
         return result;
     }
 
-    protected override OpcodeDefinition<Z80Registers> DecodeOpcode(OpcodeKey key)
+    protected override OpcodeDefinition<Z80State> DecodeOpcode(OpcodeKey key)
         => Opcodes.TryGet(key, out var definition)
             ? definition!
             : throw new NotSupportedException($"Unsupported Z80 opcode {key.Page:X2}:{key.Opcode:X2}.");
 
-    protected override void ConfigureOpcodes(OpcodeTable<Z80Registers> table)
+    protected override void ConfigureOpcodes(OpcodeTable<Z80State> table)
     {
         RegisterOpcode(0x00, () => 4);
         RegisterOpcode(0x08, ExchangeAf);
@@ -409,7 +409,7 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
         Opcodes.Set(CreateDefinition(page, opcode, execute));
     }
 
-    private OpcodeDefinition<Z80Registers> CreateDefinition(byte page, byte opcode, Func<int> execute)
+    private OpcodeDefinition<Z80State> CreateDefinition(byte page, byte opcode, Func<int> execute)
         => new(
             new OpcodeKey(page, opcode),
             $"OP {page:X2}:{opcode:X2}",
@@ -426,7 +426,7 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
         return ExecuteDefinition(definition!);
     }
 
-    private int ExecuteDefinition(OpcodeDefinition<Z80Registers> definition)
+    private int ExecuteDefinition(OpcodeDefinition<Z80State> definition)
     {
         SetCurrentOpcode(definition.Key, definition.Mnemonic);
         return checked((int)definition.Execute(Registers, ExecutionContext).Cycles);

@@ -117,6 +117,32 @@ public sealed class Z80RegistersTests
         Assert.Equal((ushort)0x5555, cpu.Registers.HL);
     }
 
+    [Fact]
+    public void CpuSnapshotRestoresZ80StateThroughTheCommonProcessorBase()
+    {
+        var bus = new TestBus();
+        var cpu = new Z80Cpu(bus, new TestInterruptLines());
+        cpu.Registers.AF = 0x1234;
+        cpu.Registers.BC = 0x5678;
+        cpu.Registers.IX = 0x9ABC;
+        cpu.Registers.Iff1 = true;
+        bus.Memory[0] = 0x00;
+
+        cpu.Step();
+        var snapshot = cpu.CaptureSnapshot();
+
+        cpu.Registers.Reset();
+        cpu.Step();
+        cpu.RestoreSnapshot(snapshot);
+
+        Assert.Equal((ushort)0x1234, cpu.Registers.AF);
+        Assert.Equal((ushort)0x5678, cpu.Registers.BC);
+        Assert.Equal((ushort)0x9ABC, cpu.Registers.IX);
+        Assert.True(cpu.Registers.Iff1);
+        Assert.Equal(snapshot.InstructionCount, cpu.InstructionCount);
+        Assert.Equal(snapshot.CycleCount, cpu.CycleCount);
+    }
+
     private sealed class TestBus : PetEmulator.CpuZ80.Bus.IBus
     {
         public byte[] Memory { get; } = new byte[ushort.MaxValue + 1];

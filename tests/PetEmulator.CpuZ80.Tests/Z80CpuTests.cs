@@ -263,7 +263,7 @@ public sealed class Z80CpuTests
         public bool OverrideExecuted { get; private set; }
         public bool AddedOpcodeExecuted { get; private set; }
 
-        protected override void ConfigureOpcodes(PetEmulator.Core.OpcodeTable<Z80Registers> table)
+        protected override void ConfigureOpcodes(PetEmulator.Core.OpcodeTable<Z80State> table)
         {
             base.ConfigureOpcodes(table);
             RegisterOpcode(0x00, OverrideNop);

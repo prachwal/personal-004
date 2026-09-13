@@ -1,43 +1,89 @@
-# Migracja rodziny Z80 do wspólnego Core — checklista
+# Migracja Z80 do wspólnego Core — checklista zadań
 
-Status: częściowa integracja kontraktów; pełna migracja do `CpuProcessorBase` jeszcze się nie rozpoczęła.
+Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` i `Core.OpcodeTable`, ale właściwy typ stanu oraz część kontraktów debugowania nadal wymagają ujednolicenia.
 
-## Kontrakty i stan
+## 1. Stan i baza procesora
 
-- [x] Projekt Z80 referuje `PetEmulator.Core`.
-- [x] `Z80Cpu` implementuje `IProcessor` i `IDebuggableProcessor`.
-- [x] Pamięć RAM/ROM używa `Core.IMemoryBus`.
-- [x] Zegar używa `Core.IClock`.
-- [x] Rejestry i stan debuggera są dostępne przez `GetRegisters()`.
-- [ ] Wprowadzić `Z80State : Core.CpuState`.
-- [ ] Przenieść snapshot/restore do wspólnego stanu.
-- [ ] Zastąpić ręczne liczniki lifecycle bazą Core.
+- [x] `Z80Cpu` korzysta z `CpuProcessorBase`.
+- [x] `Z80State` dziedziczy po `CpuState`.
+- [x] Zmienić bazę procesora z `CpuProcessorBase<Z80Registers>` na `CpuProcessorBase<Z80State>`.
+- [x] Zachować `Z80Registers` jako kompatybilny publiczny widok stanu, bez drugiej kopii rejestrów.
+- [x] Przenieść wszystkie pola architektoniczne do `Z80State`: rejestry główne, alternatywne, `IX/IY`, `I/R`, `IFF1/IFF2`, `IM`, opóźnienie `EI`, stan NMI i HALT.
+- [x] Przenieść snapshot/restore do wspólnego mechanizmu `CpuState`.
+- [x] Dodać test round-trip snapshotu dla pełnego stanu Z80.
+- [ ] Dodać test snapshotu w trakcie `WAIT`, `HALT`, prefiksu i opóźnienia `EI`.
 
-## Opcode’y i wykonanie
+## 2. Wspólny lifecycle Core
 
-- [x] Istnieją osobne dispatchery opcode’ów bazowych i prefiksu ED.
-- [x] Zachowane są prefiksy CB/DD/FD/ED oraz semantyka Z80.
-- [ ] Przenieść opcode’y do `Core.OpcodeTable<Z80State>`.
-- [ ] Zachować rozszerzenia prefiksowe jako rodzinne strony opcode’ów.
-- [ ] Usunąć lokalne słowniki `opcodes` i `edOpcodes` po regresji.
+- [x] Wspólny zegar i liczniki instrukcji są dostępne przez Core.
+- [x] `StepInstruction`, `CycleCount` i `InstructionCount` działają przez bazę Core.
+- [x] WAIT, NMI, INT i HALT są obsługiwane przez hooki lifecycle Z80.
+- [ ] Potwierdzić testami kolejność: `WAIT → NMI edge → INT → HALT refresh → fetch/execute`.
+- [ ] Usunąć ewentualne pozostałe lokalne implementacje lifecycle, pozostawiając tylko delegacje kompatybilności API.
+- [ ] Potwierdzić, że każdy krok zwiększa zegar i licznik dokładnie raz.
 
-## Magistrala i timing
+## 3. Opcode’y i rejestracja
 
-- [x] Zachować lokalną magistralę `IBus` jako capability Z80.
-- [x] Zachować `BusCycle`, machine cycle, T-states i obserwator cykli.
-- [x] Zachować WAIT, HALT, refresh, I/O i acknowledge przerwań.
-- [ ] Zintegrować lifecycle Core bez utraty kolejności WAIT → NMI → INT → HALT refresh.
-- [ ] Dodać wspólny adapter obserwatora Core dla bogatego `BusCycle`.
+- [x] Opcode’y bazowe, CB, ED, DD i FD są przechowywane w `Core.OpcodeTable`.
+- [x] Prefiksy DD/FD oraz DD/FD+CB mają jawny decoder rodzinny.
+- [x] Zachowano rozszerzenia Z80: IXH/IXL, IYH/IYL, displacement, I/O i nieużywane ED.
+- [ ] Rozdzielić rejestrację opcode’ów na partiale: Base, CB, ED, Indexed i I/O.
+- [ ] Usunąć wrappery `RegisterOpcode`, `RegisterEdOpcode` i `RegisterPageOpcode`, jeśli nie są już potrzebne do kompatybilności.
+- [ ] Ujednolicić metadane `OpcodeDefinition`: mnemonic, długość, tryb adresowania i timing.
+- [ ] Dodać test kompletności stron opcode’ów i braku kolizji kluczy.
+- [ ] Dodać test rozszerzania tabeli w klasie potomnej przez `ConfigureOpcodes`/`Replace`/`Derive`.
+- [ ] Potwierdzić, że tabela bazowa pozostaje niemutowalna po utworzeniu wariantu potomnego.
 
-## Testy
+## 4. Magistrala, I/O i timing
 
-- [x] Istnieją testy opcode’ów bazowych, CB, ED, indexed i flag matrix.
-- [x] Istnieją testy magistrali, pamięci, WAIT, interruptów i timingów.
-- [x] W repozytorium są `z80doc.tap` i `zexdoc.com`.
-- [ ] Wykonać aktualną pełną regresję po zmianach Core.
-- [ ] Potwierdzić wynik ZEXDOC jako obowiązkową regresję migracji.
+- [x] Pamięć Z80 korzysta z adaptera Core.
+- [x] Porty, WAIT, refresh, acknowledge przerwań i obserwator cykli zachowują specyfikę Z80.
+- [ ] Wprowadzić jawny capability adapter Z80 dla `WAIT`, interrupt acknowledge i bogatego `BusCycle`.
+- [ ] Dodać test pełnych 16-bitowych adresów portów.
+- [ ] Dodać test braku portu i domyślnego mapowania I/O.
+- [ ] Dodać test porównujący ślad `BusCycle` przed i po migracji dla Base, CB, ED, DD/FD, I/O i interruptów.
+- [ ] Potwierdzić, że Core watchpoint i istniejący `MemoryWatch` nie generują podwójnych zdarzeń.
 
-## Ryzyka
+## 5. Debugger i monitoring
 
-- Z80 ma bogatszy timing niż `Core.BusAccess`; nie wolno spłaszczyć `BusCycle`.
-- I/O, WAIT i interrupt acknowledge muszą pozostać capability, a nie obowiązkowym API każdego CPU.
+- [x] `GetRegisters()` udostępnia rejestry Z80 oraz `IFF1`, `IFF2` i `IM`.
+- [x] Istnieje kompatybilny `CpuHookCollection`.
+- [ ] Podłączyć Z80 do wspólnego `ExecutionObserver`.
+- [ ] Zachować hooki jako adapter kompatybilności dla istniejących callerów.
+- [ ] Dodać breakpoint przed/po instrukcji i obserwację wyjątków.
+- [ ] Dodać watchpoint pamięci i I/O przez wspólny kontrakt.
+- [ ] Zweryfikować debug snapshot dla instrukcji, WAIT, HALT i interruptów.
+
+## 6. Testy regresyjne
+
+- [x] Testy bazowych opcode’ów, CB, ED, indexed i flag matrix.
+- [x] Testy magistrali, pamięci, WAIT, interruptów i timingów.
+- [x] Po zmianie typu bazowego wykonano 517 testów jednostkowych Z80 bez testów binarnych; 517/517 przeszło, czas 9 min 11 s.
+- [x] `z80doc.tap` i `zexdoc.com` są obecne w repozytorium.
+- [x] Test ZEXDOC ma inicjalizację wektora stosu CP/M pod `0006h`.
+- [x] Test ZEXDOC raportuje postęp co 100 milionów instrukcji.
+- [x] Test ZEXDOC oznacza checkpointy co 1 miliard instrukcji.
+- [ ] Wykonać pełny przebieg ZEXDOC do zakończenia; ostatni przebieg przekroczył limit 30 minut.
+- [ ] Zapisać końcowy wynik ZEXDOC i liczbę instrukcji/cykli.
+- [ ] Uruchomić pełny `z80doc.tap` po zakończeniu migracji Core.
+- [ ] Dodać test kontraktu `IProcessor` dla `Reset`, `StepInstruction`, `CycleCount` i `InstructionCount`.
+- [ ] Dodać test kompatybilności wariantu potomnego z własnym opcode’em.
+
+## 7. Porządki końcowe
+
+- [ ] Usunąć potwierdzone martwe adaptery i lokalny kod lifecycle.
+- [ ] Zaktualizować dokumentację architektury Z80 i status migracji.
+- [ ] Zaktualizować tę checklistę wynikami testów zamiast pozostawiać niezweryfikowane pozycje.
+- [ ] Wykonać `dotnet build PetEmulator.slnx --no-restore`.
+- [ ] Wykonać `dotnet test PetEmulator.slnx --no-restore --disable-build-servers`.
+- [ ] Wykonać analizę GitNexus zmian przed commitem.
+- [ ] Wykonać commit dopiero po czystym diffie i pełnej regresji.
+
+## Kryterium zakończenia
+
+Migracja jest zakończona, gdy:
+
+- `Z80Cpu` używa `CpuProcessorBase<Z80State>`;
+- wszystkie opcode’y korzystają z jednego standardu `OpcodeTable`;
+- snapshot, debugger, observer, WAIT, HALT, I/O i interrupty mają testy kontraktowe;
+- testy jednostkowe, `z80doc.tap`, `zexdoc.com`, pełny build i pełna regresja rozwiązania przechodzą.
