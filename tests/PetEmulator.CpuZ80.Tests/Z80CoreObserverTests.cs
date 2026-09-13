@@ -243,6 +243,40 @@ public sealed class Z80CoreObserverTests
         Assert.Equal((ulong)0, cpu.InstructionCount);
     }
 
+    [Fact]
+    public void CommonStepUpdatesZ80ClockAndInstructionCountExactlyOnce()
+    {
+        var bus = new TestBus { Memory = { [0] = 0x00, [0x38] = 0x76 } };
+        var lines = new InterruptLines();
+        var cpu = new Z80Cpu(bus, lines);
+
+        cpu.StepInstruction();
+        Assert.Equal((ulong)4, cpu.CycleCount);
+        Assert.Equal((ulong)1, cpu.InstructionCount);
+
+        lines.SetWait(true);
+        cpu.StepInstruction();
+        Assert.Equal((ulong)5, cpu.CycleCount);
+        Assert.Equal((ulong)1, cpu.InstructionCount);
+
+        lines.SetWait(false);
+        lines.SetInt(true);
+        cpu.Registers.Iff1 = true;
+        cpu.Registers.InterruptMode = 1;
+        cpu.StepInstruction();
+        Assert.Equal((ulong)18, cpu.CycleCount);
+        Assert.Equal((ulong)1, cpu.InstructionCount);
+
+        lines.SetInt(false);
+        cpu.StepInstruction();
+        Assert.Equal((ulong)22, cpu.CycleCount);
+        Assert.Equal((ulong)2, cpu.InstructionCount);
+
+        cpu.StepInstruction();
+        Assert.Equal((ulong)26, cpu.CycleCount);
+        Assert.Equal((ulong)2, cpu.InstructionCount);
+    }
+
     private sealed class TestObserver : ICpuExecutionObserver
     {
         public List<CpuStepTrace> Completed { get; } = [];

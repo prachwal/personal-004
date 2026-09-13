@@ -20,7 +20,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] WAIT, NMI, INT i HALT są obsługiwane przez hooki lifecycle Z80.
 - [x] Potwierdzić testami kolejność: `WAIT → NMI edge → INT → HALT refresh → fetch/execute`.
 - [x] Usunąć redundantne lokalne resetowanie stanu lifecycle; pozostały hooki rodzinne i delegacje kompatybilności API.
-- [ ] Potwierdzić, że każdy krok zwiększa zegar i licznik dokładnie raz.
+- [x] Potwierdzić, że każdy krok zwiększa zegar i licznik dokładnie raz.
 
 ## 3. Opcode’y i rejestracja
 
@@ -81,6 +81,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Testy debug snapshotu Z80 dla prefiksu indeksowanego i opóźnienia EI: 2/2 zaliczone.
 - [x] Test kolejności lifecycle Z80 `WAIT → NMI edge → INT → HALT refresh → fetch/execute`: 1/1 zaliczony.
 - [x] Test delegacji resetu Z80 do wspólnego Core: 1/1 zaliczony.
+- [x] Test dokładnego zwiększania zegara i licznika instrukcji Z80: 1/1 zaliczony.
 - [x] `z80doc.tap` i `zexdoc.com` są obecne w repozytorium.
 - [x] Test ZEXDOC ma inicjalizację wektora stosu CP/M pod `0006h`.
 - [x] Test ZEXDOC raportuje postęp co 100 milionów instrukcji.
