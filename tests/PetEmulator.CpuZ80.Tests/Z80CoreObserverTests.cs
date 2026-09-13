@@ -356,6 +356,19 @@ public sealed class Z80CoreObserverTests
     }
 
     [Fact]
+    public void Z80DerivedVariantExecutesItsCustomOpcodeThroughTheCommonDecoder()
+    {
+        var bus = new TestBus { Memory = { [0] = 0xED, [1] = 0x00 } };
+        var cpu = new VariantZ80Cpu(bus, new InterruptLines());
+
+        cpu.StepInstruction();
+
+        Assert.Equal((byte)0xA5, cpu.Registers.A);
+        Assert.Equal((ushort)2, cpu.Registers.PC);
+        Assert.Equal((ulong)1, cpu.InstructionCount);
+    }
+
+    [Fact]
     public void Z80OpcodeRegistrationHasCompleteIndexedPagesAndUniqueKeys()
     {
         var cpu = new MetadataProbeZ80Cpu(new TestBus(), new InterruptLines());
@@ -588,6 +601,21 @@ public sealed class Z80CoreObserverTests
 
         public OpcodeTable<Z80State> Derive(Action<OpcodeTable<Z80State>> changes)
             => Opcodes.Derive(changes);
+    }
+
+    private sealed class VariantZ80Cpu(IBus bus, PetEmulator.CpuZ80.Interrupts.IInterruptLines interruptLines) : Z80Cpu(bus, interruptLines)
+    {
+        protected override void ConfigureOpcodes(OpcodeTable<Z80State> table)
+        {
+            base.ConfigureOpcodes(table);
+            RegisterOpcode(0xED, 0x00, ExecuteVariantOpcode);
+        }
+
+        private int ExecuteVariantOpcode()
+        {
+            Registers.A = 0xA5;
+            return 8;
+        }
     }
 
     private sealed class TestBus : IBus

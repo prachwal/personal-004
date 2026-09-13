@@ -94,6 +94,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Test braku podwójnych zdarzeń Core watchpoint/`MemoryWatch`: 1/1 zaliczony.
 - [x] Test kontraktu `IProcessor` dla `Reset`, `StepInstruction`, `CycleCount` i `InstructionCount`: 1/1 zaliczony.
 - [x] Test metadanych wszystkich zarejestrowanych opcode’ów Z80: 1/1 zaliczony.
+- [x] Test wykonania własnego opcode’u przez wariant potomny Z80: 1/1 zaliczony.
 - [x] `z80doc.tap` i `zexdoc.com` są obecne w repozytorium.
 - [x] Test ZEXDOC ma inicjalizację wektora stosu CP/M pod `0006h`.
 - [x] Test ZEXDOC raportuje postęp co 100 milionów instrukcji.
@@ -102,7 +103,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [ ] Zapisać końcowy wynik ZEXDOC i liczbę instrukcji/cykli.
 - [ ] Uruchomić pełny `z80doc.tap` po zakończeniu migracji Core.
 - [x] Dodać test kontraktu `IProcessor` dla `Reset`, `StepInstruction`, `CycleCount` i `InstructionCount`.
-- [ ] Dodać test kompatybilności wariantu potomnego z własnym opcode’em.
+- [x] Dodać test kompatybilności wariantu potomnego z własnym opcode’em.
 
 ## 7. Porządki końcowe
 
