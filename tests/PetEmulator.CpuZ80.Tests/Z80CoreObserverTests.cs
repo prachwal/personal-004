@@ -65,11 +65,29 @@ public sealed class Z80CoreObserverTests
         Assert.Equal((ulong)0, cpu.InstructionCount);
     }
 
+    [Fact]
+    public void CommonExecutionObserverReceivesZ80ExecutionException()
+    {
+        var bus = new TestBus();
+        bus.Memory[0] = 0x00;
+        var cpu = new ThrowingZ80Cpu(bus, new InterruptLines());
+        var observer = new TestObserver();
+        cpu.ExecutionObserver = observer;
+
+        var exception = Assert.Throws<InvalidOperationException>(() => cpu.StepInstruction());
+
+        Assert.Equal("test opcode failure", exception.Message);
+        var failure = Assert.Single(observer.Failures);
+        Assert.Same(exception, failure);
+    }
+
     private sealed class TestObserver : ICpuExecutionObserver
     {
         public List<CpuStepTrace> Completed { get; } = [];
 
         public List<BusAccess> Accesses { get; } = [];
+
+        public List<Exception> Failures { get; } = [];
 
         public bool Break { get; init; }
 
@@ -85,7 +103,18 @@ public sealed class Z80CoreObserverTests
 
         public void OnStepCompleted(CpuStepTrace trace) => Completed.Add(trace);
 
-        public void OnStepFailed(CpuDebugSnapshot snapshot, Exception exception) => throw exception;
+        public void OnStepFailed(CpuDebugSnapshot snapshot, Exception exception) => Failures.Add(exception);
+    }
+
+    private sealed class ThrowingZ80Cpu(IBus bus, PetEmulator.CpuZ80.Interrupts.IInterruptLines interruptLines) : Z80Cpu(bus, interruptLines)
+    {
+        protected override void ConfigureOpcodes(OpcodeTable<Z80State> table)
+        {
+            base.ConfigureOpcodes(table);
+            RegisterOpcode(0x00, ThrowFromOpcode);
+        }
+
+        private static int ThrowFromOpcode() => throw new InvalidOperationException("test opcode failure");
     }
 
     private sealed class TestBus : IBus
