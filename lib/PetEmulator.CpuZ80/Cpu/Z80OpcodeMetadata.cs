@@ -36,7 +36,7 @@ internal readonly record struct Z80OpcodeMetadata(
             return CreateCbMetadata(opcode);
 
         if (page == 0xED)
-            return new($"ED {opcode:X2}", 2, "Extended", 8);
+            return CreateEdMetadata(opcode);
 
         if (page is 0xDD or 0xFD)
         {
@@ -66,6 +66,79 @@ internal readonly record struct Z80OpcodeMetadata(
         };
 
         return new($"OP {opcode:X2}", length, addressingMode, 4);
+    }
+
+    private static Z80OpcodeMetadata CreateEdMetadata(byte opcode)
+    {
+        if ((opcode & 0xC7) == 0x40)
+        {
+            var register = RegisterName((opcode >> 3) & 7);
+            return new(
+                (opcode & 0x38) == 0x38 ? "IN (C)" : $"IN {register},(C)",
+                2,
+                "RegisterPort",
+                12);
+        }
+
+        if ((opcode & 0xC7) == 0x41)
+        {
+            var register = RegisterName((opcode >> 3) & 7);
+            return new(
+                (opcode & 0x38) == 0x38 ? "OUT (C),0" : $"OUT (C),{register}",
+                2,
+                "RegisterPort",
+                12);
+        }
+
+        if ((opcode & 0xCF) == 0x42 || (opcode & 0xCF) == 0x4A)
+        {
+            var pair = PairName((opcode >> 4) & 3);
+            var operation = (opcode & 0x0F) == 0x0A ? "ADC" : "SBC";
+            return new($"{operation} HL,{pair}", 2, "RegisterPair", 15);
+        }
+
+        if ((opcode & 0xCF) == 0x43 || (opcode & 0xCF) == 0x4B)
+        {
+            var pair = PairName((opcode >> 4) & 3);
+            var operation = (opcode & 0x0F) == 0x0B ? $"LD {pair},(nn)" : $"LD (nn),{pair}";
+            return new(operation, 4, "Absolute16", 20);
+        }
+
+        if ((opcode & 0xC7) == 0x44)
+            return new("NEG", 2, "Implied", 8);
+
+        if ((opcode & 0xC7) == 0x45)
+            return new(opcode == 0x4D ? "RETI" : "RETN", 2, "Implied", 14);
+
+        if ((opcode & 0xC7) == 0x46)
+            return new($"IM {InterruptMode(opcode)}", 2, "Implied", 8);
+
+        return opcode switch
+        {
+            0x47 => new("LD I,A", 2, "Implied", 9),
+            0x4F => new("LD R,A", 2, "Implied", 9),
+            0x57 => new("LD A,I", 2, "Implied", 9),
+            0x5F => new("LD A,R", 2, "Implied", 9),
+            0x67 => new("RRD", 2, "Memory", 18),
+            0x6F => new("RLD", 2, "Memory", 18),
+            0xA0 => new("LDI", 2, "Block", 16),
+            0xA1 => new("CPI", 2, "Block", 16),
+            0xA2 => new("INI", 2, "Block", 16),
+            0xA3 => new("OUTI", 2, "Block", 16),
+            0xA8 => new("LDD", 2, "Block", 16),
+            0xA9 => new("CPD", 2, "Block", 16),
+            0xAA => new("IND", 2, "Block", 16),
+            0xAB => new("OUTD", 2, "Block", 16),
+            0xB0 => new("LDIR", 2, "BlockRepeat", 21),
+            0xB1 => new("CPIR", 2, "BlockRepeat", 21),
+            0xB2 => new("INIR", 2, "BlockRepeat", 21),
+            0xB3 => new("OTIR", 2, "BlockRepeat", 21),
+            0xB8 => new("LDDR", 2, "BlockRepeat", 21),
+            0xB9 => new("CPDR", 2, "BlockRepeat", 21),
+            0xBA => new("INDR", 2, "BlockRepeat", 21),
+            0xBB => new("OTDR", 2, "BlockRepeat", 21),
+            _ => new($"ED {opcode:X2}", 2, "Extended", 8),
+        };
     }
 
     private static Z80OpcodeMetadata CreateCbMetadata(byte opcode)
@@ -109,5 +182,20 @@ internal readonly record struct Z80OpcodeMetadata(
         4 => "H",
         5 => "L",
         _ => "A",
+    };
+
+    private static string PairName(int pair) => pair switch
+    {
+        0 => "BC",
+        1 => "DE",
+        2 => "HL",
+        _ => "SP",
+    };
+
+    private static int InterruptMode(byte opcode) => opcode switch
+    {
+        0x5E or 0x7E => 2,
+        0x56 or 0x76 => 1,
+        _ => 0,
     };
 }

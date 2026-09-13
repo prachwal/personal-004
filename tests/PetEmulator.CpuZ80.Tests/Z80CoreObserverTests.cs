@@ -368,6 +368,21 @@ public sealed class Z80CoreObserverTests
     }
 
     [Fact]
+    public void Z80EdMetadataUsesTheRegisteredInstructionFamilies()
+    {
+        var cpu = new MetadataProbeZ80Cpu(new TestBus(), new InterruptLines());
+        var ed = cpu.Definitions.Where(definition => definition.Key.Page == 0xED).ToArray();
+
+        Assert.NotEmpty(ed);
+        Assert.DoesNotContain(ed, definition => definition.AddressingMode == "Extended");
+        AssertMetadata(cpu.Definition(0xED, 0x40), "IN B,(C)", 2, "RegisterPort", 12);
+        AssertMetadata(cpu.Definition(0xED, 0x4B), "LD BC,(nn)", 4, "Absolute16", 20);
+        AssertMetadata(cpu.Definition(0xED, 0x56), "IM 1", 2, "Implied", 8);
+        AssertMetadata(cpu.Definition(0xED, 0x4D), "RETI", 2, "Implied", 14);
+        AssertMetadata(cpu.Definition(0xED, 0xB0), "LDIR", 2, "BlockRepeat", 21);
+    }
+
+    [Fact]
     public void Z80DerivedVariantExecutesItsCustomOpcodeThroughTheCommonDecoder()
     {
         var bus = new TestBus { Memory = { [0] = 0xED, [1] = 0x00 } };
