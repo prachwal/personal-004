@@ -424,6 +424,21 @@ public sealed class Z80CoreObserverTests
     }
 
     [Fact]
+    public void Z80RegisteredOpcodeMetadataHasNoGenericFallbacks()
+    {
+        var cpu = new MetadataProbeZ80Cpu(new TestBus(), new InterruptLines());
+        var definitions = cpu.Definitions
+            .Where(definition => definition.Key.Page is 0x00 or 0xCB or 0xED or 0xDD or 0xFD)
+            .ToArray();
+
+        Assert.NotEmpty(definitions);
+        Assert.DoesNotContain(definitions, definition => definition.Mnemonic.StartsWith("OP ", StringComparison.Ordinal));
+        Assert.DoesNotContain(definitions, definition => definition.Mnemonic.Contains(" OP ", StringComparison.Ordinal));
+        Assert.DoesNotContain(definitions.Where(definition => definition.Key.Page == 0xED),
+            definition => definition.AddressingMode == "Extended");
+    }
+
+    [Fact]
     public void Z80DerivedVariantExecutesItsCustomOpcodeThroughTheCommonDecoder()
     {
         var bus = new TestBus { Memory = { [0] = 0xED, [1] = 0x00 } };

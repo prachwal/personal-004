@@ -71,6 +71,12 @@ internal readonly record struct Z80OpcodeMetadata(
 
     private static Z80OpcodeMetadata? CreateBaseControlMetadata(byte opcode)
     {
+        if ((opcode & 0xC7) == 0xC1)
+            return new($"POP {PairName((opcode >> 4) & 3)}", 1, "Stack", 10);
+
+        if ((opcode & 0xC7) == 0xC5)
+            return new($"PUSH {PairName((opcode >> 4) & 3)}", 1, "Stack", 11);
+
         if ((opcode & 0xCF) == 0x01)
             return new($"LD {PairName((opcode >> 4) & 3)},nn", 3, "Immediate16", 10);
 
@@ -95,6 +101,7 @@ internal readonly record struct Z80OpcodeMetadata(
 
         return opcode switch
         {
+            0x08 => new("EX AF,AF'", 1, "Implied", 4),
             0x02 => new("LD (BC),A", 1, "Memory", 7),
             0x0A => new("LD A,(BC)", 1, "Memory", 7),
             0x12 => new("LD (DE),A", 1, "Memory", 7),
