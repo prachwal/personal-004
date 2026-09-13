@@ -33,7 +33,7 @@ internal readonly record struct Z80OpcodeMetadata(
     private static Z80OpcodeMetadata CreateDefault(byte page, byte opcode)
     {
         if (page == 0xCB)
-            return new($"CB {opcode:X2}", 2, (opcode & 7) == 6 ? "Memory" : "Register", (byte)((opcode & 7) == 6 ? 15 : 8));
+            return CreateCbMetadata(opcode);
 
         if (page == 0xED)
             return new($"ED {opcode:X2}", 2, "Extended", 8);
@@ -67,4 +67,47 @@ internal readonly record struct Z80OpcodeMetadata(
 
         return new($"OP {opcode:X2}", length, addressingMode, 4);
     }
+
+    private static Z80OpcodeMetadata CreateCbMetadata(byte opcode)
+    {
+        var group = opcode >> 6;
+        var operation = (opcode >> 3) & 7;
+        var operand = (opcode & 7) == 6 ? "(HL)" : RegisterName(opcode & 7);
+        var mnemonic = group switch
+        {
+            0 => $"{RotateName(operation)} {operand}",
+            1 => $"BIT {operation},{operand}",
+            2 => $"RES {operation},{operand}",
+            _ => $"SET {operation},{operand}",
+        };
+        var memory = (opcode & 7) == 6;
+        var cycles = group == 1
+            ? (byte)(memory ? 12 : 8)
+            : (byte)(memory ? 15 : 8);
+
+        return new(mnemonic, 2, memory ? "Memory" : "Register", cycles);
+    }
+
+    private static string RotateName(int operation) => operation switch
+    {
+        0 => "RLC",
+        1 => "RRC",
+        2 => "RL",
+        3 => "RR",
+        4 => "SLA",
+        5 => "SRA",
+        6 => "SLL",
+        _ => "SRL",
+    };
+
+    private static string RegisterName(int register) => register switch
+    {
+        0 => "B",
+        1 => "C",
+        2 => "D",
+        3 => "E",
+        4 => "H",
+        5 => "L",
+        _ => "A",
+    };
 }
