@@ -50,6 +50,35 @@ public sealed class Z80CoreObserverTests
     }
 
     [Fact]
+    public void CoreWatchpointAndLegacyMemoryWatchObserveOneMemoryAccessEach()
+    {
+        var bus = new SystemBus(new RamMemory());
+        bus.WriteMemory(0x0000, 0x3A); // LD A,(nn)
+        bus.WriteMemory(0x0001, 0x00);
+        bus.WriteMemory(0x0002, 0x40);
+        bus.WriteMemory(0x4000, 0x5A);
+
+        var legacyHits = 0;
+        bus.Watch.Add(0x4000, new MemoryHook(
+            (kind, _, _) => kind == MemoryAccessKind.Read,
+            (_, _, _) => legacyHits++));
+
+        var observer = new TestObserver { WatchAddress = 0x4000 };
+        var cpu = new Z80Cpu(bus, new InterruptLines())
+        {
+            ExecutionObserver = observer,
+        };
+
+        cpu.StepInstruction();
+
+        var trace = Assert.Single(observer.Completed);
+        Assert.True(trace.Result.WatchpointHit);
+        Assert.Equal(1, observer.Accesses.Count(access => access.Address == 0x4000));
+        Assert.Equal(1, legacyHits);
+        Assert.Equal((byte)0x5A, cpu.Registers.A);
+    }
+
+    [Fact]
     public void CommonExecutionObserverCanBreakBeforeZ80Instruction()
     {
         var bus = new TestBus();

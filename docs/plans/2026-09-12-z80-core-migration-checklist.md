@@ -49,7 +49,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Dodać test pełnych 16-bitowych adresów portów.
 - [x] Dodać test braku portu i domyślnego mapowania I/O.
 - [x] Dodać test śladu `BusCycle` dla Base, CB, ED, DD/FD, I/O i interruptów po migracji do Core.
-- [ ] Potwierdzić, że Core watchpoint i istniejący `MemoryWatch` nie generują podwójnych zdarzeń.
+- [x] Potwierdzić, że Core watchpoint i istniejący `MemoryWatch` nie generują podwójnych zdarzeń.
 
 ## 5. Debugger i monitoring
 
@@ -91,6 +91,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Test pełnych 16-bitowych adresów portów Z80: 1/1 zaliczony.
 - [x] Test domyślnego `UnmappedIoBus` przez ścieżkę CPU Z80: 1/1 zaliczony.
 - [x] Test śladu `BusCycle` dla Base, CB, ED, DD/FD, I/O i interruptów Z80: 1/1 zaliczony.
+- [x] Test braku podwójnych zdarzeń Core watchpoint/`MemoryWatch`: 1/1 zaliczony.
 - [x] `z80doc.tap` i `zexdoc.com` są obecne w repozytorium.
 - [x] Test ZEXDOC ma inicjalizację wektora stosu CP/M pod `0006h`.
 - [x] Test ZEXDOC raportuje postęp co 100 milionów instrukcji.
