@@ -41,6 +41,9 @@ internal readonly record struct Z80OpcodeMetadata(
         if (page is 0xDD or 0xFD)
             return CreateIndexedMetadata(page, opcode);
 
+        if (page == 0x00 && CreateBaseMatrixMetadata(opcode) is { } matrix)
+            return matrix;
+
         var length = opcode switch
         {
             0x01 or 0x11 or 0x21 or 0x31 or 0x22 or 0x2A or 0xC3 or 0xCD or
@@ -61,6 +64,33 @@ internal readonly record struct Z80OpcodeMetadata(
         };
 
         return new($"OP {opcode:X2}", length, addressingMode, 4);
+    }
+
+    private static Z80OpcodeMetadata? CreateBaseMatrixMetadata(byte opcode)
+    {
+        if ((opcode & 0xC0) == 0x40 && opcode != 0x76)
+        {
+            var destination = BaseRegisterName((opcode >> 3) & 7);
+            var source = BaseRegisterName(opcode & 7);
+            var memory = ((opcode >> 3) & 7) == 6 || (opcode & 7) == 6;
+            return new($"LD {destination},{source}", 1, memory ? "Memory" : "Register", (byte)(memory ? 7 : 4));
+        }
+
+        if ((opcode & 0xC7) == 0x06)
+        {
+            var register = BaseRegisterName((opcode >> 3) & 7);
+            var memory = ((opcode >> 3) & 7) == 6;
+            return new($"LD {register},n", 2, memory ? "MemoryImmediate8" : "Immediate8", (byte)(memory ? 10 : 7));
+        }
+
+        if ((opcode & 0xC0) == 0x80)
+        {
+            var source = BaseRegisterName(opcode & 7);
+            var memory = (opcode & 7) == 6;
+            return new($"{AluMnemonic((opcode >> 3) & 7, source)}", 1, memory ? "Memory" : "Register", (byte)(memory ? 7 : 4));
+        }
+
+        return null;
     }
 
     private static Z80OpcodeMetadata CreateIndexedMetadata(byte page, byte opcode)
@@ -128,6 +158,8 @@ internal readonly record struct Z80OpcodeMetadata(
         _ => RegisterName(register),
     };
 
+    private static string BaseRegisterName(int register) => register == 6 ? "(HL)" : RegisterName(register);
+
     private static string IndexedPairName(int pair, string index) => pair == 2 ? index : PairName(pair);
 
     private static string AluName(int operation) => operation switch
@@ -140,6 +172,18 @@ internal readonly record struct Z80OpcodeMetadata(
         5 => "XOR ",
         6 => "OR ",
         _ => "CP ",
+    };
+
+    private static string AluMnemonic(int operation, string source) => operation switch
+    {
+        0 => $"ADD A,{source}",
+        1 => $"ADC A,{source}",
+        2 => $"SUB {source}",
+        3 => $"SBC A,{source}",
+        4 => $"AND {source}",
+        5 => $"XOR {source}",
+        6 => $"OR {source}",
+        _ => $"CP {source}",
     };
 
     private static Z80OpcodeMetadata CreateEdMetadata(byte opcode)

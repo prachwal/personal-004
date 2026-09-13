@@ -396,6 +396,19 @@ public sealed class Z80CoreObserverTests
     }
 
     [Fact]
+    public void Z80BaseMetadataUsesLoadAndAluMatrices()
+    {
+        var cpu = new MetadataProbeZ80Cpu(new TestBus(), new InterruptLines());
+
+        AssertMetadata(cpu.Definition(0x00, 0x41), "LD B,C", 1, "Register", 4);
+        AssertMetadata(cpu.Definition(0x00, 0x46), "LD B,(HL)", 1, "Memory", 7);
+        AssertMetadata(cpu.Definition(0x00, 0x36), "LD (HL),n", 2, "MemoryImmediate8", 10);
+        AssertMetadata(cpu.Definition(0x00, 0x80), "ADD A,B", 1, "Register", 4);
+        AssertMetadata(cpu.Definition(0x00, 0x86), "ADD A,(HL)", 1, "Memory", 7);
+        AssertMetadata(cpu.Definition(0x00, 0xBE), "CP (HL)", 1, "Memory", 7);
+    }
+
+    [Fact]
     public void Z80DerivedVariantExecutesItsCustomOpcodeThroughTheCommonDecoder()
     {
         var bus = new TestBus { Memory = { [0] = 0xED, [1] = 0x00 } };
