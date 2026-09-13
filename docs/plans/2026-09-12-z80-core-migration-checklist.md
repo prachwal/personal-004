@@ -11,7 +11,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Przenieść wszystkie pola architektoniczne do `Z80State`: rejestry główne, alternatywne, `IX/IY`, `I/R`, `IFF1/IFF2`, `IM`, opóźnienie `EI`, stan NMI i HALT.
 - [x] Przenieść snapshot/restore do wspólnego mechanizmu `CpuState`.
 - [x] Dodać test round-trip snapshotu dla pełnego stanu Z80.
-- [ ] Dodać test snapshotu w trakcie `WAIT`, `HALT`, prefiksu i opóźnienia `EI`.
+- [x] Dodać test snapshotu w trakcie `WAIT`, `HALT`, prefiksu i opóźnienia `EI`.
 
 ## 2. Wspólny lifecycle Core
 
@@ -78,6 +78,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Test obserwacji wyjątku wykonania opcode’u Z80: 1/1 zaliczony.
 - [x] Test współdziałania `CpuHookCollection` z observerem Core: 1/1 zaliczony.
 - [x] Testy debug snapshotu Z80 dla HALT, WAIT i obsłużonego przerwania: 3/3 zaliczone.
+- [x] Testy debug snapshotu Z80 dla prefiksu indeksowanego i opóźnienia EI: 2/2 zaliczone.
 - [x] `z80doc.tap` i `zexdoc.com` są obecne w repozytorium.
 - [x] Test ZEXDOC ma inicjalizację wektora stosu CP/M pod `0006h`.
 - [x] Test ZEXDOC raportuje postęp co 100 milionów instrukcji.

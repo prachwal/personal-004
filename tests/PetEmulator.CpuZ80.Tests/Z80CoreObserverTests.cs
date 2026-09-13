@@ -153,6 +153,39 @@ public sealed class Z80CoreObserverTests
         Assert.Equal(snapshot.CycleCount, cpu.CycleCount);
     }
 
+    [Fact]
+    public void CommonDebugSnapshotRestoresZ80IndexedPrefixResult()
+    {
+        var bus = new TestBus { Memory = { [0] = 0xDD, [1] = 0x21, [2] = 0x34, [3] = 0x12 } };
+        var cpu = new Z80Cpu(bus, new InterruptLines());
+
+        cpu.StepInstruction();
+        var snapshot = cpu.CaptureSnapshot();
+        cpu.Reset();
+        cpu.RestoreSnapshot(snapshot);
+
+        Assert.Equal((ushort)0x1234, cpu.Registers.IX);
+        Assert.Equal((ushort)4, cpu.Registers.PC);
+        Assert.Equal(snapshot.CycleCount, cpu.CycleCount);
+    }
+
+    [Fact]
+    public void CommonDebugSnapshotRestoresZ80EiDelay()
+    {
+        var bus = new TestBus { Memory = { [0] = 0xFB } };
+        var cpu = new Z80Cpu(bus, new InterruptLines());
+
+        cpu.StepInstruction();
+        var snapshot = cpu.CaptureSnapshot();
+        cpu.Reset();
+        cpu.RestoreSnapshot(snapshot);
+
+        Assert.True(cpu.Registers.Iff1);
+        Assert.True(cpu.Registers.Iff2);
+        Assert.Equal(1, cpu.Registers.InterruptDelay);
+        Assert.Equal((ushort)1, cpu.Registers.PC);
+    }
+
     private sealed class TestObserver : ICpuExecutionObserver
     {
         public List<CpuStepTrace> Completed { get; } = [];
