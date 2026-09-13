@@ -7,6 +7,10 @@ public partial class Cpu8080
 {
     private CpuStepResult ExecuteInstruction(byte opcode, CpuExecutionContext context)
     {
+        // Cpu8080State exposes only the five architectural flags. Keep bits
+        // that belong to the 8080 status byte representation out of the
+        // execution state; PUSH/POP PSW adds/removes bit 1 at the boundary.
+        State.Flags &= 0xD5;
         var extraCycles = 0;
 
         switch (opcode)

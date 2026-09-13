@@ -8,10 +8,10 @@
 - [x] Etapy 3–6 — zaimportowane wykonanie ISA, flagi, sterowanie, stos, I/O, `HLT` i podstawowa obsługa przerwań.
 - [ ] Etapy 7–8 — ekstrakcja podzbioru dla Z80, pełne macierze testów i test binarny.
 
-Weryfikacja wykonana po etapach 1–2:
+Weryfikacja wykonana po etapach 1–4:
 
 - `dotnet build PetEmulator.slnx --no-restore --disable-build-servers` — PASS, 0 ostrzeżeń, 0 błędów.
-- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 58/58.
+- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 68/68.
 - Macierz dispatchu obejmuje wszystkie 256 wartości opcode — PASS.
 - Macierz flag obejmuje ADD/SUB/INR/DCR/ANA/DAA — PASS.
 - Własny test binarny `.COM` ładowany pod `0x0100` — PASS; obejmuje ALU, skok warunkowy, zapis pamięci i `HLT`.
@@ -25,6 +25,7 @@ Weryfikacja wykonana po etapach 1–2:
 - Test callbacku obserwatora `OnStepFailed` z zachowaniem snapshotu — PASS.
 - Differential ALU względem niezależnego modelu referencyjnego, 4096 przypadków — PASS.
 - Macierz transferu danych i adresowania, w tym granica `0xFFFF` oraz alias `M=[HL]` — PASS.
+- Macierz arytmetyki, logiki i flag: parity, `AC/CY`, `INR/DCR`, `DAD`, rotacje, `DAA` i bity nieużywane — PASS.
 - Długi test ZEXDOC Z80 pozostaje uruchomiony niezależnie od tej zmiany.
 
 ## Cel
@@ -122,9 +123,9 @@ Kryterium: pełna grupa transferu danych działa i ma testy wszystkich trybów a
 - [x] Immediate: `ADI`, `ACI`, `SUI`, `SBI`, `ANI`, `XRI`, `ORI`, `CPI`.
 - [x] `INR`, `DCR`, `INX`, `DCX`, `DAD`.
 - [x] `RLC`, `RRC`, `RAL`, `RAR`, `DAA`, `CMA`, `STC`, `CMC`.
-- [ ] Zaimplementować parzystość jako even parity dla wyniku 8-bitowego.
-- [ ] Dokładnie rozdzielić zachowanie `AC` od `CY`; `INR`/`DCR` nie zmieniają `CY`.
-- [ ] Ustalić i przetestować zachowanie bitów nieobecnych w 8080; nie mapować automatycznie flag `N`, `H`, `X`, `Y` z Z80.
+- [x] Zaimplementować parzystość jako even parity dla wyniku 8-bitowego.
+- [x] Dokładnie rozdzielić zachowanie `AC` od `CY`; `INR`/`DCR` nie zmieniają `CY`.
+- [x] Ustalić i przetestować zachowanie bitów nieobecnych w 8080; nie mapować automatycznie flag `N`, `H`, `X`, `Y` z Z80.
 - [x] Dodać macierze wartości: zero, znak, przepełnienie bez znaku, przeniesienie po bitach 3/7, parzystość i `DAA`.
 
 Kryterium: każda instrukcja ALU ma test wyniku i pełnego zestawu pięciu flag 8080.
