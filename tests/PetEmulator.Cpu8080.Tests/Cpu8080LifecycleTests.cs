@@ -50,6 +50,27 @@ public sealed class Cpu8080LifecycleTests
         cpu.Halted.Should().BeFalse();
     }
 
+    [Test]
+    public void Snapshot_restore_preserves_pending_ei_before_its_delayed_effect()
+    {
+        var memory = new TestMemory { Bytes = { [0] = 0xFB, [1] = 0x00 } };
+        var cpu = new Cpu8080(memory);
+
+        cpu.StepInstruction();
+        var snapshot = cpu.CaptureSnapshot();
+
+        cpu.StepInstruction();
+        cpu.CpuState.InterruptsEnabled.Should().BeTrue();
+
+        cpu.RestoreSnapshot(snapshot);
+
+        cpu.CpuState.PC.Should().Be(1);
+        cpu.CpuState.EiPending.Should().BeTrue();
+        cpu.CpuState.InterruptsEnabled.Should().BeFalse();
+        cpu.StepInstruction();
+        cpu.CpuState.InterruptsEnabled.Should().BeTrue();
+    }
+
     private sealed class TestMemory : IMemoryBus
     {
         public byte[] Bytes { get; } = new byte[ushort.MaxValue + 1];

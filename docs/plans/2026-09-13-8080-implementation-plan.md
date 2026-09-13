@@ -11,11 +11,12 @@
 Weryfikacja wykonana po etapie 1:
 
 - `dotnet build PetEmulator.slnx --no-restore --disable-build-servers` — PASS, 0 ostrzeżeń, 0 błędów.
-- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 28/28.
+- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 30/30.
 - Macierz dispatchu obejmuje wszystkie 256 wartości opcode — PASS.
 - Macierz flag obejmuje ADD/SUB/INR/DCR/ANA/DAA — PASS.
 - Własny test binarny `.COM` ładowany pod `0x0100` — PASS; obejmuje ALU, skok warunkowy, zapis pamięci i `HLT`.
 - Testy I/O, `EI/DI`, `INTE` i interrupt acknowledge — PASS.
+- Snapshot/restore z aktywnym opóźnieniem `EI` — PASS.
 - Długi test ZEXDOC Z80 pozostaje uruchomiony niezależnie od tej zmiany.
 
 ## Cel
