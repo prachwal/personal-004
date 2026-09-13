@@ -53,7 +53,9 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
     public IBrush DiskIconBrush => !DiskLoaded ? Brushes.Gray : DiskBusy ? Brushes.Red : Brushes.LimeGreen;
     public int PixelWidth => KayproVideo.PixelWidth;
     public int PixelHeight => KayproVideo.PixelHeight;
-    public (int Width, int Height) PixelAspect => (1, 1);
+    // The 640x240 Kaypro raster uses a 2:1 vertical pixel correction to
+    // reproduce the 4:3 CRT geometry of the 80x24, 8x10 character display.
+    public (int Width, int Height) PixelAspect => (1, 2);
     public uint[] FrameBuffer { get; }
     public object? Extra => null;
     public event EventHandler? FrameReady;
