@@ -308,6 +308,25 @@ public sealed class Z80CoreObserverTests
     }
 
     [Fact]
+    public void Z80ImplementsTheCommonProcessorContract()
+    {
+        var bus = new TestBus { Memory = { [0] = 0x00 } };
+        var cpu = new Z80Cpu(bus, new InterruptLines());
+        IProcessor processor = cpu;
+
+        processor.StepInstruction();
+
+        Assert.Equal((ulong)4, processor.CycleCount);
+        Assert.Equal((ulong)1, processor.InstructionCount);
+
+        processor.Reset();
+
+        Assert.Equal((ulong)0, processor.CycleCount);
+        Assert.Equal((ulong)0, processor.InstructionCount);
+        Assert.False(processor.Halted);
+    }
+
+    [Fact]
     public void Z80OpcodeRegistrationUsesCommonMetadataForRepresentativePages()
     {
         var cpu = new MetadataProbeZ80Cpu(new TestBus(), new InterruptLines());
