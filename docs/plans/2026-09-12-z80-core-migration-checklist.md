@@ -39,7 +39,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Wprowadzić wspólny resolver metadanych Z80 dla reprezentatywnych opcode’ów bazowych, CB, ED, DD/FD i I/O; pełne pokrycie pozostaje w punkcie powyżej.
 - [x] Dodać test kompletności stron CB/DD/FD i braku kolizji kluczy; strona ED pozostaje częściowo zdefiniowana zgodnie ze specyfiką Z80.
 - [x] Dodać test rozszerzania tabeli w klasie potomnej przez `ConfigureOpcodes`/`Replace`/`Derive`.
-- [ ] Potwierdzić, że tabela bazowa pozostaje niemutowalna po utworzeniu wariantu potomnego.
+- [x] Potwierdzić, że tabela bazowa pozostaje niemutowalna po utworzeniu wariantu potomnego.
 
 ## 4. Magistrala, I/O i timing
 
@@ -86,6 +86,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Test metadanych `OpcodeDefinition` dla reprezentatywnych stron Z80: 1/1 zaliczony.
 - [x] Test kompletności stron CB/DD/FD i unikalności kluczy opcode’ów Z80: 1/1 zaliczony.
 - [x] Test rozszerzania i izolacji wariantu potomnego tabeli opcode’ów Z80: 1/1 zaliczony.
+- [x] Test niezmienności bazowej tabeli opcode’ów po utworzeniu wariantu Z80: 1/1 zaliczony.
 - [x] `z80doc.tap` i `zexdoc.com` są obecne w repozytorium.
 - [x] Test ZEXDOC ma inicjalizację wektora stosu CP/M pod `0006h`.
 - [x] Test ZEXDOC raportuje postęp co 100 milionów instrukcji.

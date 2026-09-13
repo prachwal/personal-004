@@ -322,6 +322,21 @@ public sealed class Z80CoreObserverTests
         Assert.Throws<InvalidOperationException>(() => derived.Replace(Definition(0x00, 0x01, "LATE")));
     }
 
+    [Fact]
+    public void Z80DerivedOpcodeTableLeavesBaseEntriesUnchanged()
+    {
+        var cpu = new MetadataProbeZ80Cpu(new TestBus(), new InterruptLines());
+        var baseNop = cpu.Definition(0x00, 0x00);
+        var baseCount = cpu.Definitions.Count;
+
+        var derived = cpu.Derive(table => table.Replace(Definition(0x00, 0x00, "DERIVED NOP")));
+
+        Assert.Same(baseNop, cpu.Definition(0x00, 0x00));
+        Assert.Equal(baseCount, cpu.Definitions.Count);
+        Assert.Equal("NOP", cpu.Definition(0x00, 0x00).Mnemonic);
+        Assert.Equal("DERIVED NOP", derived.Get(OpcodeKey.Base(0x00)).Mnemonic);
+    }
+
     private static OpcodeDefinition<Z80State> Definition(byte page, byte opcode, string mnemonic)
         => new(
             new OpcodeKey(page, opcode),
