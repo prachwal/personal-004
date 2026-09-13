@@ -8,10 +8,10 @@
 - [x] Etapy 3–6 — zaimportowane wykonanie ISA, flagi, sterowanie, stos, I/O, `HLT` i podstawowa obsługa przerwań.
 - [ ] Etapy 7–8 — ekstrakcja podzbioru dla Z80, pełne macierze testów i test binarny.
 
-Weryfikacja wykonana po etapie 1:
+Weryfikacja wykonana po etapach 1–2:
 
 - `dotnet build PetEmulator.slnx --no-restore --disable-build-servers` — PASS, 0 ostrzeżeń, 0 błędów.
-- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 49/49.
+- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 52/52.
 - Macierz dispatchu obejmuje wszystkie 256 wartości opcode — PASS.
 - Macierz flag obejmuje ADD/SUB/INR/DCR/ANA/DAA — PASS.
 - Własny test binarny `.COM` ładowany pod `0x0100` — PASS; obejmuje ALU, skok warunkowy, zapis pamięci i `HLT`.
@@ -96,8 +96,8 @@ Kryterium: `NOP`, reset i zatrzymanie procesora działają bez opcode’ów rodz
 - [x] Dodać partial `Cpu8080.OpcodeRegistration.Base.cs` i rejestrację przez `OpcodeTable<Cpu8080State>`.
 - [x] Dodać metadane: mnemonic, długość, tryb adresowania i nominalny timing.
 - [x] Dodać test kompletności 256 wpisów oraz jawną politykę dla niezaimplementowanych opcode’ów.
-- [ ] Dodać test braku duplikatów i test rozszerzenia/zmiany opcode’u przez klasę potomną bez mutowania tabeli bazowej.
-- [ ] Nie tworzyć stron CB/ED/DD/FD — są elementem Z80, nie 8080.
+- [x] Dodać test braku duplikatów i test rozszerzenia/zmiany opcode’u przez klasę potomną bez mutowania tabeli bazowej.
+- [x] Nie tworzyć stron CB/ED/DD/FD — są elementem Z80, nie 8080.
 
 Kryterium: debugger może odczytać opis każdej wartości opcode, a dispatch nie używa drugiej tablicy runtime.
 
