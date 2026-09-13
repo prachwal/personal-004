@@ -61,6 +61,26 @@ public sealed class Cpu8080IoInterruptTests
         interruptBus.AcknowledgeCount.Should().Be(0);
     }
 
+    [Test]
+    public void Halted_cpu_wakes_and_accepts_interrupt()
+    {
+        var memory = new TestMemory { Bytes = { [0] = 0xFB, [1] = 0x76 } };
+        var interruptBus = new TestInterruptBus { Opcode = 0xCF };
+        var cpu = new Cpu8080(memory, interruptBus: interruptBus);
+        cpu.CpuState.SP = 0x1000;
+
+        cpu.StepInstruction();
+        cpu.StepInstruction();
+        cpu.Halted.Should().BeTrue();
+
+        cpu.SetIRQ(true);
+        cpu.StepInstruction();
+
+        cpu.Halted.Should().BeFalse();
+        cpu.CpuState.PC.Should().Be(0x0008);
+        interruptBus.AcknowledgeCount.Should().Be(1);
+    }
+
     private sealed class TestMemory : IMemoryBus
     {
         public byte[] Bytes { get; } = new byte[ushort.MaxValue + 1];

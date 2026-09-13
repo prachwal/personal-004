@@ -138,7 +138,8 @@ Kryterium: kontrola przepływu i stos mają testy śladu PC/SP oraz cykli dla ga
 - [x] Przerwanie jest akceptowane tylko przy `INTE`; acknowledge dostarcza opcode RST.
 - [ ] Po zaakceptowaniu przerwania `INTE` jest wyłączane, a stan stosu/PC odpowiada dokumentowanemu modelowi 8080.
 - [x] Dodać testy reset → `EI` → interrupt i `DI` → interrupt.
-- [ ] Dodać test `HLT` → interrupt oraz interrupt podczas oczekiwania.
+- [x] Dodać test `HLT` → interrupt.
+- [ ] Dodać test interrupt podczas oczekiwania.
 
 Kryterium: pełna ścieżka urządzenie → acknowledge → wykonanie opcode’u przerwania jest deterministyczna.
 
