@@ -29,6 +29,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Zachowano rozszerzenia Z80: IXH/IXL, IYH/IYL, displacement, I/O i nieużywane ED.
 - [x] Główny punkt rejestracji opcode’ów przeniesiono do partiala `Z80Cpu.OpcodeRegistration`.
 - [x] Bazowe opcode’y przeniesiono do `Z80Cpu.OpcodeRegistration.Base`.
+- [x] Opcode’y ED przeniesiono do `Z80Cpu.OpcodeRegistration.Ed`.
 - [ ] Rozdzielić rejestrację opcode’ów na partiale: Base, CB, ED, Indexed i I/O.
 - [ ] Usunąć wrappery `RegisterOpcode`, `RegisterEdOpcode` i `RegisterPageOpcode`, jeśli nie są już potrzebne do kompatybilności.
 - [ ] Ujednolicić metadane `OpcodeDefinition`: mnemonic, długość, tryb adresowania i timing.
@@ -63,6 +64,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Po zmianie typu bazowego wykonano 517 testów jednostkowych Z80 bez testów binarnych; 517/517 przeszło, czas 9 min 11 s.
 - [x] Po przeniesieniu rejestracji opcode’ów do partiala wykonano 517 testów jednostkowych Z80 bez testów binarnych; 517/517 przeszło, czas 9 min 50 s.
 - [x] Po wydzieleniu bazowych opcode’ów wykonano test rozszerzania rejestracji: 1/1, czas 43 ms.
+- [x] Po wydzieleniu opcode’ów ED wykonano 25 testów ED i rozszerzania rejestracji; 25/25 przeszło, czas 1 s.
 - [x] `z80doc.tap` i `zexdoc.com` są obecne w repozytorium.
 - [x] Test ZEXDOC ma inicjalizację wektora stosu CP/M pod `0006h`.
 - [x] Test ZEXDOC raportuje postęp co 100 milionów instrukcji.
