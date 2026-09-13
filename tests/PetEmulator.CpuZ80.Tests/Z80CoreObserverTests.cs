@@ -99,6 +99,60 @@ public sealed class Z80CoreObserverTests
         Assert.Equal((ulong)1, observer.Completed[0].After.InstructionCount);
     }
 
+    [Fact]
+    public void CommonDebugSnapshotRestoresHaltedZ80()
+    {
+        var bus = new TestBus();
+        bus.Memory[0] = 0x76;
+        var cpu = new Z80Cpu(bus, new InterruptLines());
+
+        cpu.StepInstruction();
+        var snapshot = cpu.CaptureSnapshot();
+        cpu.Reset();
+        cpu.RestoreSnapshot(snapshot);
+
+        Assert.True(cpu.Halted);
+        Assert.Equal((ushort)1, cpu.Registers.PC);
+        Assert.Equal(snapshot.CycleCount, cpu.CycleCount);
+        Assert.Equal(snapshot.InstructionCount, cpu.InstructionCount);
+    }
+
+    [Fact]
+    public void CommonDebugSnapshotRestoresZ80WaitStep()
+    {
+        var lines = new InterruptLines();
+        lines.SetWait(true);
+        var cpu = new Z80Cpu(new TestBus(), lines);
+
+        cpu.StepInstruction();
+        var snapshot = cpu.CaptureSnapshot();
+        cpu.Reset();
+        cpu.RestoreSnapshot(snapshot);
+
+        Assert.Equal((ushort)0, cpu.Registers.PC);
+        Assert.Equal((ulong)1, cpu.CycleCount);
+        Assert.Equal((ulong)0, cpu.InstructionCount);
+    }
+
+    [Fact]
+    public void CommonDebugSnapshotRestoresZ80ServicedInterrupt()
+    {
+        var lines = new InterruptLines();
+        lines.SetInt(true);
+        var cpu = new Z80Cpu(new TestBus(), lines);
+        cpu.Registers.Iff1 = true;
+        cpu.Registers.InterruptMode = 1;
+
+        cpu.StepInstruction();
+        var snapshot = cpu.CaptureSnapshot();
+        cpu.Reset();
+        cpu.RestoreSnapshot(snapshot);
+
+        Assert.Equal((ushort)0x0038, cpu.Registers.PC);
+        Assert.False(cpu.Registers.Iff1);
+        Assert.Equal(snapshot.CycleCount, cpu.CycleCount);
+    }
+
     private sealed class TestObserver : ICpuExecutionObserver
     {
         public List<CpuStepTrace> Completed { get; } = [];
