@@ -2,6 +2,7 @@ using PetEmulator.Core;
 using PetEmulator.CpuZ80.Bus;
 using PetEmulator.CpuZ80.Cpu;
 using PetEmulator.CpuZ80.Interrupts;
+using PetEmulator.CpuZ80.Memory;
 
 namespace PetEmulator.CpuZ80.Tests;
 
@@ -389,6 +390,25 @@ public sealed class Z80CoreObserverTests
 
         Assert.Equal((ushort)0xA55A, outputBus.LastWritePort);
         Assert.Equal((byte)0xA5, outputBus.LastWriteValue);
+    }
+
+    [Fact]
+    public void Z80CpuUsesFFAndIgnoresWritesForUnmappedIoByDefault()
+    {
+        var memory = new RamMemory();
+        memory.Write(0x0000, 0xDB);
+        memory.Write(0x0001, 0x5A);
+        memory.Write(0x0002, 0xD3);
+        memory.Write(0x0003, 0xA1);
+        var bus = new SystemBus(memory);
+        var cpu = new Z80Cpu(bus, new InterruptLines());
+        cpu.Registers.A = 0xA5;
+
+        cpu.StepInstruction();
+        cpu.StepInstruction();
+
+        Assert.Equal((byte)0xFF, cpu.Registers.A);
+        Assert.Equal((byte)0xFF, bus.ReadPort(0xFFA1));
     }
 
     private static OpcodeDefinition<Z80State> Definition(byte page, byte opcode, string mnemonic)
