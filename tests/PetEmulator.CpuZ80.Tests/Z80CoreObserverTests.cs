@@ -327,6 +327,34 @@ public sealed class Z80CoreObserverTests
     }
 
     [Fact]
+    public void Z80CommonProcessorContractRoutesIrqAndNmiLines()
+    {
+        var nmiBus = new TestBus();
+        var nmiCpu = new Z80Cpu(nmiBus, new InterruptLines());
+        nmiCpu.Registers.SP = 0x0200;
+        IProcessor nmiProcessor = nmiCpu;
+
+        nmiProcessor.SetNMI(true);
+        nmiProcessor.StepInstruction();
+
+        Assert.Equal((ushort)0x0066, nmiCpu.Registers.PC);
+        Assert.Equal((ushort)0x01FE, nmiCpu.Registers.SP);
+
+        var irqBus = new TestBus();
+        var irqCpu = new Z80Cpu(irqBus, new InterruptLines());
+        irqCpu.Registers.SP = 0x0200;
+        irqCpu.Registers.Iff1 = true;
+        irqCpu.Registers.InterruptMode = 1;
+        IProcessor irqProcessor = irqCpu;
+
+        irqProcessor.SetIRQ(true);
+        irqProcessor.StepInstruction();
+
+        Assert.Equal((ushort)0x0038, irqCpu.Registers.PC);
+        Assert.Equal((ushort)0x01FE, irqCpu.Registers.SP);
+    }
+
+    [Fact]
     public void Z80OpcodeRegistrationUsesCommonMetadataForRepresentativePages()
     {
         var cpu = new MetadataProbeZ80Cpu(new TestBus(), new InterruptLines());
