@@ -6,8 +6,8 @@ namespace PetEmulator.CpuZ80.Tests;
 
 public sealed class Z80ZexdocTests
 {
-    [Fact]
-    public void ZexdocComCompletesWhenEnabled()
+    [Fact(Timeout = 1_800_000)]
+    public async Task ZexdocComCompletesWhenEnabled()
     {
         var bus = new CpmBus();
         var program = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestData", "zexdoc.com"));
@@ -18,17 +18,20 @@ public sealed class Z80ZexdocTests
         cpu.Registers.PC = 0x0100;
         cpu.Registers.SP = 0xFF00;
 
-        while (true)
+        await Task.Run(() =>
         {
-            if (cpu.Registers.PC == 0x0005)
+            while (true)
             {
-                bus.HandleBdos(cpu.Registers);
-                if (cpu.Registers.C == 0)
-                    break;
-            }
+                if (cpu.Registers.PC == 0x0005)
+                {
+                    bus.HandleBdos(cpu.Registers);
+                    if (cpu.Registers.C == 0)
+                        break;
+                }
 
-            cpu.Step();
-        }
+                cpu.Step();
+            }
+        });
 
         Assert.DoesNotContain("ERROR", bus.Output, StringComparison.Ordinal);
         Assert.Contains("Tests complete", bus.Output, StringComparison.Ordinal);
