@@ -56,7 +56,6 @@ public partial class Z80Cpu : CpuProcessorBase<Z80State>
 
     public override void Reset()
     {
-        Registers.Reset();
         coreIrq = false;
         coreNmi = false;
         base.Reset();

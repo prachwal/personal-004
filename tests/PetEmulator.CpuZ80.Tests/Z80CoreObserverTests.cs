@@ -226,6 +226,23 @@ public sealed class Z80CoreObserverTests
         Assert.Equal((ushort)0x3A, cpu.Registers.PC);
     }
 
+    [Fact]
+    public void Z80ResetUsesCommonCoreStateAndClockReset()
+    {
+        var bus = new TestBus { Memory = { [0] = 0x76 } };
+        var cpu = new Z80Cpu(bus, new InterruptLines());
+        cpu.Registers.A = 0xA5;
+        cpu.StepInstruction();
+
+        cpu.Reset();
+
+        Assert.Equal((byte)0, cpu.Registers.A);
+        Assert.Equal((ushort)0, cpu.Registers.PC);
+        Assert.False(cpu.Halted);
+        Assert.Equal((ulong)0, cpu.CycleCount);
+        Assert.Equal((ulong)0, cpu.InstructionCount);
+    }
+
     private sealed class TestObserver : ICpuExecutionObserver
     {
         public List<CpuStepTrace> Completed { get; } = [];
