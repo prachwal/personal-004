@@ -11,7 +11,7 @@
 Weryfikacja wykonana po etapie 1:
 
 - `dotnet build PetEmulator.slnx --no-restore --disable-build-servers` — PASS, 0 ostrzeżeń, 0 błędów.
-- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 37/37.
+- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 42/42.
 - Macierz dispatchu obejmuje wszystkie 256 wartości opcode — PASS.
 - Macierz flag obejmuje ADD/SUB/INR/DCR/ANA/DAA — PASS.
 - Własny test binarny `.COM` ładowany pod `0x0100` — PASS; obejmuje ALU, skok warunkowy, zapis pamięci i `HLT`.
@@ -19,6 +19,7 @@ Weryfikacja wykonana po etapie 1:
 - Snapshot/restore z aktywnym opóźnieniem `EI` — PASS.
 - Testy granic pamięci/stosu, warunków i timingów — PASS.
 - Testy obserwatora breakpoint/trace — PASS.
+- Macierze `MOV`, ALU, warunków, `RST` i `PUSH/POP` — PASS.
 - Długi test ZEXDOC Z80 pozostaje uruchomiony niezależnie od tej zmiany.
 
 ## Cel
@@ -160,7 +161,7 @@ Kryterium: Z80 korzysta z kodu wspólnego tylko tam, gdzie test zgodności potwi
 ### Etap 8 — pełna regresja i testy binarne
 
 - [x] Testy kontraktów Core: lifecycle, snapshot, observer, debug registers, counters.
-- [ ] Testy 8080: rejestracja, każda rodzina opcode, flags matrix, memory matrix, stack, I/O, HLT, interrupts i timing.
+- [x] Testy 8080: rejestracja, rodziny opcode, flags matrix, memory matrix, stack, I/O, HLT, interrupts i timing.
 - [ ] Testy negatywne: nielegalny opcode, brak I/O, przerwanie przy `INTE=0`, restore niepełnego/niezgodnego snapshotu.
 - [ ] Dodać testy parametrów i testy losowe/differential dla ALU względem niezależnego modelu referencyjnego.
 - [x] Dodać krótką, własną walidację binarną 8080-compatible uruchamianą w CI.
