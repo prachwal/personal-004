@@ -984,10 +984,12 @@ public partial class Z80Cpu : CpuProcessorBase<Z80State>
         return 4;
     }
 
-    private int ReturnFromInterrupt()
+    private int ReturnFromInterrupt(bool reti = false)
     {
         Registers.PC = PopWord();
         Iff1 = Iff2;
+        if (reti)
+            bus.NotifyInterruptReturn();
         return 14;
     }
 

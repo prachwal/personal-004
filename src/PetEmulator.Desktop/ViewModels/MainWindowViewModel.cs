@@ -58,6 +58,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                   PetProfileCatalog.Converted80NUnknown)),
               new ModuleMenuEntry("SuperPET", null, SuperPetChoices),
               new ModuleMenuEntry("VIC-20", CreateVic20),
+              new ModuleMenuEntry("Kaypro II", () => new KayproMachineViewModel(_romsRoot)),
          ];
 
         ToolChoices =
@@ -206,6 +207,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             case PetMachineViewModel pet: pet.LoadDisk(path); break;
             case Vic20MachineViewModel vic20: vic20.LoadDisk(path); break;
+            case KayproMachineViewModel kaypro: kaypro.LoadDisk(path); break;
         }
     }
 

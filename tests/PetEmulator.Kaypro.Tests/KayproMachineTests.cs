@@ -1,4 +1,5 @@
 using PetEmulator.Kaypro;
+using PetEmulator.Chips;
 using NUnit.Framework;
 
 namespace PetEmulator.Kaypro.Tests;
@@ -32,18 +33,101 @@ public sealed class KayproMachineTests
     }
 
     [Test]
+    public void VideoUsesKayproVirtualRowStride()
+    {
+        var machine = new KayproMachine();
+
+        machine.Memory.Write(0x3000, (byte)'A');
+        machine.Memory.Write(0x3080, (byte)'B');
+        machine.Memory.Write(0x30A0, (byte)'C');
+
+        var text = machine.Video.GetText();
+        Assert.That(text[0], Is.EqualTo('A'));
+        Assert.That(text[80], Is.EqualTo('B'));
+        Assert.That(text[80 + 32], Is.EqualTo('C'));
+    }
+
+    [Test]
     public void PortsUseKayproMapAndKeyboardTravelsThroughSio()
     {
         var machine = new KayproMachine();
+        machine.Bus.WritePort(0x07, 0x03); // select SIO channel B WR3
+        machine.Bus.WritePort(0x07, 0xC1); // receiver enabled, 8 data bits
         machine.FeedKeyboardByte((byte)'K');
 
+        machine.Bus.Tick(100_000);
         Assert.That(machine.Bus.ReadPort(0x07) & 0x01, Is.EqualTo(1));
         Assert.That(machine.Bus.ReadPort(0x05), Is.EqualTo((byte)'K'));
         Assert.That(machine.Bus.ReadPort(0x07) & 0x01, Is.EqualTo(0));
         Assert.That(machine.Bus.ReadPort(0x10), Is.EqualTo(0x80));
 
+        machine.Bus.WritePort(0x0A, 0x0F); // PIO-G Port A control: Mode 0 output
         machine.Bus.WritePort(0x08, 0x55);
         Assert.That(machine.Bus.ReadPort(0x08), Is.EqualTo(0x55));
+    }
+
+    [Test]
+    public void KayproSioWiringOwnsOnlyKayproPortMapAndChannelBKeyboardPolicy()
+    {
+        var wiring = new KayproSioWiring();
+        wiring.Write(KayproSioWiring.ChannelBControl, 0x03);
+        wiring.Write(KayproSioWiring.ChannelBControl, 0xC1);
+        wiring.EnqueueKeyboardByte((byte)'Q');
+        wiring.Tick(100_000);
+
+        Assert.That(wiring.Read(KayproSioWiring.ChannelBControl) & 0x01, Is.EqualTo(1));
+        Assert.That(wiring.Read(KayproSioWiring.ChannelBData), Is.EqualTo((byte)'Q'));
+    }
+
+    [Test]
+    public void KayproRoutesSioInterruptVectorAndReleasesItOnReti()
+    {
+        var machine = new KayproMachine();
+        machine.Bus.WritePort(0x07, 0x02); // select SIO channel B WR2
+        machine.Bus.WritePort(0x07, 0xA0);
+        machine.Bus.WritePort(0x07, 0x03); // select SIO channel B WR3
+        machine.Bus.WritePort(0x07, 0xC1);
+        machine.Bus.WritePort(0x07, 0x01); // select SIO channel B WR1
+        machine.Bus.WritePort(0x07, 0x18); // receiver interrupt on all characters
+        machine.FeedKeyboardByte((byte)'I');
+        machine.Bus.Tick(100_000);
+
+        Assert.That(machine.Bus.InterruptLines.IntAsserted, Is.True);
+        Assert.That(machine.Bus.AcknowledgeInterrupt(), Is.EqualTo(0xA0));
+        Assert.That(machine.Bus.InterruptLines.IntAsserted, Is.False);
+        Assert.That(machine.Bus.Sio.InterruptInService, Is.True);
+
+        machine.Cpu.Registers.SP = 0x4000;
+        machine.Memory.Write(0x4000, 0x34);
+        machine.Memory.Write(0x4001, 0x12);
+        machine.Memory.Write(0x0100, 0xED);
+        machine.Memory.Write(0x0101, 0x4D); // RETI
+        machine.Bus.WritePort(KayproBus.SystemPort, 0x00); // execute the RAM test stub
+        machine.Cpu.Registers.PC = 0x0100;
+        machine.StepInstruction();
+        Assert.That(machine.Bus.Sio.InterruptInService, Is.False);
+    }
+
+    [Test]
+    public void KayproPioInterruptUsesBusAcknowledgeAndCpuReti()
+    {
+        var machine = new KayproMachine();
+        machine.Bus.Pio.PioG.WritePort(2, 0x20);
+        machine.Bus.Pio.PioG.WritePort(2, 0x4F);
+        machine.Bus.Pio.PioG.WritePort(2, 0x87);
+        machine.Bus.Pio.PioG.DriveInput(Z80PioDevice.PortA, 0xAA);
+        machine.Bus.Tick(0);
+
+        Assert.That(machine.Bus.InterruptLines.IntAsserted, Is.True);
+        Assert.That(machine.Bus.AcknowledgeInterrupt(), Is.EqualTo(0x20));
+        Assert.That(machine.Bus.Pio.PioG.InterruptInService, Is.True);
+
+        machine.Memory.Write(0x1000, 0xED);
+        machine.Memory.Write(0x1001, 0x4D);
+        machine.Cpu.Registers.PC = 0x1000;
+        machine.StepInstruction();
+
+        Assert.That(machine.Bus.Pio.PioG.InterruptInService, Is.False);
     }
 
     [Test]

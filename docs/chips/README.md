@@ -12,7 +12,10 @@ Ten katalog zawiera pełne checklisty i informacje per układ, wydzielone z doku
 - [MC146818](MC146818.md) — 8.7 `MC146818` — RTC.
 - [MOS6551](MOS6551.md) — 8.8 `MOS6551` — ACIA SuperPET.
 - [MOS6702](MOS6702.md) — 8.9 `MOS6702` — dongle ochrony SuperPET.
-- [FD1793](FD1793.md) — kontroler dyskietek WD/FD179x.
+- [FD1791](FD1791.md) — wspólny rdzeń kontrolera dyskietek WD/FD179x.
+- [FD1793](FD1793.md) — wariant FD1791 z prawdziwą magistralą DAL.
+- [Z80SIO](Z80SIO.md) — niezależny układ szeregowy Zilog Z8440, checklista implementacji.
+- [Z80PIO](Z80PIO.md) — niezależny układ równoległy Zilog Z8420, checklista implementacji.
 
 ## Wspólne kryteria
 

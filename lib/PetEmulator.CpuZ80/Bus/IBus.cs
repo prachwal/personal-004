@@ -12,4 +12,7 @@ public interface IBus
 
     // The default retains the original single-port interrupt response contract.
     byte AcknowledgeInterrupt() => ReadPort(0);
+
+    /// <summary>Signals the Z80 RETI boundary to interrupt daisy-chain devices.</summary>
+    void NotifyInterruptReturn() { }
 }

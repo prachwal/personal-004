@@ -1,4 +1,5 @@
 using PetEmulator.Core;
+using PetEmulator.CpuZ80.Bus;
 using PetEmulator.CpuZ80.Cpu;
 
 namespace PetEmulator.Kaypro;
@@ -6,10 +7,10 @@ namespace PetEmulator.Kaypro;
 /// <summary>Kaypro II machine composition using the shared Z80, Core and FD1793 contracts.</summary>
 public sealed class KayproMachine : IMachine
 {
-    public KayproMachine()
+    public KayproMachine(IBusCycleObserver? cycleObserver = null)
     {
         Bus = new KayproBus();
-        Processor = new Z80Cpu(Bus, Bus.InterruptLines);
+        Processor = new Z80Cpu(Bus, Bus.InterruptLines, cycleObserver: cycleObserver);
     }
 
     public string Name => "Kaypro II";
@@ -41,7 +42,7 @@ public sealed class KayproMachine : IMachine
     {
         var before = Processor.CycleCount;
         Processor.StepInstruction();
-        Bus.Tick(checked((int)(Processor.CycleCount - before)));
+        Bus.Tick(checked((int)(Processor.CycleCount - before)), Cpu.Halted);
     }
 
     public void Run(ulong instructionCount)

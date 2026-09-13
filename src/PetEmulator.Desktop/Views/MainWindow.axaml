@@ -61,6 +61,9 @@
                  <DataTemplate DataType="viewModels:Vic20MachineViewModel">
                      <views:Vic20MachineView />
                  </DataTemplate>
+                 <DataTemplate DataType="viewModels:KayproMachineViewModel">
+                     <views:KayproMachineView />
+                 </DataTemplate>
                   <DataTemplate DataType="viewModels:ChipTesterViewModel">
                       <views:ChipTesterView />
                   </DataTemplate>

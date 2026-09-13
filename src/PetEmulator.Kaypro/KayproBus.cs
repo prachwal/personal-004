@@ -14,25 +14,40 @@ public sealed class KayproBus : IBus, IMemoryBus
 
     private readonly byte[] _ram = new byte[ushort.MaxValue + 1];
     private readonly byte[] _rom = new byte[0x800];
-    private readonly FD1793 _fdc = new();
+    private readonly KayproFdcWiring _fdcWiring;
     private byte _systemPort = 0x80;
+    private bool _fdcNmiPulseActive;
 
     public KayproBus()
     {
         Video = new KayproVideo();
-        Sio = new KayproSio();
-        Pio = new KayproPio();
+        // The monitor transfers one byte per NMI/INI round-trip.  The generic
+        // controller default is a physical byte window; Kaypro's board glue
+        // must include the Z80 NMI/RET/INI service latency in that window.
+        _fdcWiring = new KayproFdcWiring(new FD1793(dataByteTStates: 10_000));
+        Sio = new KayproSioWiring();
+        Pio = new KayproPioWiring();
+        Pio.SystemPortChanged += value =>
+        {
+            _systemPort = value;
+            _fdcWiring.WriteSystemPort(value);
+        };
+        PioInterruptChain = new Z80PioInterruptChain(Pio.PioG, Pio.PioS);
         InterruptLines = new InterruptLines();
         Video.Reset();
     }
 
     public KayproVideo Video { get; }
-    public KayproSio Sio { get; }
-    public KayproPio Pio { get; }
-    public FD1793 Fdc => _fdc;
+    public KayproSioWiring Sio { get; }
+    public KayproPioWiring Pio { get; }
+    public Z80PioInterruptChain PioInterruptChain { get; }
+    public FD1793 Fdc => _fdcWiring.Controller;
+    public KayproFdcWiring FdcWiring => _fdcWiring;
     public InterruptLines InterruptLines { get; }
     public bool RomEnabled => (_systemPort & 0x80) != 0;
     public byte SystemPortValue => _systemPort;
+    public ulong FdcNmiPulseCount { get; private set; }
+    public bool FdcNmiPending => Fdc.DrqAsserted || Fdc.IntrqAsserted;
 
     public byte Read(ushort address)
     {
@@ -65,11 +80,27 @@ public sealed class KayproBus : IBus, IMemoryBus
         return port switch
         {
             >= 0x04 and <= 0x07 => Sio.Read(port),
-            >= 0x10 and <= 0x13 => _fdc.Read((byte)(port - 0x10)),
-            SystemPort => _systemPort,
-            >= 0x08 and <= 0x0B => Pio.Read(port),
+            0x10 => _fdcWiring.Controller.Read(0),
+            >= 0x11 and <= 0x13 => _fdcWiring.Controller.Read((byte)(port - 0x10)),
+            >= KayproPioWiring.PioGBasePort and < KayproPioWiring.PioGBasePort + 4 => Pio.Read(port),
+            >= KayproPioWiring.PioSBasePort and < KayproPioWiring.PioSBasePort + 4 => Pio.Read(port),
             _ => 0xFF,
         };
+    }
+
+    public byte AcknowledgeInterrupt()
+    {
+        var acknowledged = Sio.TryAcknowledgeInterrupt(out var vector);
+        if (!acknowledged)
+            acknowledged = PioInterruptChain.TryAcknowledgeInterrupt(out vector);
+        InterruptLines.SetInt(Sio.InterruptRequested || PioInterruptChain.InterruptRequested);
+        return acknowledged ? vector : (byte)0xFF;
+    }
+
+    public void NotifyInterruptReturn()
+    {
+        Sio.NotifyReti();
+        PioInterruptChain.NotifyReti();
     }
 
     public void WritePort(byte port, byte value) => WritePort((ushort)port, value);
@@ -83,14 +114,11 @@ public sealed class KayproBus : IBus, IMemoryBus
                 Sio.Write(port, value);
                 break;
             case >= 0x10 and <= 0x13:
-                _fdc.Write((byte)(port - 0x10), value);
+                _fdcWiring.Controller.Write((byte)(port - 0x10), value);
                 break;
-            case >= 0x08 and <= 0x0B:
+            case >= KayproPioWiring.PioGBasePort and < KayproPioWiring.PioGBasePort + 4:
+            case >= KayproPioWiring.PioSBasePort and < KayproPioWiring.PioSBasePort + 4:
                 Pio.Write(port, value);
-                break;
-            case SystemPort:
-                _systemPort = value;
-                _fdc.DriveSelect = (byte)(value & 0x03);
                 break;
         }
     }
@@ -102,19 +130,43 @@ public sealed class KayproBus : IBus, IMemoryBus
         rom.CopyTo(_rom);
     }
 
-    public void InsertDisk(int drive, IFD1793DiskImage? disk) => _fdc.InsertDisk(drive, disk);
+    public void InsertDisk(int drive, IFD1793DiskImage? disk) => _fdcWiring.Controller.InsertDisk(drive, disk);
 
-    public void Tick(int tStates)
+    public void Tick(int tStates, bool cpuHalted = false)
     {
-        _fdc.Tick(tStates);
-        InterruptLines.SetNmi(_fdc.IntrqAsserted || _fdc.DrqAsserted);
+        Sio.Tick(tStates);
+        _fdcWiring.Tick(tStates);
+        InterruptLines.SetInt(Sio.InterruptRequested || PioInterruptChain.InterruptRequested);
+
+        if (_fdcNmiPulseActive)
+        {
+            _fdcNmiPulseActive = false;
+            InterruptLines.SetNmi(false);
+        }
+
+        // Kaypro wires both FD179x DRQ and INTRQ to the Z80 NMI input.  Use
+        // the current hardware levels here instead of replaying a generic
+        // InterruptSequence event: a queued event can outlive the condition
+        // that caused it and wake the ROM's HALT/INI loop without a byte.
+        if (cpuHalted && (Fdc.DrqAsserted || Fdc.IntrqAsserted))
+        {
+            _fdcNmiPulseActive = true;
+            FdcNmiPulseCount++;
+            InterruptLines.SetNmi(true);
+        }
+        else if (!_fdcNmiPulseActive)
+        {
+            InterruptLines.SetNmi(false);
+        }
     }
 
     public void Reset()
     {
         Array.Clear(_ram);
         _systemPort = 0x80;
-        _fdc.Reset();
+        _fdcWiring.Reset();
+        _fdcNmiPulseActive = false;
+        FdcNmiPulseCount = 0;
         Sio.Reset();
         Pio.Reset();
         InterruptLines.Clear();

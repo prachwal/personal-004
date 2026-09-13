@@ -209,29 +209,16 @@ public sealed class FD1793Tests
     }
 
     [Test]
-    public void DriveSelect_UsesLowestSetDriveAndWaitReleasesOnDataRequest()
+    public void DriveSelect_UsesLowestSetDriveWithoutBoardWaitSideEffects()
     {
         var fdc = new FD1793(seekTStates: 0);
         fdc.DriveSelect = 0x43;
         fdc.DriveSelect.Should().Be(1);
-        fdc.WaitAsserted.Should().BeTrue();
 
         var disk = new TestDisk(2);
         fdc.InsertDisk(0, disk);
         fdc.Write(FD1793.CommandStatusRegister, 0x00);
         fdc.Tick(0);
-        fdc.WaitAsserted.Should().BeFalse();
-    }
-
-    [Test]
-    public void WaitWatchdog_ReleasesWaitWithoutControllerActivity()
-    {
-        var fdc = new FD1793();
-        fdc.DriveSelect = 0x40;
-
-        fdc.Tick(1_817);
-
-        fdc.WaitAsserted.Should().BeFalse();
     }
 
     [Test]

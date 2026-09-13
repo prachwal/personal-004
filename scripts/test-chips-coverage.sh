@@ -5,7 +5,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 project="$repo_root/tests/PetEmulator.Chips.Tests/PetEmulator.Chips.Tests.csproj"
 settings="$repo_root/tests/coverage.runsettings"
 
-dotnet test "$project" --no-restore --settings "$settings" \
+dotnet test "$project" --no-restore --disable-build-servers -m:1 --settings "$settings" \
   --collect:"XPlat Code Coverage" --verbosity minimal
 
 report="$(find "$repo_root/tests/PetEmulator.Chips.Tests/TestResults" \

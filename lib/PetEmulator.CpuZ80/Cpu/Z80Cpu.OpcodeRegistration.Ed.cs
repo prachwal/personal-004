@@ -6,14 +6,14 @@ public partial class Z80Cpu
 {
     private void RegisterEdOpcodes()
     {
-        RegisterOpcode(0xED, 0x45, ReturnFromInterrupt);
-        RegisterOpcode(0xED, 0x4D, ReturnFromInterrupt);
-        RegisterOpcode(0xED, 0x55, ReturnFromInterrupt);
-        RegisterOpcode(0xED, 0x5D, ReturnFromInterrupt);
-        RegisterOpcode(0xED, 0x65, ReturnFromInterrupt);
-        RegisterOpcode(0xED, 0x6D, ReturnFromInterrupt);
-        RegisterOpcode(0xED, 0x75, ReturnFromInterrupt);
-        RegisterOpcode(0xED, 0x7D, ReturnFromInterrupt);
+        RegisterOpcode(0xED, 0x45, () => ReturnFromInterrupt());
+        RegisterOpcode(0xED, 0x4D, () => ReturnFromInterrupt(true));
+        RegisterOpcode(0xED, 0x55, () => ReturnFromInterrupt());
+        RegisterOpcode(0xED, 0x5D, () => ReturnFromInterrupt());
+        RegisterOpcode(0xED, 0x65, () => ReturnFromInterrupt());
+        RegisterOpcode(0xED, 0x6D, () => ReturnFromInterrupt());
+        RegisterOpcode(0xED, 0x75, () => ReturnFromInterrupt());
+        RegisterOpcode(0xED, 0x7D, () => ReturnFromInterrupt());
         RegisterOpcode(0xED, 0x47, LoadInterruptRegister);
         RegisterOpcode(0xED, 0x4F, LoadRefreshRegister);
         RegisterOpcode(0xED, 0x57, LoadAccumulatorFromInterrupt);
