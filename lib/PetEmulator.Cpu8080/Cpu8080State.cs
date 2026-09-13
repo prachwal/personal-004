@@ -20,6 +20,8 @@ public sealed class Cpu8080State : CpuState
 
     public bool InterruptsEnabled { get; set; }
 
+    public bool EiPending { get; set; }
+
     public Cpu8080Registers Registers => new(A, B, C, D, E, H, L, PC, SP, Flags);
 
     public ushort BC
@@ -60,6 +62,7 @@ public sealed class Cpu8080State : CpuState
         SP = 0;
         Flags = 0;
         InterruptsEnabled = false;
+        EiPending = false;
     }
 
     public override IReadOnlyDictionary<string, ulong> GetRegisters() => new Dictionary<string, ulong>
@@ -78,6 +81,7 @@ public sealed class Cpu8080State : CpuState
         ["SP"] = SP,
         ["Flags"] = Flags,
         ["INTE"] = InterruptsEnabled ? 1UL : 0UL,
+        ["EI_PENDING"] = EiPending ? 1UL : 0UL,
     };
 
     public override CpuStateSnapshot CaptureSnapshot()
@@ -98,6 +102,7 @@ public sealed class Cpu8080State : CpuState
         SP = ReadUShort(snapshot, "SP");
         Flags = ReadByte(snapshot, "Flags");
         InterruptsEnabled = snapshot.Registers.TryGetValue("INTE", out var inte) && inte != 0;
+        EiPending = snapshot.Registers.TryGetValue("EI_PENDING", out var eiPending) && eiPending != 0;
         Halted = snapshot.Halted;
     }
 

@@ -4,13 +4,16 @@
 
 - [x] Etap 0 — utworzenie projektu biblioteki, projektu testów, wpisów solution i szkieletu Core.
 - [x] Etap 1 — podstawowy stan, reset, snapshot/restore i lifecycle z działającym `NOP`.
-- [ ] Etap 2 — pełna tabela opcode’ów i metadane wszystkich 256 wartości.
-- [ ] Etapy 3–8 — implementacja ISA, testy rozszerzone, binaria i ekstrakcja podzbioru dla Z80.
+- [x] Etap 2 — pełna tabela opcode’ów i metadane wszystkich 256 wartości.
+- [x] Etapy 3–6 — zaimportowane wykonanie ISA, flagi, sterowanie, stos, I/O, `HLT` i podstawowa obsługa przerwań.
+- [ ] Etapy 7–8 — ekstrakcja podzbioru dla Z80, pełne macierze testów i test binarny.
 
 Weryfikacja wykonana po etapie 1:
 
 - `dotnet build PetEmulator.slnx --no-restore --disable-build-servers` — PASS, 0 ostrzeżeń, 0 błędów.
-- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 6/6.
+- `dotnet test tests/PetEmulator.Cpu8080.Tests/PetEmulator.Cpu8080.Tests.csproj --no-restore --disable-build-servers` — PASS, 24/24.
+- Macierz dispatchu obejmuje wszystkie 256 wartości opcode — PASS.
+- Macierz flag obejmuje ADD/SUB/INR/DCR/ANA/DAA — PASS.
 - Długi test ZEXDOC Z80 pozostaje uruchomiony niezależnie od tej zmiany.
 
 ## Cel
@@ -79,10 +82,10 @@ Kryterium: `NOP`, reset i zatrzymanie procesora działają bez opcode’ów rodz
 
 ### Etap 2 — standard opcode i metadane
 
-- [ ] Zdefiniować standardową stronę `OpcodeKey.Base(opcode)` dla wszystkich 256 wartości.
-- [ ] Dodać partial `Cpu8080.OpcodeRegistration.Base.cs` i rejestrację przez `OpcodeTable<Cpu8080State>`.
-- [ ] Dodać metadane: mnemonic, długość, tryb adresowania, nominalny timing, rodzina instrukcji.
-- [ ] Dodać test kompletności 256 wpisów oraz jawnej polityki dla niezaimplementowanych opcode’ów.
+- [x] Zdefiniować standardową stronę `OpcodeKey.Base(opcode)` dla wszystkich 256 wartości.
+- [x] Dodać partial `Cpu8080.OpcodeRegistration.Base.cs` i rejestrację przez `OpcodeTable<Cpu8080State>`.
+- [x] Dodać metadane: mnemonic, długość, tryb adresowania i nominalny timing.
+- [x] Dodać test kompletności 256 wpisów oraz jawną politykę dla niezaimplementowanych opcode’ów.
 - [ ] Dodać test braku duplikatów i test rozszerzenia/zmiany opcode’u przez klasę potomną bez mutowania tabeli bazowej.
 - [ ] Nie tworzyć stron CB/ED/DD/FD — są elementem Z80, nie 8080.
 
@@ -90,10 +93,10 @@ Kryterium: debugger może odczytać opis każdej wartości opcode, a dispatch ni
 
 ### Etap 3 — transfer danych i adresowanie
 
-- [ ] `MOV r,r` dla wszystkich kombinacji, z `MOV M,r` i `MOV r,M` przez adres `HL`.
-- [ ] `MVI r,data`, `MVI M,data`, `LXI B/D/H/SP`.
-- [ ] `LDAX B/D`, `STAX B/D`, `LDA`, `STA`, `LHLD`, `SHLD`.
-- [ ] `XCHG`, `SPHL`, `PCHL`.
+- [x] `MOV r,r` dla wszystkich kombinacji, z `MOV M,r` i `MOV r,M` przez adres `HL`.
+- [x] `MVI r,data`, `MVI M,data`, `LXI B/D/H/SP`.
+- [x] `LDAX B/D`, `STAX B/D`, `LDA`, `STA`, `LHLD`, `SHLD`.
+- [x] `XCHG`, `SPHL`, `PCHL`.
 - [ ] Obsłużyć alias `M` jako pamięć pod adresem `HL`, bez tworzenia sztucznego rejestru.
 - [ ] Testy: PC, odczyt/zapis pamięci, cykle, przypadki graniczne `0xFFFF` i wrap argumentu 16-bitowego.
 
@@ -101,24 +104,24 @@ Kryterium: pełna grupa transferu danych działa i ma testy wszystkich trybów a
 
 ### Etap 4 — arytmetyka, logika i flagi
 
-- [ ] Rejestry i pamięć: `ADD`, `ADC`, `SUB`, `SBB`, `ANA`, `XRA`, `ORA`, `CMP`.
-- [ ] Immediate: `ADI`, `ACI`, `SUI`, `SBI`, `ANI`, `XRI`, `ORI`, `CPI`.
-- [ ] `INR`, `DCR`, `INX`, `DCX`, `DAD`.
-- [ ] `RLC`, `RRC`, `RAL`, `RAR`, `DAA`, `CMA`, `STC`, `CMC`.
+- [x] Rejestry i pamięć: `ADD`, `ADC`, `SUB`, `SBB`, `ANA`, `XRA`, `ORA`, `CMP`.
+- [x] Immediate: `ADI`, `ACI`, `SUI`, `SBI`, `ANI`, `XRI`, `ORI`, `CPI`.
+- [x] `INR`, `DCR`, `INX`, `DCX`, `DAD`.
+- [x] `RLC`, `RRC`, `RAL`, `RAR`, `DAA`, `CMA`, `STC`, `CMC`.
 - [ ] Zaimplementować parzystość jako even parity dla wyniku 8-bitowego.
 - [ ] Dokładnie rozdzielić zachowanie `AC` od `CY`; `INR`/`DCR` nie zmieniają `CY`.
 - [ ] Ustalić i przetestować zachowanie bitów nieobecnych w 8080; nie mapować automatycznie flag `N`, `H`, `X`, `Y` z Z80.
-- [ ] Dodać macierze wartości: zero, znak, przepełnienie bez znaku, przeniesienie po bitach 3/7, parzystość i `DAA`.
+- [x] Dodać macierze wartości: zero, znak, przepełnienie bez znaku, przeniesienie po bitach 3/7, parzystość i `DAA`.
 
 Kryterium: każda instrukcja ALU ma test wyniku i pełnego zestawu pięciu flag 8080.
 
 ### Etap 5 — skoki, wywołania, stos i restart
 
-- [ ] Warunkowe i bezwarunkowe `JMP`: `JZ`, `JNZ`, `JC`, `JNC`, `JP`, `JM`, `JPE`, `JPO`.
-- [ ] `CALL` i wszystkie warianty warunkowe.
-- [ ] `RET` i wszystkie warianty warunkowe.
-- [ ] `PUSH`/`POP` dla `B`, `D`, `H` i `PSW`, z poprawną kolejnością bajtów.
-- [ ] `XTHL`, `SPHL`, `PCHL` oraz `RST 0..7`.
+- [x] Warunkowe i bezwarunkowe `JMP`: `JZ`, `JNZ`, `JC`, `JNC`, `JP`, `JM`, `JPE`, `JPO`.
+- [x] `CALL` i wszystkie warianty warunkowe.
+- [x] `RET` i wszystkie warianty warunkowe.
+- [x] `PUSH`/`POP` dla `B`, `D`, `H` i `PSW`, z poprawną kolejnością bajtów.
+- [x] `XTHL`, `SPHL`, `PCHL` oraz `RST 0..7`.
 - [ ] Przetestować stos na początku, końcu i poza granicą pamięci zgodnie z polityką magistrali.
 - [ ] Zweryfikować, że instrukcje warunkowe pobierają argumenty w poprawnej kolejności także wtedy, gdy warunek jest fałszywy.
 
@@ -126,11 +129,11 @@ Kryterium: kontrola przepływu i stos mają testy śladu PC/SP oraz cykli dla ga
 
 ### Etap 6 — I/O, HLT i przerwania
 
-- [ ] `IN port` i `OUT port` przez opcjonalny port bus 8080.
-- [ ] Brak port bus musi mieć jawne zachowanie i test, a nie przypadkowy `NullReferenceException`.
-- [ ] `EI` i `DI` aktualizują `INTE` z prawidłowym momentem skuteczności.
-- [ ] `HLT` zatrzymuje normalne wykonywanie i nie zwiększa `InstructionCount` podczas bezczynnego kroku.
-- [ ] Przerwanie jest akceptowane tylko przy `INTE`; acknowledge dostarcza opcode/wektor zgodnie z kontraktem.
+- [x] `IN port` i `OUT port` przez opcjonalny port bus 8080.
+- [x] Brak port bus ma jawne zachowanie (`IN` zwraca `0xFF`, `OUT` jest ignorowane).
+- [x] `EI` i `DI` aktualizują `INTE` z opóźnieniem `EI`.
+- [x] `HLT` zatrzymuje normalne wykonywanie i nie zwiększa `InstructionCount` podczas bezczynnego kroku.
+- [x] Przerwanie jest akceptowane tylko przy `INTE`; acknowledge dostarcza opcode RST.
 - [ ] Po zaakceptowaniu przerwania `INTE` jest wyłączane, a stan stosu/PC odpowiada dokumentowanemu modelowi 8080.
 - [ ] Dodać testy reset → `EI` → interrupt, `DI` → interrupt, `HLT` → interrupt oraz interrupt podczas oczekiwania.
 
@@ -153,7 +156,7 @@ Kryterium: Z80 korzysta z kodu wspólnego tylko tam, gdzie test zgodności potwi
 - [ ] Testy 8080: rejestracja, każda rodzina opcode, flags matrix, memory matrix, stack, I/O, HLT, interrupts i timing.
 - [ ] Testy negatywne: nielegalny opcode, brak I/O, przerwanie przy `INTE=0`, restore niepełnego/niezgodnego snapshotu.
 - [ ] Dodać testy parametrów i testy losowe/differential dla ALU względem niezależnego modelu referencyjnego.
-- [ ] Dodać walidację binarną 8080-compatible: krótki test diagnostyczny uruchamiany w CI oraz dłuższy test opt-in.
+- [ ] Dodać walidację binarną 8080-compatible: krótki test diagnostyczny uruchamiany w CI oraz dłuższy test opt-in. W poprzednich iteracjach znaleziono tylko programy demonstracyjne `.com`; brak zweryfikowanego `TST8080.COM` w checkoutach.
 - [ ] Uruchomić regresję Z80 po ekstrakcji wspólnych helperów.
 - [ ] Wykonać `dotnet build PetEmulator.slnx --no-restore`, testy projektów CPU, pełne testy rozwiązania i analizę zmian GitNexus przed commitem.
 
