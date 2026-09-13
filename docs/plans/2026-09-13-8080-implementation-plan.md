@@ -74,7 +74,10 @@ Dodać pełną implementację Intel 8080 w oparciu o wspólne kontrakty `PetEmul
 - [x] Potwierdzić bieżące kontrakty Core i wzorce z `Cpu6502`, `Cpu6800` oraz `CpuZ80`.
 - [x] Utworzyć projekt `lib/PetEmulator.Cpu8080` oraz `tests/PetEmulator.Cpu8080.Tests`.
 - [x] Dodać projekty do `PetEmulator.slnx` i ustalić referencje wyłącznie do Core oraz pakietów testowych.
-- [ ] Zapisać baseline: build rozwiązania, testy Core i istniejące testy Z80.
+- [x] Zapisać baseline: build rozwiązania, testy Core i istniejące testy Z80.
+  - Build `PetEmulator.slnx`: PASS, 0 ostrzeżeń, 0 błędów.
+  - `PetEmulator.Core.Tests`: PASS, 23/23.
+  - `PetEmulator.CpuZ80.Tests`: baseline ujawnił 2 awarie: metadata `CALL nn` zwraca `PUSH BC` oraz trace `NOP` zwraca `NOP` zamiast oczekiwanego `OP 00:00`; pełna sesja zawiera również długą walidację i nie ma jeszcze końcowego licznika.
 - [x] Zdefiniować roboczą politykę nielegalnych opcode’ów jako brak wpisu i jawny wyjątek z tabeli; finalna decyzja pozostaje w etapie 2.
 - [x] Zdefiniować zakres jako Intel 8080-compatible, bez rozszerzeń 8085.
 
