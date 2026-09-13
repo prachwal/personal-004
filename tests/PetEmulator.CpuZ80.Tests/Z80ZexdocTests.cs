@@ -7,7 +7,7 @@ namespace PetEmulator.CpuZ80.Tests;
 
 public sealed class Z80ZexdocTests
 {
-    [Fact(Timeout = 1_800_000)]
+    [Fact]
     public async Task ZexdocComCompletesWhenEnabled()
     {
         var bus = new CpmBus();

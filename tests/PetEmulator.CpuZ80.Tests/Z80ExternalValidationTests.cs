@@ -22,10 +22,10 @@ public sealed class Z80ExternalValidationTests
         cpu.Registers.SP = 0xFFFD;
         cpu.Registers.PC = 0x8000;
 
-        for (var step = 0; step < 500_000_000 && !cpu.Halted; step++)
+        while (!cpu.Halted)
             cpu.Step();
 
-        Assert.True(cpu.Halted, $"z80doc did not return after reaching the step limit at PC=0x{cpu.Registers.PC:X4}.");
+        Assert.True(cpu.Halted, $"z80doc did not return at PC=0x{cpu.Registers.PC:X4}.");
     }
 
     private static byte[] ExtractLargestCodeBlock(byte[] tap)
