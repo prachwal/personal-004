@@ -186,6 +186,46 @@ public sealed class Z80CoreObserverTests
         Assert.Equal((ushort)1, cpu.Registers.PC);
     }
 
+    [Fact]
+    public void CommonExecutionObserverReportsZ80LifecycleOrder()
+    {
+        var bus = new TestBus { Memory = { [0x38] = 0x76, [0x66] = 0x00 } };
+        var lines = new InterruptLines();
+        var cpu = new Z80Cpu(bus, lines);
+        var observer = new TestObserver();
+        cpu.ExecutionObserver = observer;
+
+        lines.SetWait(true);
+        lines.SetNmi(true);
+        cpu.StepInstruction();
+
+        lines.SetWait(false);
+        cpu.StepInstruction();
+
+        lines.SetNmi(false);
+        cpu.Registers.Iff1 = true;
+        cpu.Registers.InterruptMode = 1;
+        lines.SetInt(true);
+        cpu.StepInstruction();
+
+        lines.SetInt(false);
+        cpu.StepInstruction();
+        cpu.StepInstruction();
+        cpu.Registers.Halted = false;
+        cpu.StepInstruction();
+
+        Assert.Equal(6, observer.Completed.Count);
+        Assert.True(observer.Completed[0].Result.Waiting);
+        Assert.True(observer.Completed[1].Result.InterruptServiced);
+        Assert.True(observer.Completed[2].Result.InterruptServiced);
+        Assert.True(observer.Completed[3].Result.InstructionCompleted);
+        Assert.True(observer.Completed[3].After.State.Halted);
+        Assert.False(observer.Completed[4].Result.InstructionCompleted);
+        Assert.Equal((ushort)0x39, observer.Completed[4].After.State.Registers["PC"]);
+        Assert.True(observer.Completed[5].Result.InstructionCompleted);
+        Assert.Equal((ushort)0x3A, cpu.Registers.PC);
+    }
+
     private sealed class TestObserver : ICpuExecutionObserver
     {
         public List<CpuStepTrace> Completed { get; } = [];

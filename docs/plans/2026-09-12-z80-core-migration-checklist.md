@@ -18,7 +18,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Wspólny zegar i liczniki instrukcji są dostępne przez Core.
 - [x] `StepInstruction`, `CycleCount` i `InstructionCount` działają przez bazę Core.
 - [x] WAIT, NMI, INT i HALT są obsługiwane przez hooki lifecycle Z80.
-- [ ] Potwierdzić testami kolejność: `WAIT → NMI edge → INT → HALT refresh → fetch/execute`.
+- [x] Potwierdzić testami kolejność: `WAIT → NMI edge → INT → HALT refresh → fetch/execute`.
 - [ ] Usunąć ewentualne pozostałe lokalne implementacje lifecycle, pozostawiając tylko delegacje kompatybilności API.
 - [ ] Potwierdzić, że każdy krok zwiększa zegar i licznik dokładnie raz.
 
@@ -79,6 +79,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Test współdziałania `CpuHookCollection` z observerem Core: 1/1 zaliczony.
 - [x] Testy debug snapshotu Z80 dla HALT, WAIT i obsłużonego przerwania: 3/3 zaliczone.
 - [x] Testy debug snapshotu Z80 dla prefiksu indeksowanego i opóźnienia EI: 2/2 zaliczone.
+- [x] Test kolejności lifecycle Z80 `WAIT → NMI edge → INT → HALT refresh → fetch/execute`: 1/1 zaliczony.
 - [x] `z80doc.tap` i `zexdoc.com` są obecne w repozytorium.
 - [x] Test ZEXDOC ma inicjalizację wektora stosu CP/M pod `0006h`.
 - [x] Test ZEXDOC raportuje postęp co 100 milionów instrukcji.
