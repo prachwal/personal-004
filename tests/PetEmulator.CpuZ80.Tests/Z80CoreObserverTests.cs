@@ -81,6 +81,24 @@ public sealed class Z80CoreObserverTests
         Assert.Same(exception, failure);
     }
 
+    [Fact]
+    public void LegacyZ80HookRunsAlongsideCommonExecutionObserver()
+    {
+        var bus = new TestBus();
+        bus.Memory[0] = 0x00;
+        var cpu = new Z80Cpu(bus, new InterruptLines());
+        var observer = new TestObserver();
+        var hookCalls = 0;
+        cpu.Hooks.Add(new CpuHook(_ => hookCalls++));
+        cpu.ExecutionObserver = observer;
+
+        cpu.StepInstruction();
+
+        Assert.Equal(1, hookCalls);
+        Assert.Single(observer.Completed);
+        Assert.Equal((ulong)1, observer.Completed[0].After.InstructionCount);
+    }
+
     private sealed class TestObserver : ICpuExecutionObserver
     {
         public List<CpuStepTrace> Completed { get; } = [];
