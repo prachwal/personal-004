@@ -411,6 +411,46 @@ public sealed class Z80CoreObserverTests
         Assert.Equal((byte)0xFF, bus.ReadPort(0xFFA1));
     }
 
+    [Fact]
+    public void Z80BusCycleTraceCoversMigratedOpcodeFamiliesAndInterrupts()
+    {
+        AssertTraceContains(ExecuteTrace(0x00), BusCycleKind.OpcodeFetch, BusCycleKind.Refresh);
+        AssertTraceContains(ExecuteTrace(0xCB, 0x00), BusCycleKind.OpcodeFetch, BusCycleKind.Refresh);
+        AssertTraceContains(ExecuteTrace(0xED, 0x47), BusCycleKind.OpcodeFetch, BusCycleKind.Refresh);
+        AssertTraceContains(ExecuteTrace(0xDD, 0x21, 0x34, 0x12), BusCycleKind.OpcodeFetch, BusCycleKind.Refresh);
+        AssertTraceContains(ExecuteTrace(0xFD, 0x21, 0x34, 0x12), BusCycleKind.OpcodeFetch, BusCycleKind.Refresh);
+        AssertTraceContains(ExecuteTrace(0xDB, 0x5A), BusCycleKind.OpcodeFetch, BusCycleKind.IoRead);
+
+        var interruptBus = new TestBus();
+        var lines = new InterruptLines();
+        lines.SetInt(true);
+        var interruptTrace = new TestCycleObserver();
+        var interruptCpu = new Z80Cpu(interruptBus, lines, interruptTrace);
+        interruptCpu.Registers.Iff1 = true;
+        interruptCpu.Registers.InterruptMode = 1;
+        interruptCpu.StepInstruction();
+
+        AssertTraceContains(interruptTrace.Cycles,
+            BusCycleKind.InterruptAcknowledge,
+            BusCycleKind.Refresh,
+            BusCycleKind.MemoryWrite);
+    }
+
+    private static IReadOnlyList<BusCycle> ExecuteTrace(params byte[] program)
+    {
+        var bus = new TestBus();
+        Array.Copy(program, bus.Memory, program.Length);
+        var trace = new TestCycleObserver();
+        new Z80Cpu(bus, new InterruptLines(), trace).StepInstruction();
+        return trace.Cycles;
+    }
+
+    private static void AssertTraceContains(IReadOnlyCollection<BusCycle> trace, params BusCycleKind[] kinds)
+    {
+        foreach (var kind in kinds)
+            Assert.Contains(trace, cycle => cycle.Kind == kind);
+    }
+
     private static OpcodeDefinition<Z80State> Definition(byte page, byte opcode, string mnemonic)
         => new(
             new OpcodeKey(page, opcode),
