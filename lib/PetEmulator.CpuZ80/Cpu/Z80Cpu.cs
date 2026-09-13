@@ -10,8 +10,7 @@ namespace PetEmulator.CpuZ80.Cpu;
 public partial class Z80Cpu : CpuProcessorBase<Z80State>
 {
     private readonly IBus bus;
-    private readonly Z80InterruptLines interruptLines;
-    private readonly IBusCycleObserver? cycleObserver;
+    private readonly IZ80CoreCapabilities capabilities;
     private readonly ILogger logger;
     private bool coreIrq;
     private bool coreNmi;
@@ -22,12 +21,11 @@ public partial class Z80Cpu : CpuProcessorBase<Z80State>
     /// default <see cref="NullLogger"/> makes every call a no-op, so this
     /// costs nothing on the hot Step() path when nobody asked for it.
     /// </param>
-    public Z80Cpu(IBus bus, Z80InterruptLines interruptLines, IBusCycleObserver? cycleObserver = null, ILogger<Z80Cpu>? logger = null, IClock? clock = null)
+    public Z80Cpu(IBus bus, Z80InterruptLines interruptLines, IBusCycleObserver? cycleObserver = null, ILogger<Z80Cpu>? logger = null, IClock? clock = null, IZ80CoreCapabilities? capabilities = null)
         : base(new Z80Registers(), new Z80MemoryBusAdapter(bus), clock, new Z80PortBusAdapter(bus))
     {
         this.bus = bus;
-        this.interruptLines = interruptLines;
-        this.cycleObserver = cycleObserver;
+        this.capabilities = capabilities ?? new Z80CoreCapabilities(bus, interruptLines, cycleObserver);
         this.logger = logger ?? NullLogger<Z80Cpu>.Instance;
         InitializeOpcodes();
         Reset();
@@ -89,7 +87,7 @@ public partial class Z80Cpu : CpuProcessorBase<Z80State>
 
     protected override bool TryHandleWaitBeforeInterrupt(out CpuStepResult result)
     {
-        if (interruptLines.WaitAsserted)
+        if (capabilities.WaitAsserted)
         {
             result = CpuStepResult.Idle(1, waiting: true); // frozen mid-bus-cycle, same as real hardware
             return true;
@@ -101,7 +99,7 @@ public partial class Z80Cpu : CpuProcessorBase<Z80State>
 
     protected override bool TryServiceInterrupt(out CpuStepResult result)
     {
-        var nmi = interruptLines.NmiAsserted || coreNmi;
+        var nmi = capabilities.NmiAsserted || coreNmi;
         var nmiEdge = nmi && !Registers.PreviousNmi;
         Registers.PreviousNmi = nmi;
 
@@ -111,7 +109,7 @@ public partial class Z80Cpu : CpuProcessorBase<Z80State>
             return true;
         }
 
-        if ((interruptLines.IntAsserted || coreIrq) && Iff1 && Registers.InterruptDelay == 0)
+        if ((capabilities.IntAsserted || coreIrq) && Iff1 && Registers.InterruptDelay == 0)
         {
             result = CpuStepResult.Interrupt((ulong)ServiceMaskableInterrupt());
             return true;
@@ -1214,16 +1212,13 @@ public partial class Z80Cpu : CpuProcessorBase<Z80State>
 
     private byte AcknowledgeInterrupt()
     {
-        var value = bus.AcknowledgeInterrupt();
+        var value = capabilities.AcknowledgeInterrupt();
         Trace(BusCycleKind.InterruptAcknowledge, 0, value);
         return value;
     }
 
     private void Trace(BusCycleKind kind, ushort address, byte value)
     {
-        if (cycleObserver is null)
-            return;
-
         var isRefresh = kind == BusCycleKind.Refresh && traceMachineCycle > 0;
         if (!isRefresh)
         {
@@ -1241,7 +1236,7 @@ public partial class Z80Cpu : CpuProcessorBase<Z80State>
             traceTStates = traceCycleLength;
         }
 
-        cycleObserver.Observe(new BusCycle(kind, address, value,
+        capabilities.Observe(new BusCycle(kind, address, value,
             traceMachineCycle, traceTStates, traceCycleLength));
     }
 

@@ -337,6 +337,27 @@ public sealed class Z80CoreObserverTests
         Assert.Equal("DERIVED NOP", derived.Get(OpcodeKey.Base(0x00)).Mnemonic);
     }
 
+    [Fact]
+    public void Z80CoreCapabilitiesExposeWaitInterruptAcknowledgeAndBusCycle()
+    {
+        var lines = new InterruptLines();
+        lines.SetWait(true);
+        lines.SetInt(true);
+        lines.SetNmi(true);
+        var observer = new TestCycleObserver();
+        var capabilities = new Z80CoreCapabilities(new TestBus(), lines, observer);
+
+        Assert.True(capabilities.WaitAsserted);
+        Assert.True(capabilities.IntAsserted);
+        Assert.True(capabilities.NmiAsserted);
+        Assert.Equal((byte)0xFF, capabilities.AcknowledgeInterrupt());
+
+        var cycle = new BusCycle(BusCycleKind.Refresh, 0x1234, 0x56, 2, 3, 4);
+        capabilities.Observe(cycle);
+
+        Assert.Equal(cycle, Assert.Single(observer.Cycles));
+    }
+
     private static OpcodeDefinition<Z80State> Definition(byte page, byte opcode, string mnemonic)
         => new(
             new OpcodeKey(page, opcode),
@@ -382,6 +403,13 @@ public sealed class Z80CoreObserverTests
         public void OnStepCompleted(CpuStepTrace trace) => Completed.Add(trace);
 
         public void OnStepFailed(CpuDebugSnapshot snapshot, Exception exception) => Failures.Add(exception);
+    }
+
+    private sealed class TestCycleObserver : IBusCycleObserver
+    {
+        public List<BusCycle> Cycles { get; } = [];
+
+        public void Observe(BusCycle cycle) => Cycles.Add(cycle);
     }
 
     private sealed class ThrowingZ80Cpu(IBus bus, PetEmulator.CpuZ80.Interrupts.IInterruptLines interruptLines) : Z80Cpu(bus, interruptLines)

@@ -45,7 +45,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 
 - [x] Pamięć Z80 korzysta z adaptera Core.
 - [x] Porty, WAIT, refresh, acknowledge przerwań i obserwator cykli zachowują specyfikę Z80.
-- [ ] Wprowadzić jawny capability adapter Z80 dla `WAIT`, interrupt acknowledge i bogatego `BusCycle`.
+- [x] Wprowadzić jawny capability adapter Z80 dla `WAIT`, interrupt acknowledge i bogatego `BusCycle`.
 - [ ] Dodać test pełnych 16-bitowych adresów portów.
 - [ ] Dodać test braku portu i domyślnego mapowania I/O.
 - [ ] Dodać test porównujący ślad `BusCycle` przed i po migracji dla Base, CB, ED, DD/FD, I/O i interruptów.
@@ -87,6 +87,7 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 - [x] Test kompletności stron CB/DD/FD i unikalności kluczy opcode’ów Z80: 1/1 zaliczony.
 - [x] Test rozszerzania i izolacji wariantu potomnego tabeli opcode’ów Z80: 1/1 zaliczony.
 - [x] Test niezmienności bazowej tabeli opcode’ów po utworzeniu wariantu Z80: 1/1 zaliczony.
+- [x] Test kontraktu capability adaptera Z80 dla WAIT, acknowledge i BusCycle: 1/1 zaliczony.
 - [x] `z80doc.tap` i `zexdoc.com` są obecne w repozytorium.
 - [x] Test ZEXDOC ma inicjalizację wektora stosu CP/M pod `0006h`.
 - [x] Test ZEXDOC raportuje postęp co 100 milionów instrukcji.
