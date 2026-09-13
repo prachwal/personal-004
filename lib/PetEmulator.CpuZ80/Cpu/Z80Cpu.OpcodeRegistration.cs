@@ -12,11 +12,6 @@ public partial class Z80Cpu
 
         RegisterCbOpcodes();
 
-        for (var indexedOpcode = 0; indexedOpcode <= byte.MaxValue; indexedOpcode++)
-        {
-            var subOpcode = (byte)indexedOpcode;
-            RegisterPageOpcode(0xDD, subOpcode, () => ExecuteIndexedOpcode(false, subOpcode));
-            RegisterPageOpcode(0xFD, subOpcode, () => ExecuteIndexedOpcode(true, subOpcode));
-        }
+        RegisterIndexedOpcodes();
     }
 }
