@@ -120,15 +120,15 @@ Status ogólny: częściowo zakończona. Z80 korzysta już z `CpuProcessorBase` 
 Stan na 2026-09-13:
 
 - 324 testy `[Fact]/[Theory]` w `tests/PetEmulator.CpuZ80.Tests`.
-- 30 testów w `Z80CoreObserverTests.cs` obejmujących kontrakty Core, lifecycle, magistralę, metadane i warianty potomne.
-- 12 nieodhaczonych pozycji checklisty: 2 pozostałe potencjalne testy oraz 10 czynności końcowych/integracyjnych.
+- 31 testów w `Z80CoreObserverTests.cs` obejmujących kontrakty Core, lifecycle, magistralę, metadane i warianty potomne.
+- 11 nieodhaczonych pozycji checklisty: 1 pozostały potencjalny test oraz 10 czynności końcowych/integracyjnych.
 - Testy binarne nie są wliczane do szybkich testów migracyjnych i pozostają osobnym końcowym etapem.
 
-Potencjalne testy uzupełniające metadanych i kontraktów — 4 pozycje, 2 wykonane i 2 pozostałe:
+Potencjalne testy uzupełniające metadanych i kontraktów — 4 pozycje, 3 wykonane i 1 pozostała:
 
 - [x] Uzupełnić dokładne metadane bazowych rodzin sterowania, stosu, skoków, `RST` i akumulatora.
 - [x] Pełna asercja metadanych wszystkich zarejestrowanych wpisów `CB`, `ED`, `DD` i `FD`, bez ogólnego fallbacku `OP`/`Extended`.
-- [ ] Test zgodności metadanych timingowych z rzeczywistym wynikiem wykonania dla macierzy reprezentatywnych opcode’ów.
+- [x] Test zgodności metadanych timingowych z rzeczywistym wynikiem wykonania dla macierzy reprezentatywnych opcode’ów: 1/1 zaliczony.
 - [ ] Rozszerzenie testu `IProcessor` o ścieżki `SetIRQ` i `SetNMI`, ponieważ są częścią wspólnego kontraktu.
 
 Minimalny wymagany koniec migracji to 5 czynności weryfikacyjnych: pełny `ZEXDOC`, zapis jego wyniku, pełny `z80doc.tap`, pełny build rozwiązania i pełna regresja rozwiązania. Pozycje „zapis wyniku” i „analiza GitNexus” są czynnościami kontrolnymi, nie dodatkowymi testami jednostkowymi.

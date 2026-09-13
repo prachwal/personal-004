@@ -439,6 +439,30 @@ public sealed class Z80CoreObserverTests
     }
 
     [Fact]
+    public void Z80RepresentativeMetadataCyclesMatchExecutionCycles()
+    {
+        AssertMetadataCycles([0x00], 0x00, 0x00);
+        AssertMetadataCycles([0x41], 0x00, 0x41);
+        AssertMetadataCycles([0x46], 0x00, 0x46);
+        AssertMetadataCycles([0x80], 0x00, 0x80);
+        AssertMetadataCycles([0x86], 0x00, 0x86);
+        AssertMetadataCycles([0x01, 0x34, 0x12], 0x00, 0x01);
+        AssertMetadataCycles([0xCB, 0x00], 0xCB, 0x00);
+        AssertMetadataCycles([0xED, 0x47], 0xED, 0x47);
+        AssertMetadataCycles([0xDD, 0x21, 0x34, 0x12], 0xDD, 0x21);
+    }
+
+    private static void AssertMetadataCycles(byte[] program, byte page, byte opcode)
+    {
+        var metadataCpu = new MetadataProbeZ80Cpu(new TestBus(), new InterruptLines());
+        var bus = new TestBus();
+        Array.Copy(program, bus.Memory, program.Length);
+        var cpu = new Z80Cpu(bus, new InterruptLines());
+
+        Assert.Equal(metadataCpu.Definition(page, opcode).BaseCycles, cpu.Step());
+    }
+
+    [Fact]
     public void Z80DerivedVariantExecutesItsCustomOpcodeThroughTheCommonDecoder()
     {
         var bus = new TestBus { Memory = { [0] = 0xED, [1] = 0x00 } };
