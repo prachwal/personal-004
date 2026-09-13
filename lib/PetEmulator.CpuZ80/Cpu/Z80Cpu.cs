@@ -1289,17 +1289,21 @@ public partial class Z80Cpu : CpuProcessorBase<Z80Registers>
         var right = GetPairValue((opcode >> 4) & 3);
         var carry = IsCarry ? 1 : 0;
         var result = subtract ? left - right - carry : left + right + carry;
+        var value = (ushort)result;
         var flags = (byte)(subtract ? Z80Flags.AddSubtract : 0);
-        if (((left ^ right ^ result) & 0x1000) != 0) flags |= Z80Flags.HalfCarry;
+        var halfCarry = subtract
+            ? ((left & 0x0FFF) - (right & 0x0FFF) - carry) < 0
+            : ((left & 0x0FFF) + (right & 0x0FFF) + carry) > 0x0FFF;
+        if (halfCarry) flags |= Z80Flags.HalfCarry;
         if (result < 0 || result > 0xFFFF) flags |= Z80Flags.Carry;
-        if ((result & 0x8000) != 0) flags |= Z80Flags.Sign;
-        if ((result & 0xFFFF) == 0) flags |= Z80Flags.Zero;
+        if ((value & 0x8000) != 0) flags |= Z80Flags.Sign;
+        if (value == 0) flags |= Z80Flags.Zero;
         var overflow = subtract
-            ? (left ^ right) & (left ^ result)
-            : ~(left ^ right) & (left ^ result);
+            ? (left ^ right) & (left ^ value)
+            : ~(left ^ right) & (left ^ value);
         if ((overflow & 0x8000) != 0) flags |= Z80Flags.ParityOverflow;
-        flags |= (byte)((result >> 8) & (Z80Flags.X | Z80Flags.Y));
-        Registers.HL = (ushort)result;
+        flags |= (byte)((value >> 8) & (Z80Flags.X | Z80Flags.Y));
+        Registers.HL = value;
         Registers.F = flags;
         return 15;
     }

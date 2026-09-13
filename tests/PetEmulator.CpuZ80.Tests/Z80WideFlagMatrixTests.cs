@@ -59,6 +59,21 @@ public sealed class Z80WideFlagMatrixTests
     }
 
     [Fact]
+    public void SbcHlDetectsHalfBorrowAcrossBitTwelve()
+    {
+        var cpu = CreateCpu(0xED, 0x42);
+        cpu.Registers.HL = 0x0000;
+        cpu.Registers.BC = 0x0001;
+
+        cpu.Step();
+
+        Assert.Equal((ushort)0xFFFF, cpu.Registers.HL);
+        Assert.True(Z80Flags.IsSet(cpu.Registers.F, Z80Flags.HalfCarry));
+        Assert.True(Z80Flags.IsSet(cpu.Registers.F, Z80Flags.Carry));
+        Assert.True(Z80Flags.IsSet(cpu.Registers.F, Z80Flags.AddSubtract));
+    }
+
+    [Fact]
     public void AccumulatorRotationsMatchCarryAndPreservedFlags()
     {
         foreach (var value in Enumerable.Range(0, 256).Select(static value => (byte)value))
@@ -151,7 +166,7 @@ public sealed class Z80WideFlagMatrixTests
         var result = left + right;
         var flags = (byte)(originalFlags & (Z80Flags.Sign | Z80Flags.Zero | Z80Flags.ParityOverflow));
         flags |= (byte)((result >> 8) & (Z80Flags.X | Z80Flags.Y));
-        if (((left ^ right ^ result) & 0x1000) != 0) flags |= Z80Flags.HalfCarry;
+        if (((left & 0x0FFF) + (right & 0x0FFF)) > 0x0FFF) flags |= Z80Flags.HalfCarry;
         if (result > ushort.MaxValue) flags |= Z80Flags.Carry;
         return flags;
     }
@@ -162,7 +177,7 @@ public sealed class Z80WideFlagMatrixTests
         var value = (ushort)result;
         var flags = (byte)(((value & 0x8000) != 0 ? Z80Flags.Sign : 0) |
             (value == 0 ? Z80Flags.Zero : 0) | (value >> 8 & (Z80Flags.X | Z80Flags.Y)));
-        if (((left ^ right ^ result) & 0x1000) != 0) flags |= Z80Flags.HalfCarry;
+        if (((left & 0x0FFF) + (right & 0x0FFF) + (carry ? 1 : 0)) > 0x0FFF) flags |= Z80Flags.HalfCarry;
         if (((~(left ^ right) & (left ^ result)) & 0x8000) != 0) flags |= Z80Flags.ParityOverflow;
         if (result > ushort.MaxValue) flags |= Z80Flags.Carry;
         return flags;
@@ -175,7 +190,7 @@ public sealed class Z80WideFlagMatrixTests
         var flags = (byte)(((value & 0x8000) != 0 ? Z80Flags.Sign : 0) |
             (value == 0 ? Z80Flags.Zero : 0) | Z80Flags.AddSubtract |
             (value >> 8 & (Z80Flags.X | Z80Flags.Y)));
-        if (((left ^ right ^ result) & 0x1000) != 0) flags |= Z80Flags.HalfCarry;
+        if (((left & 0x0FFF) - (right & 0x0FFF) - (carry ? 1 : 0)) < 0) flags |= Z80Flags.HalfCarry;
         if ((((left ^ right) & (left ^ result)) & 0x8000) != 0) flags |= Z80Flags.ParityOverflow;
         if (result < 0) flags |= Z80Flags.Carry;
         return flags;
