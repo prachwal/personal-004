@@ -121,7 +121,7 @@ Stan na 2026-09-13:
 
 - 324 testy `[Fact]/[Theory]` w `tests/PetEmulator.CpuZ80.Tests`.
 - 32 testy w `Z80CoreObserverTests.cs` obejmujące kontrakty Core, lifecycle, magistralę, metadane i warianty potomne.
-- 10 nieodhaczonych pozycji checklisty: 10 czynności końcowych/integracyjnych.
+- 8 nieodhaczonych pozycji checklisty: 8 czynności końcowych/integracyjnych.
 - Testy binarne nie są wliczane do szybkich testów migracyjnych i pozostają osobnym końcowym etapem.
 
 Potencjalne testy uzupełniające metadanych i kontraktów — 4 pozycje, wszystkie wykonane:
@@ -136,8 +136,8 @@ Minimalny wymagany koniec migracji to 5 czynności weryfikacyjnych: pełny `ZEXD
 ## 7. Porządki końcowe
 
 - [ ] Usunąć potwierdzone martwe adaptery i lokalny kod lifecycle.
-- [ ] Zaktualizować dokumentację architektury Z80 i status migracji.
-- [ ] Zaktualizować tę checklistę wynikami testów zamiast pozostawiać niezweryfikowane pozycje.
+- [x] Zaktualizować dokumentację architektury Z80 i status migracji.
+- [x] Zaktualizować tę checklistę wynikami testów zamiast pozostawiać niezweryfikowane pozycje.
 - [ ] Wykonać `dotnet build PetEmulator.slnx --no-restore`.
 - [ ] Wykonać `dotnet test PetEmulator.slnx --no-restore --disable-build-servers`.
 - [ ] Wykonać analizę GitNexus zmian przed commitem.

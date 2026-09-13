@@ -109,6 +109,18 @@ IMachine
 
 Core (`lib/PetEmulator.Core`) definiuje kontrakty busa, procesora, zegara, urządzeń, maszyny oraz globalne pojęcia niezależne od komputera, takie jak katalog klawiszy AT. PET implementuje mapowanie adresowe, klawiaturę i kolejność taktowania swoich chipów; VIC-20 robi to samo według własnego profilu.
 
+## Status migracji Z80 do wspólnego Core
+
+Z80 jest obecnie przykładem rodziny korzystającej ze wspólnej abstrakcji procesora:
+
+- `Z80Cpu` dziedziczy po `CpuProcessorBase<Z80State>`.
+- Stan, snapshot, lifecycle, liczniki, debugger i `IProcessor` są obsługiwane przez Core, z zachowaniem adapterów kompatybilności Z80.
+- Opcode’y Base, CB, ED, DD i FD są przechowywane w `Core.OpcodeTable<Z80State>`; rozszerzenia wariantów używają `ConfigureOpcodes` i chronionego `RegisterOpcode`.
+- Pamięć, I/O, WAIT, refresh, acknowledge przerwań, `BusCycle`, watchpointy i obserwator wykonania mają testy kontraktowe.
+- Metadane opcode’ów obejmują mnemonic, długość, tryb adresowania i timing; testy sprawdzają kompletność wpisów oraz zgodność reprezentatywnych timingów z `Step()`.
+
+Do zamknięcia migracji pozostają pełne przebiegi `ZEXDOC` i `z80doc.tap`, pełny build/regresja rozwiązania oraz końcowy przegląd martwych adapterów. Szczegółowy status i liczba pozostałych czynności są prowadzone w [checkliście migracji Z80](../plans/2026-09-12-z80-core-migration-checklist.md).
+
 ## Jak zbudować komputer z klocków
 
 Każdą emulowaną maszynę składaj z tych samych elementów, a różnice sprzętowe trzymaj w
