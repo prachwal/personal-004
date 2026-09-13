@@ -358,6 +358,39 @@ public sealed class Z80CoreObserverTests
         Assert.Equal(cycle, Assert.Single(observer.Cycles));
     }
 
+    [Fact]
+    public void Z80IoInstructionsPreserveFullSixteenBitPortAddresses()
+    {
+        var inputBus = new WidePortBus { Memory = { [0] = 0xDB, [1] = 0x5A } };
+        inputBus.Ports[0xA55A] = 0x3C;
+        var input = new Z80Cpu(inputBus, new InterruptLines());
+        input.Registers.A = 0xA5;
+
+        input.StepInstruction();
+
+        Assert.Equal((ushort)0xA55A, inputBus.LastReadPort);
+        Assert.Equal((byte)0x3C, input.Registers.A);
+
+        var registerBus = new WidePortBus { Memory = { [0] = 0xED, [1] = 0x40 } };
+        registerBus.Ports[0x1234] = 0x7E;
+        var registerInput = new Z80Cpu(registerBus, new InterruptLines());
+        registerInput.Registers.BC = 0x1234;
+
+        registerInput.StepInstruction();
+
+        Assert.Equal((ushort)0x1234, registerBus.LastReadPort);
+        Assert.Equal((byte)0x7E, registerInput.Registers.B);
+
+        var outputBus = new WidePortBus { Memory = { [0] = 0xD3, [1] = 0x5A } };
+        var output = new Z80Cpu(outputBus, new InterruptLines());
+        output.Registers.A = 0xA5;
+
+        output.StepInstruction();
+
+        Assert.Equal((ushort)0xA55A, outputBus.LastWritePort);
+        Assert.Equal((byte)0xA5, outputBus.LastWriteValue);
+    }
+
     private static OpcodeDefinition<Z80State> Definition(byte page, byte opcode, string mnemonic)
         => new(
             new OpcodeKey(page, opcode),
@@ -445,5 +478,29 @@ public sealed class Z80CoreObserverTests
         public byte ReadPort(byte port) => 0xFF;
 
         public void WritePort(byte port, byte value) { }
+    }
+
+    private sealed class WidePortBus : IBus
+    {
+        public byte[] Memory { get; } = new byte[ushort.MaxValue + 1];
+        public Dictionary<ushort, byte> Ports { get; } = [];
+        public ushort LastReadPort { get; private set; }
+        public ushort LastWritePort { get; private set; }
+        public byte LastWriteValue { get; private set; }
+
+        public byte ReadMemory(ushort address) => Memory[address];
+        public void WriteMemory(ushort address, byte value) => Memory[address] = value;
+        public byte ReadPort(byte port) => ReadPort((ushort)port);
+        public byte ReadPort(ushort port)
+        {
+            LastReadPort = port;
+            return Ports.TryGetValue(port, out var value) ? value : (byte)0xFF;
+        }
+        public void WritePort(byte port, byte value) => WritePort((ushort)port, value);
+        public void WritePort(ushort port, byte value)
+        {
+            LastWritePort = port;
+            LastWriteValue = value;
+        }
     }
 }
