@@ -12,5 +12,11 @@
     <PackageReference Include="NUnit3TestAdapter" />
     <PackageReference Include="FluentAssertions" />
     <ProjectReference Include="../../lib/PetEmulator.Cpu8080/PetEmulator.Cpu8080.csproj" />
+    <ProjectReference Include="../../lib/PetEmulator.CpuZ80/PetEmulator.CpuZ80.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="TestData/TST8080.COM" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestData/8080PRE.COM" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

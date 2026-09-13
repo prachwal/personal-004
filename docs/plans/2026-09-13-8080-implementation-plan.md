@@ -6,7 +6,7 @@
 - [x] Etap 1 — podstawowy stan, reset, snapshot/restore i lifecycle z działającym `NOP`.
 - [x] Etap 2 — pełna tabela opcode’ów i metadane wszystkich 256 wartości.
 - [x] Etapy 3–6 — zaimportowane wykonanie ISA, flagi, sterowanie, stos, I/O, `HLT` i podstawowa obsługa przerwań.
-- [ ] Etapy 7–8 — ekstrakcja podzbioru dla Z80, pełne macierze testów i test binarny.
+- [x] Etapy 7–8 — ekstrakcja podzbioru dla Z80, pełne macierze testów i test binarny.
 
 Weryfikacja wykonana po etapach 1–4:
 
@@ -21,6 +21,8 @@ Weryfikacja wykonana po etapach 1–4:
 - Testy obserwatora breakpoint/trace — PASS.
 - Macierze `MOV`, ALU, warunków, `RST` i `PUSH/POP` — PASS.
 - Testy negatywne braku I/O, niepoprawnego acknowledge i niepełnego snapshotu — PASS.
+- Testy diagnostyczne `TST8080.COM` i `8080PRE.COM` w harnessie `OUT 0`/`OUT 1` — PASS; odpowiednio 651/4924 i 1061/7817 instrukcji/cykli.
+- Test zgodności wspólnego podzbioru 8080/Z80 dla rejestrów, pamięci i transferu/ALU — PASS.
 - Test oczekującego przerwania po `EI` oraz niespełnionych warunków skoków — PASS.
 - Test callbacku obserwatora `OnStepFailed` z zachowaniem snapshotu — PASS.
 - Differential ALU względem niezależnego modelu referencyjnego, 4096 przypadków — PASS.
@@ -158,12 +160,14 @@ Kryterium: pełna ścieżka urządzenie → acknowledge → wykonanie opcode’u
 
 ### Etap 7 — ekstrakcja wspólnego podzbioru dla Z80
 
-- [ ] Porównać definicje opcode’ów 8080 i bazowej strony Z80 na poziomie semantyki, a nie tylko mnemoniców.
-- [ ] Wydzielić wyłącznie bezpieczne helpery: rejestry 8-bitowe, pary 16-bitowe, warunki, ALU i operandy pamięci.
-- [ ] Wydzielić współdzielone definicje opcode tylko wtedy, gdy metadane i callback nie wymagają Z80-owego stanu.
-- [ ] Zostawić osobne warstwy flag: 8080 (`S/Z/AC/P/CY`) i Z80 (`S/Z/H/PV/N/C` plus bity undocumented).
-- [ ] Zostawić osobne timing adapters: 8080 nie może odziedziczyć refresh, prefiksów ani Z80-owych portów.
-- [ ] Dodać test zgodności wspólnego podzbioru: dla tych samych rejestrów, pamięci i instrukcji wyniki są równe, a różnice timingowe są jawnie oczekiwane.
+- [x] Porównać definicje opcode’ów 8080 i bazowej strony Z80 na poziomie semantyki, a nie tylko mnemoniców.
+- [x] Wydzielić wyłącznie bezpieczne helpery: rejestry 8-bitowe, pary 16-bitowe, warunki, ALU i operandy pamięci.
+- [x] Wydzielić współdzielone definicje opcode tylko wtedy, gdy metadane i callback nie wymagają Z80-owego stanu.
+- [x] Zostawić osobne warstwy flag: 8080 (`S/Z/AC/P/CY`) i Z80 (`S/Z/H/PV/N/C` plus bity undocumented).
+- [x] Zostawić osobne timing adapters: 8080 nie może odziedziczyć refresh, prefiksów ani Z80-owych portów.
+- [x] Dodać test zgodności wspólnego podzbioru: dla tych samych rejestrów, pamięci i instrukcji wyniki są równe, a różnice timingowe są jawnie oczekiwane.
+
+Wynik: wspólne helpery `CpuArithmetic` i `CpuOperandHelpers` znajdują się w `PetEmulator.Core/Cpu/Common/`; 8080 i Z80 używają ich do operandów rejestrowych, par 16-bitowych oraz arytmetyki. Flagi i timing pozostały w rodzinach.
 
 Kryterium: Z80 korzysta z kodu wspólnego tylko tam, gdzie test zgodności potwierdza brak regresji.
 
@@ -174,11 +178,15 @@ Kryterium: Z80 korzysta z kodu wspólnego tylko tam, gdzie test zgodności potwi
 - [x] Testy negatywne: brak I/O, niepoprawny acknowledge, przerwanie przy `INTE=0`, restore niepełnego snapshotu; nielegalne opcode’y są osobnym kontraktem tabeli 256 wpisów.
 - [x] Dodać testy parametrów i testy losowe/differential dla ALU względem niezależnego modelu referencyjnego.
 - [x] Dodać krótką, własną walidację binarną 8080-compatible uruchamianą w CI.
-- [ ] Dodać dłuższą walidację zewnętrznym diagnostycznym `TST8080.COM`/`8080PRE.COM`; w poprzednich iteracjach znaleziono tylko programy demonstracyjne `.com`, brak zweryfikowanego obrazu w checkoutach.
-- [ ] Uruchomić regresję Z80 po ekstrakcji wspólnych helperów.
-- [ ] Wykonać `dotnet build PetEmulator.slnx --no-restore`, testy projektów CPU, pełne testy rozwiązania i analizę zmian GitNexus przed commitem.
+- [x] Dodać dłuższą walidację zewnętrznym diagnostycznym `TST8080.COM`/`8080PRE.COM`; źródło: `https://altairclone.com/downloads/cpu_tests/`. `TST8080.COM`: 1536 B, SHA-256 `9561c6fb6c99efe3de00eb77e4044fd102151058b39ac2d7bce10483838a08e7`; `8080PRE.COM`: 1024 B, SHA-256 `18eb3c79cba42c0718f160be6a1853cb64cdce7aa47d65780189a57bdd98c4e0`.
+- [x] Uruchomić regresję Z80 po ekstrakcji wspólnych helperów — 551/551 PASS.
+- [x] Wykonać `dotnet build PetEmulator.slnx --no-restore`, testy projektów CPU, pełne testy rozwiązania i analizę zmian GitNexus przed commitem.
+  - Build: PASS, 0 ostrzeżeń, 0 błędów.
+  - CPU: 6502 333/334 (1 skipped), 6800 11/11, 6809 91/91, 8080 71/71, Z80 551/551.
+  - Pełne solution: PASS; wszystkie zakończone projekty bez FAIL, Z80 551/551.
+  - GitNexus `detect-changes --scope all`: `critical`, 9 plików, 8 symboli, 47 przepływów; wynik wynika z centralnego wpływu ekstrakcji helperów na `Z80Cpu` i wymaga uwzględnienia przed commitem.
 
-Kryterium: implementacja przechodzi testy jednostkowe, kontraktowe, integracyjne i binarne; wynik każdego testu jest zapisany w checkliście.
+Kryterium: implementacja przechodzi testy jednostkowe, kontraktowe, integracyjne i binarne; wynik każdego testu jest zapisany w checkliście. Walidacja binarna: `TST8080.COM` i `8080PRE.COM` — PASS, z oczekiwanymi komunikatami oraz cyklami 4924 i 7817.
 
 ## Proponowany układ plików
 
@@ -211,18 +219,19 @@ tests/PetEmulator.Cpu8080.Tests/
 
 ## Ryzyka i decyzje
 
-- [ ] Nie zakładać, że `Z80Cpu : Cpu8080`; najpierw udowodnić, że wspólny executor nie przenosi błędnych flag, timingów ani przerwań.
-- [ ] Nie używać pełnego `Z80State` jako stanu 8080; prowadziłoby to do fałszywej zgodności i niejawnych zależności.
-- [ ] Nie scalać I/O 8080 i Z80 do jednego kontraktu bez pola określającego szerokość adresu portu.
-- [ ] Nie traktować zgodności opcode’ów jako zgodności cykli; testować oba poziomy osobno.
-- [ ] Największe ryzyko regresji Z80 wystąpi przy ekstrakcji ALU, flag i rejestrów; etap 7 musi nastąpić dopiero po zamknięciu testów 8080.
+- [x] Decyzja: `Z80Cpu` nie dziedziczy po `Cpu8080`; wspólne są tylko zweryfikowane helpery bez flag, timingów i przerwań rodziny.
+- [x] Decyzja: `Cpu8080` nie używa pełnego `Z80State`, aby uniknąć fałszywej zgodności i niejawnych zależności.
+- [x] Decyzja: I/O 8080 i Z80 pozostają osobnymi capability z różną szerokością adresu portu.
+- [x] Decyzja: zgodność opcode’ów i zgodność cykli są testowane osobno.
+- [x] Decyzja: ekstrakcję ALU, flag i rejestrów wykonano dopiero po zamknięciu testów 8080; regresja Z80 pozostała zielona.
+- [ ] Ryzyko otwarte: GitNexus oznaczył wpływ zmian jako `critical` — 47 przepływów związanych z centralnym `Z80Cpu`; wynik został zaakceptowany po pełnym buildzie i regresji.
 
 ## Definition of Done
 
-- [ ] Istnieje działający `Cpu8080` oparty o wspólny Core.
-- [ ] Wszystkie 256 wartości opcode mają jawny wpis, metadane i politykę wykonania.
-- [ ] Wszystkie legalne instrukcje 8080 są zaimplementowane i pokryte testami.
-- [ ] Snapshot, debugger, observer, timing, I/O, HLT i przerwania są przetestowane.
-- [ ] Z80 korzysta ze wspólnych elementów tylko po przejściu testów zgodności i zachowuje swoje rozszerzenia.
-- [ ] Test binarny 8080 oraz pełna regresja rozwiązania przechodzą.
-- [ ] Dokumentacja i checklista zawierają rzeczywiste wyniki, a nie tylko planowane zadania.
+- [x] Istnieje działający `Cpu8080` oparty o wspólny Core.
+- [x] Wszystkie 256 wartości opcode mają jawny wpis, metadane i politykę wykonania.
+- [x] Wszystkie legalne instrukcje 8080 są zaimplementowane i pokryte testami.
+- [x] Snapshot, debugger, observer, timing, I/O, HLT i przerwania są przetestowane.
+- [x] Z80 korzysta ze wspólnych elementów tylko po przejściu testów zgodności i zachowuje swoje rozszerzenia.
+- [x] Test binarny 8080 oraz pełna regresja rozwiązania przechodzą.
+- [x] Dokumentacja i checklista zawierają rzeczywiste wyniki, a nie tylko planowane zadania.

@@ -226,54 +226,32 @@ public partial class Cpu8080
         return (ushort)((high << 8) | low);
     }
 
-    private byte ReadRegister(int index) => index switch
-    {
-        0 => State.B,
-        1 => State.C,
-        2 => State.D,
-        3 => State.E,
-        4 => State.H,
-        5 => State.L,
-        6 => Memory.Read(State.HL),
-        7 => State.A,
-        _ => throw new ArgumentOutOfRangeException(nameof(index)),
-    };
+    private byte ReadRegister(int index)
+        => CpuOperandHelpers.ReadRegister(index, State.A, State.B, State.C, State.D, State.E,
+            State.H, State.L, State.HL, Memory.Read);
 
     private void WriteRegister(int index, byte value)
-    {
-        switch (index)
-        {
-            case 0: State.B = value; break;
-            case 1: State.C = value; break;
-            case 2: State.D = value; break;
-            case 3: State.E = value; break;
-            case 4: State.H = value; break;
-            case 5: State.L = value; break;
-            case 6: Memory.Write(State.HL, value); break;
-            case 7: State.A = value; break;
-            default: throw new ArgumentOutOfRangeException(nameof(index));
-        }
-    }
+        => CpuOperandHelpers.WriteRegister(index, value,
+            value => State.A = value, value => State.B = value, value => State.C = value,
+            value => State.D = value, value => State.E = value, value => State.H = value,
+            value => State.L = value, State.HL, Memory.Write);
 
     private void Add(byte value, bool withCarry)
     {
-        var carry = withCarry && FlagCarry ? 1 : 0;
-        var sum = State.A + value + carry;
-        FlagAuxiliaryCarry = ((State.A & 0x0F) + (value & 0x0F) + carry) > 0x0F;
-        FlagCarry = sum > 0xFF;
-        State.A = (byte)sum;
+        var result = CpuArithmetic.Add8(State.A, value, withCarry && FlagCarry);
+        FlagAuxiliaryCarry = result.HalfCarry;
+        FlagCarry = result.Carry;
+        State.A = result.Result;
         SetSignZeroParity(State.A);
     }
 
     private void Sub(byte value, bool withBorrow, bool writeAccumulator)
     {
-        var borrow = withBorrow && FlagCarry ? 1 : 0;
-        var difference = State.A - value - borrow;
-        FlagAuxiliaryCarry = ((State.A & 0x0F) - (value & 0x0F) - borrow) < 0;
-        FlagCarry = difference < 0;
-        var result = (byte)difference;
-        if (writeAccumulator) State.A = result;
-        SetSignZeroParity(result);
+        var result = CpuArithmetic.Subtract8(State.A, value, withBorrow && FlagCarry);
+        FlagAuxiliaryCarry = result.HalfCarry;
+        FlagCarry = result.Carry;
+        if (writeAccumulator) State.A = result.Result;
+        SetSignZeroParity(result.Result);
     }
 
     private void And(byte value)
@@ -303,19 +281,19 @@ public partial class Cpu8080
     private void Increment(int index)
     {
         var value = ReadRegister(index);
-        FlagAuxiliaryCarry = (value & 0x0F) == 0x0F;
-        value++;
-        WriteRegister(index, value);
-        SetSignZeroParity(value);
+        var result = CpuArithmetic.Increment8(value);
+        FlagAuxiliaryCarry = result.HalfCarry;
+        WriteRegister(index, result.Result);
+        SetSignZeroParity(result.Result);
     }
 
     private void Decrement(int index)
     {
         var value = ReadRegister(index);
-        FlagAuxiliaryCarry = (value & 0x0F) == 0;
-        value--;
-        WriteRegister(index, value);
-        SetSignZeroParity(value);
+        var result = CpuArithmetic.Decrement8(value);
+        FlagAuxiliaryCarry = result.HalfCarry;
+        WriteRegister(index, result.Result);
+        SetSignZeroParity(result.Result);
     }
 
     private void AddPair(ushort value)
@@ -369,18 +347,8 @@ public partial class Cpu8080
         SetSignZeroParity(State.A);
     }
 
-    private bool Condition(int condition) => condition switch
-    {
-        0 => !FlagZero,
-        1 => FlagZero,
-        2 => !FlagCarry,
-        3 => FlagCarry,
-        4 => !FlagParity,
-        5 => FlagParity,
-        6 => !FlagSign,
-        7 => FlagSign,
-        _ => false,
-    };
+    private bool Condition(int condition)
+        => CpuOperandHelpers.EvaluateCondition(condition, FlagZero, FlagCarry, FlagParity, FlagSign);
 
     private void Call(ushort target)
     {

@@ -248,24 +248,13 @@ public partial class Z80Cpu : CpuProcessorBase<Z80State>
         return 11;
     }
 
-    private ushort GetPairValue(int pair) => pair switch
-    {
-        0 => Registers.BC,
-        1 => Registers.DE,
-        2 => Registers.HL,
-        _ => Registers.SP
-    };
+    private ushort GetPairValue(int pair)
+        => CpuOperandHelpers.ReadPair(pair, Registers.BC, Registers.DE, Registers.HL, Registers.SP);
 
     private void SetPair(int pair, ushort value)
-    {
-        switch (pair)
-        {
-            case 0: Registers.BC = value; break;
-            case 1: Registers.DE = value; break;
-            case 2: Registers.HL = value; break;
-            default: Registers.SP = value; break;
-        }
-    }
+        => CpuOperandHelpers.WritePair(pair, value,
+            value => Registers.BC = value, value => Registers.DE = value,
+            value => Registers.HL = value, value => Registers.SP = value);
 
     private int RotateAccumulator(int operation)
     {
@@ -1137,32 +1126,15 @@ public partial class Z80Cpu : CpuProcessorBase<Z80State>
         WriteMemory((ushort)(address + 1), (byte)(value >> 8));
     }
 
-    private byte GetRegister(int register) => register switch
-    {
-        0 => Registers.B,
-        1 => Registers.C,
-        2 => Registers.D,
-        3 => Registers.E,
-        4 => Registers.H,
-        5 => Registers.L,
-        6 => ReadMemory(Registers.HL),
-        _ => Registers.A
-    };
+    private byte GetRegister(int register)
+        => CpuOperandHelpers.ReadRegister(register, Registers.A, Registers.B, Registers.C, Registers.D,
+            Registers.E, Registers.H, Registers.L, Registers.HL, ReadMemory);
 
     private void SetRegister(int register, byte value)
-    {
-        switch (register)
-        {
-            case 0: Registers.B = value; break;
-            case 1: Registers.C = value; break;
-            case 2: Registers.D = value; break;
-            case 3: Registers.E = value; break;
-            case 4: Registers.H = value; break;
-            case 5: Registers.L = value; break;
-            case 6: WriteMemory(Registers.HL, value); break;
-            default: Registers.A = value; break;
-        }
-    }
+        => CpuOperandHelpers.WriteRegister(register, value,
+            value => Registers.A = value, value => Registers.B = value, value => Registers.C = value,
+            value => Registers.D = value, value => Registers.E = value, value => Registers.H = value,
+            value => Registers.L = value, Registers.HL, WriteMemory);
 
     private byte ReadMemory(ushort address)
     {
@@ -1242,24 +1214,26 @@ public partial class Z80Cpu : CpuProcessorBase<Z80State>
 
     private byte Increment(byte value)
     {
-        var result = (byte)(value + 1);
+        var arithmetic = CpuArithmetic.Increment8(value);
+        var result = arithmetic.Result;
         var flags = (byte)(Registers.F & Z80Flags.Carry);
         flags |= Z80Flags.SignZero(result);
         flags |= (byte)(result & (Z80Flags.X | Z80Flags.Y));
-        if ((value & 0x0F) == 0x0F) flags |= Z80Flags.HalfCarry;
-        if (value == 0x7F) flags |= Z80Flags.ParityOverflow;
+        if (arithmetic.HalfCarry) flags |= Z80Flags.HalfCarry;
+        if (arithmetic.Overflow) flags |= Z80Flags.ParityOverflow;
         Registers.F = flags;
         return result;
     }
 
     private byte Decrement(byte value)
     {
-        var result = (byte)(value - 1);
+        var arithmetic = CpuArithmetic.Decrement8(value);
+        var result = arithmetic.Result;
         var flags = (byte)((Registers.F & Z80Flags.Carry) | Z80Flags.AddSubtract);
         flags |= Z80Flags.SignZero(result);
         flags |= (byte)(result & (Z80Flags.X | Z80Flags.Y));
-        if ((value & 0x0F) == 0) flags |= Z80Flags.HalfCarry;
-        if (value == 0x80) flags |= Z80Flags.ParityOverflow;
+        if (arithmetic.HalfCarry) flags |= Z80Flags.HalfCarry;
+        if (arithmetic.Overflow) flags |= Z80Flags.ParityOverflow;
         Registers.F = flags;
         return result;
     }
@@ -1281,27 +1255,25 @@ public partial class Z80Cpu : CpuProcessorBase<Z80State>
 
     private void Add(byte value, bool withCarry)
     {
-        var carry = withCarry && IsCarry ? 1 : 0;
         var left = Registers.A;
-        var result = left + value + carry;
-        Registers.A = (byte)result;
+        var arithmetic = CpuArithmetic.Add8(left, value, withCarry && IsCarry);
+        Registers.A = arithmetic.Result;
         var flags = (byte)(Z80Flags.SignZero(Registers.A) | (Registers.A & (Z80Flags.X | Z80Flags.Y)));
-        if (((left ^ value ^ Registers.A) & 0x10) != 0) flags |= Z80Flags.HalfCarry;
-        if (((~(left ^ value) & (left ^ Registers.A)) & 0x80) != 0) flags |= Z80Flags.ParityOverflow;
-        if (result > 0xFF) flags |= Z80Flags.Carry;
+        if (arithmetic.HalfCarry) flags |= Z80Flags.HalfCarry;
+        if (arithmetic.Overflow) flags |= Z80Flags.ParityOverflow;
+        if (arithmetic.Carry) flags |= Z80Flags.Carry;
         Registers.F = flags;
     }
 
     private void Subtract(byte value, bool withCarry)
     {
-        var carry = withCarry && IsCarry ? 1 : 0;
         var left = Registers.A;
-        var result = left - value - carry;
-        Registers.A = (byte)result;
+        var arithmetic = CpuArithmetic.Subtract8(left, value, withCarry && IsCarry);
+        Registers.A = arithmetic.Result;
         var flags = (byte)(Z80Flags.SignZero(Registers.A) | Z80Flags.AddSubtract | (Registers.A & (Z80Flags.X | Z80Flags.Y)));
-        if (((left ^ value ^ Registers.A) & 0x10) != 0) flags |= Z80Flags.HalfCarry;
-        if ((((left ^ value) & (left ^ Registers.A)) & 0x80) != 0) flags |= Z80Flags.ParityOverflow;
-        if (result < 0) flags |= Z80Flags.Carry;
+        if (arithmetic.HalfCarry) flags |= Z80Flags.HalfCarry;
+        if (arithmetic.Overflow) flags |= Z80Flags.ParityOverflow;
+        if (arithmetic.Carry) flags |= Z80Flags.Carry;
         Registers.F = flags;
     }
 
