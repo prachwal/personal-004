@@ -304,6 +304,33 @@ public sealed class Z80CoreObserverTests
         Assert.Contains(definitions, definition => definition.Key.Page == 0xED);
     }
 
+    [Fact]
+    public void Z80OpcodeTableSupportsDerivedReplaceAndAddWithoutMutatingBase()
+    {
+        var cpu = new MetadataProbeZ80Cpu(new TestBus(), new InterruptLines());
+        var baseNop = cpu.Definition(0x00, 0x00);
+        var derived = cpu.Derive(table =>
+        {
+            table.Replace(Definition(0x00, 0x00, "CUSTOM NOP"));
+            table.Add(Definition(0xED, 0x00, "CUSTOM EXT"));
+        });
+
+        Assert.True(derived.IsSealed);
+        Assert.Same(baseNop, cpu.Definition(0x00, 0x00));
+        Assert.Equal("CUSTOM NOP", derived.Get(OpcodeKey.Base(0x00)).Mnemonic);
+        Assert.Equal("CUSTOM EXT", derived.Get(new OpcodeKey(0xED, 0x00)).Mnemonic);
+        Assert.Throws<InvalidOperationException>(() => derived.Replace(Definition(0x00, 0x01, "LATE")));
+    }
+
+    private static OpcodeDefinition<Z80State> Definition(byte page, byte opcode, string mnemonic)
+        => new(
+            new OpcodeKey(page, opcode),
+            mnemonic,
+            1,
+            4,
+            "Implied",
+            (_, _) => CpuStepResult.Completed(4));
+
     private static void AssertMetadata(
         OpcodeDefinition<Z80State> definition,
         string mnemonic,
@@ -359,6 +386,9 @@ public sealed class Z80CoreObserverTests
 
         public OpcodeDefinition<Z80State> Definition(byte page, byte opcode)
             => Opcodes.Get(new OpcodeKey(page, opcode));
+
+        public OpcodeTable<Z80State> Derive(Action<OpcodeTable<Z80State>> changes)
+            => Opcodes.Derive(changes);
     }
 
     private sealed class TestBus : IBus
