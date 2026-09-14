@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../lib/PetEmulator.Core/PetEmulator.Core.csproj" />
+    <ProjectReference Include="../PetEmulator.Pet/PetEmulator.Pet.csproj" />
     <ProjectReference Include="../../lib/PetEmulator.CpuZ80/PetEmulator.CpuZ80.csproj" />
     <ProjectReference Include="../../lib/PetEmulator.Chips/PetEmulator.Chips.csproj" />
   </ItemGroup>

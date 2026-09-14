@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             x:Class="PetEmulator.Desktop.Views.Controls.HexEditorControl"
+             x:Name="Root"
+             x:DataType="controls:HexEditorControl"
+             Background="{DynamicResource StatusBarBackgroundBrush}">
+    <ListBox ItemsSource="{Binding Editor.Rows, ElementName=Root}"
+             SelectionMode="Single"
+             Background="Transparent"
+             BorderThickness="0"
+             ScrollViewer.HorizontalScrollBarVisibility="Auto">
+        <ListBox.ItemsPanel>
+            <ItemsPanelTemplate>
+                <VirtualizingStackPanel Orientation="Vertical" />
+            </ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="viewModels:HexEditorRowViewModel">
+                <Grid ColumnDefinitions="46,Auto,Auto" ColumnSpacing="6" Margin="2,0">
+                    <TextBlock Text="{Binding Address}"
+                               FontFamily="monospace"
+                               FontSize="11"
+                               VerticalAlignment="Center" />
+                    <ItemsControl Grid.Column="1" ItemsSource="{Binding Cells}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="viewModels:HexEditorCellViewModel">
+                                <TextBox Text="{Binding HexText, Mode=TwoWay}"
+                                         Tag="{Binding Offset}"
+                                         Width="19"
+                                         MaxLength="2"
+                                         Margin="0"
+                                         Padding="0"
+                                         FontFamily="monospace"
+                                         FontSize="11"
+                                         TextAlignment="Center"
+                                         Background="{Binding CellBackground}"
+                                         Loaded="OnHexCellLoaded"
+                                         Unloaded="OnHexCellUnloaded"
+                                         TextInput="OnHexTextInput"
+                                         TextChanged="OnHexTextChanged"
+                                         KeyDown="OnHexKeyDown"
+                                         PointerPressed="OnHexPointerPressed" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl Grid.Column="2" ItemsSource="{Binding Cells}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="viewModels:HexEditorCellViewModel">
+                                <TextBlock Text="{Binding AsciiText}"
+                                           Width="9"
+                                           FontFamily="monospace"
+                                           FontSize="11"
+                                           TextAlignment="Center"
+                                           Background="{Binding CellBackground}"
+                                           PointerPressed="OnAsciiPointerPressed" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </DataTemplate>
+        </ListBox.ItemTemplate>
+    </ListBox>
+</UserControl>

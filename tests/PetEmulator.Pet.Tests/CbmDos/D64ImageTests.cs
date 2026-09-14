@@ -11,6 +11,26 @@ namespace PetEmulator.Pet.Tests.CbmDos;
 public sealed class D64ImageTests
 {
     [Test]
+    public void CreateUpdateRenameDeleteAndSaveFile()
+    {
+        var image = D64Image.Load(D64Image.CreateFormatted("CRUD", "00"));
+        var original = Enumerable.Range(0, 600).Select(index => (byte)index).ToArray();
+
+        image.CreateFile("TEST", original, FileType.Seq);
+        image.ReadFile(image.ReadDirectory().Single(entry => entry.Filename == "TEST"))
+            .Should().Equal(original);
+
+        var updated = new byte[300];
+        image.UpdateFile("TEST", updated);
+        image.RenameFile("TEST", "RENAMED");
+        image.ReadDirectory().Should().ContainSingle(entry => entry.Filename == "RENAMED");
+        image.ReadFile(image.ReadDirectory().Single()).Should().Equal(updated);
+
+        image.DeleteFile("RENAMED");
+        image.ReadDirectory().Should().BeEmpty();
+        D64Image.Load(image.SaveToBytes()).ReadDirectory().Should().BeEmpty();
+    }
+    [Test]
     public void LoadGames1_DiskName()
     {
         var img = D64Image.Load(Path.Combine(TestDisksDirectory, "games-1.d64"));

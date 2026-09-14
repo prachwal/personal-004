@@ -12,7 +12,7 @@ public sealed class AvaloniaFilePickerService(Window window) : IFilePickerServic
 
     public async Task<string?> PickDiskToOpenAsync()
     {
-        return await PickOpenFileAsync("Load disk", "Disk images", ["*.d64", "*.dsk", "*.td0"]);
+        return await PickOpenFileAsync("Load disk", "Disk images", ["*.d64", "*.dsk", "*.td0", "*.jv1", "*.dmk"]);
     }
 
     public async Task<string?> PickDiskToSaveAsync()
@@ -22,6 +22,19 @@ public sealed class AvaloniaFilePickerService(Window window) : IFilePickerServic
             Title = "New disk",
             SuggestedFileName = "New Disk.d64",
             FileTypeChoices = [new FilePickerFileType("Disk images") { Patterns = ["*.d64"] }]
+        });
+        return file?.Path.LocalPath;
+    }
+
+    public async Task<string?> PickHostFileToOpenAsync() =>
+        await PickOpenFileAsync("Import file", "All files", ["*.*"]);
+
+    public async Task<string?> PickHostFileToSaveAsync(string suggestedFileName)
+    {
+        IStorageFile? file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Export file",
+            SuggestedFileName = suggestedFileName
         });
         return file?.Path.LocalPath;
     }

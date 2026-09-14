@@ -47,7 +47,8 @@ internal static class CliCommandFactory
         };
         var debug = new Command("debug",
             "Run a scripted PetDebuggerSession: profile/roms/tape/disk/key/type/devices/status, " +
-            "plus superpet-diagnose, trace/watch/watch-range/unwatch/break-cycle/break-instruction-count/dump.");
+            "plus superpet-diagnose/superpet-boot-checkpoints/via-irq-check, " +
+            "trace/watch/watch-range/unwatch/break-cycle/break-instruction-count/dump.");
         debug.Arguments.Add(script);
         debug.SetAction((parseResult, _) => Task.FromResult(RunDebugScript(parseResult.GetValue(script))));
 

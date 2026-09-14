@@ -73,6 +73,44 @@ public sealed class PetDebuggerSessionTests
     }
 
     [Test]
+    public void SuperPetBootCheckpoints_ReportsHitsAndNeverReachedStages_WithoutOutputPath()
+    {
+        var session = new PetDebuggerSession();
+        session.Execute("profile superpet");
+        session.Execute($"roms {RomsRoot()}");
+
+        var report = session.Execute("superpet-boot-checkpoints 30000");
+
+        report.Should().Contain("instructions-run=30000")
+            .And.Contain("[Reset] hit #1")
+            .And.Contain("[KeyboardRingBufferInit] hit #1")
+            .And.Contain("never reached:")
+            .And.Contain("[MenuBannerPrint]");
+    }
+
+    [Test]
+    public void SuperPetBootCheckpoints_WithAPath_WritesTheReportAndSummarizesIt()
+    {
+        var session = new PetDebuggerSession();
+        session.Execute("profile superpet");
+        session.Execute($"roms {RomsRoot()}");
+        var path = Path.Combine(Path.GetTempPath(), $"boot-checkpoints-test-{Guid.NewGuid():N}.log");
+
+        try
+        {
+            var result = session.Execute($"superpet-boot-checkpoints 30000 {path}");
+
+            result.Should().StartWith("boot-checkpoints written:").And.Contain("never reached");
+            File.Exists(path).Should().BeTrue();
+            File.ReadAllText(path).Should().Contain("[KeyboardRingBufferInit] hit #1");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Test]
     public void Devices_ReportsTheDatasetteEvenBeforeATapeIsLoaded()
     {
         var session = new PetDebuggerSession();
@@ -166,6 +204,28 @@ public sealed class PetDebuggerSessionTests
         var result = session.Execute("disk-stall-check 200 100");
 
         result.Should().Contain("stalled").And.Contain("byte transfer");
+    }
+
+    [Test]
+    public void ViaIrqCheck_ReportsPia1AssertingPeriodically_NowThatTheSuperPet6809BootHangIsFixed()
+    {
+        // Regression pin for docs/pet/superpet-6809-boot-hang.md: the 6809 boot used to freeze
+        // forever in an early poll loop because SuperPet6809MemoryBus mapped the waterloo-e000-ffff
+        // ROM image over the FULL $E000-$FFFF range with no I/O hole, so writes to PIA1's CRB
+        // ($E813, which arms the CB1/jiffy-clock IRQ the keyboard-buffer feed depends on) were
+        // silently swallowed as "ROM, read-only" and never reached the real chip - VIA/PIA1/ACIA
+        // all reported IRQ true on 0/60000 forever. Now that SuperPet6809MemoryBus punches a hole
+        // for the standard PET I/O block (PIA1/PIA2/VIA/CRTC) before falling through to firmware,
+        // PIA1's CB1 pulse (~60Hz) actually reaches the chip and asserts IRQ periodically. If this
+        // ever goes back to 0, the boot is frozen again.
+        var session = new PetDebuggerSession();
+        session.Execute("profile superpet");
+        session.Execute($"roms {RomsRoot()}");
+
+        var result = session.Execute("via-irq-check 60000");
+
+        result.Should().MatchRegex(@"^VIA\.IRQ true on 0/60000 \(last -1\); PIA1\.IRQ true on \d+/60000 \(last \d+\); ACIA\.Irq true on 0/60000 \(last -1\)$");
+        result.Should().NotContain("PIA1.IRQ true on 0/60000");
     }
 
     [Test]

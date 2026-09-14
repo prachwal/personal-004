@@ -11,7 +11,7 @@ public readonly struct DirEntry
     public int SizeInSectors { get; }
 
     public string Filename =>
-        System.Text.Encoding.ASCII.GetString(FilenameBytes).TrimEnd('\xA0', '\x00', ' ');
+        System.Text.Encoding.Latin1.GetString(FilenameBytes).TrimEnd('\xA0', '\x00', ' ');
 
     public DirEntry(
         FileType type, bool isClosed, bool isLocked,

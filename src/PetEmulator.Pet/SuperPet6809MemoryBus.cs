@@ -53,6 +53,8 @@ public sealed class SuperPet6809MemoryBus : IMemoryBus
             value = _acia.Read(address);
         else if (InRange(address, SuperPetMemoryMap.ExpansionRamWindow, SuperPetMemoryMap.ExpansionRamWindowLength))
             value = _expansionRam[ExpansionOffset(address)];
+        else if (IsStandardPetIoRegister(address))
+            value = _petBus.Read(address);
         else
             value = TryFindFirmware(address, out var image)
                 ? image.Data[address - image.Requirement.Address]
@@ -90,6 +92,13 @@ public sealed class SuperPet6809MemoryBus : IMemoryBus
             return;
         }
 
+        if (IsStandardPetIoRegister(address))
+        {
+            _petBus.Write(address, value);
+            Observer?.Invoke(new BusAccess(IsWrite: true, address, value));
+            return;
+        }
+
         if (TryFindFirmware(address, out _))
         {
             Observer?.Invoke(new BusAccess(IsWrite: true, address, value));
@@ -118,6 +127,21 @@ public sealed class SuperPet6809MemoryBus : IMemoryBus
 
     private static bool InRange(ushort address, ushort baseAddress, uint length) =>
         address >= baseAddress && address < baseAddress + length;
+
+    /// <summary>PIA1/PIA2/VIA/CRTC at $E810/$E820/$E840/$E880 - the standard PET I/O block that
+    /// sits inside the Waterloo <c>waterloo-e000-ffff</c> ROM image's declared $E000-$FFFF range.
+    /// That ROM requirement covers the address space byte-for-byte but real hardware's address
+    /// decoder gives these chips priority over the ROM in this sub-range (a "hole" punched in the
+    /// ROM, same as stock PET). Without this check <see cref="TryFindFirmware"/> would claim these
+    /// addresses first and silently drop writes / return stale ROM bytes on reads - which is
+    /// exactly what made PIA1's CRB write (the one that arms the CB1/jiffy-clock interrupt the
+    /// Waterloo keyboard-buffer feed depends on) a no-op, hanging the 6809 boot forever waiting on
+    /// an interrupt that could never fire. See docs/pet/superpet-6809-boot-hang.md.</summary>
+    private static bool IsStandardPetIoRegister(ushort address) =>
+        InRange(address, PetMemoryBus.Pia1Base, 4) ||
+        InRange(address, PetMemoryBus.Pia2Base, 4) ||
+        InRange(address, PetMemoryBus.ViaBase, 16) ||
+        InRange(address, PetMemoryBus.CrtcBase, 2);
 
     private int ExpansionOffset(ushort address) =>
         (_selectedBank * SuperPetMemoryMap.ExpansionRamWindowLength) +

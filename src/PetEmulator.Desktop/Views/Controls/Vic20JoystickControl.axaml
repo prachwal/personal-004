@@ -3,18 +3,71 @@
              xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
              x:Class="PetEmulator.Desktop.Views.Controls.Vic20JoystickControl"
              x:DataType="viewModels:Vic20MachineViewModel">
-    <Border Padding="8"
+    <!-- "joystick-button"/"joystick-fire" were referenced below with no matching Style anywhere
+         in the app (checked: not in App.axaml, not here) - every button rendered as an unstyled
+         default FluentTheme button. Scoped locally (not in App.axaml) since these classes only
+         mean something on this control, same pattern EmulatorKeyboardView uses for its own. -->
+    <UserControl.Styles>
+        <Style Selector="Button.joystick-button">
+            <Setter Property="Width" Value="52" />
+            <Setter Property="Height" Value="52" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Background" Value="#FF2A2A2A" />
+            <Setter Property="BorderBrush" Value="#FF565656" />
+            <Setter Property="BorderThickness" Value="1.5" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Foreground" Value="#FFE8E8E8" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.joystick-button:pointerover">
+            <Setter Property="Background" Value="#FF3C3C3C" />
+        </Style>
+        <Style Selector="Button.joystick-button:pressed">
+            <Setter Property="Background" Value="#FF141414" />
+            <Setter Property="BorderBrush" Value="#FF65C466" />
+            <Setter Property="Foreground" Value="#FF65C466" />
+        </Style>
+
+        <Style Selector="Button.joystick-fire">
+            <Setter Property="Width" Value="52" />
+            <Setter Property="Height" Value="52" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Background" Value="#FF7A2020" />
+            <Setter Property="BorderBrush" Value="#FFB33A3A" />
+            <Setter Property="BorderThickness" Value="1.5" />
+            <Setter Property="CornerRadius" Value="26" />
+            <Setter Property="Foreground" Value="#FFF0DEDE" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.joystick-fire:pointerover">
+            <Setter Property="Background" Value="#FF9A2A2A" />
+        </Style>
+        <Style Selector="Button.joystick-fire:pressed">
+            <Setter Property="Background" Value="#FF3A0F0F" />
+            <Setter Property="BorderBrush" Value="#FFE05050" />
+            <Setter Property="Foreground" Value="#FFE05050" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Padding="10"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
             Background="{DynamicResource DeviceBarBackgroundBrush}"
-            CornerRadius="4">
-        <StackPanel Spacing="6">
+            BorderBrush="#FF3A3A3A"
+            BorderThickness="1"
+            CornerRadius="6">
+        <StackPanel Spacing="8">
             <TextBlock HorizontalAlignment="Center"
                        Text="JOYSTICK"
                        FontFamily="monospace"
-                       FontSize="11" />
-            <Grid Width="168"
-                  Height="168"
+                       FontSize="11"
+                       Foreground="{DynamicResource DeviceStatusTextBrush}" />
+            <Grid Width="176"
+                  Height="176"
                   RowDefinitions="*,*,*"
                   ColumnDefinitions="*,*,*">
                 <Button Grid.Row="0" Grid.Column="1" Tag="Up" Content="▲" Classes="joystick-button" />

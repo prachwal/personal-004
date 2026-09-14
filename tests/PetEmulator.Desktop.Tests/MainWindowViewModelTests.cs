@@ -70,6 +70,8 @@ public sealed class MainWindowViewModelTests
         public Task<string?> PickTapeToOpenAsync() => Task.FromResult<string?>(null);
         public Task<string?> PickDiskToOpenAsync() => Task.FromResult<string?>(null);
         public Task<string?> PickDiskToSaveAsync() => Task.FromResult<string?>(null);
+        public Task<string?> PickHostFileToOpenAsync() => Task.FromResult<string?>(null);
+        public Task<string?> PickHostFileToSaveAsync(string suggestedFileName) => Task.FromResult<string?>(null);
         public Task<string?> PickCartridgeToOpenAsync() => Task.FromResult<string?>(null);
         public Task<string?> PickCartridgePluginToOpenAsync() => Task.FromResult<string?>(null);
     }

@@ -33,6 +33,12 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
     [ObservableProperty]
     private IReadOnlyList<IDeviceStatus> _devices = [];
 
+    /// <summary>Whether the on-screen keyboard overlay is shown. Off by default - it's an
+    /// optional aid for clicking keys with a mouse, not the primary input path (a real keyboard
+    /// still works via <see cref="HandleKey"/>), so it shouldn't occupy screen space unasked.</summary>
+    [ObservableProperty]
+    private bool _isKeyboardVisible;
+
     public KayproMachineViewModel(string romsRoot)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
@@ -83,6 +89,11 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
             return;
         _machine.FeedKeyboardByte(value);
     }
+
+    /// <summary>Feeds one byte straight to the keyboard SIO line, bypassing host-key translation -
+    /// for the on-screen keyboard (KayproKeyboardLayoutFactory), whose keys already carry their
+    /// resolved byte as their signal.</summary>
+    public void SendKeyboardByte(byte value) => _machine.FeedKeyboardByte(value);
 
     public void Tick()
     {

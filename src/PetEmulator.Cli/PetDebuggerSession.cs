@@ -19,8 +19,9 @@ namespace PetEmulator.Cli;
 /// <remarks>
 /// Construction commands (<c>profile</c>/<c>roms</c>/<c>keymap</c>/<c>tape</c>/<c>disk</c>/
 /// <c>play</c>/<c>stop</c>/<c>eject</c>/<c>key</c>/<c>type</c>/<c>devices</c>/<c>status</c>/
-/// <c>trace-log</c>/<c>superpet-diagnose</c>/<c>disk-stall-check</c>) live here, PET-specific
-/// (<c>trace-log</c>/<c>disk-stall-check</c> wrap <see cref="InstructionTracer"/>/
+/// <c>trace-log</c>/<c>superpet-diagnose</c>/<c>superpet-boot-checkpoints</c>/<c>disk-stall-check</c>/
+/// <c>via-irq-check</c>) live
+/// here, PET-specific (<c>trace-log</c>/<c>disk-stall-check</c> wrap <see cref="InstructionTracer"/>/
 /// <see cref="MachineExtensions.RunUntilOrStalled"/> - see docs/pet/debug-tools.md). Everything else
 /// (<c>trace</c>/<c>watch</c>/<c>watch-range</c>/<c>unwatch</c>/<c>break-cycle</c>/
 /// <c>break-instruction-count</c>/<c>dump</c>) is CPU-agnostic and already implemented once in
@@ -63,6 +64,10 @@ public sealed class PetDebuggerSession
                 "status" => Status(),
                 "trace-log" => TraceLog(int.Parse(parts[1], CultureInfo.InvariantCulture), parts[2]),
                 "superpet-diagnose" => SuperPetDiagnose(parts.Length > 1 ? int.Parse(parts[1], CultureInfo.InvariantCulture) : 16),
+                "superpet-boot-checkpoints" => SuperPetBootCheckpointsCommand(
+                    ulong.Parse(parts[1], CultureInfo.InvariantCulture),
+                    parts.Length > 2 ? parts[2] : null),
+                "via-irq-check" => ViaIrqCheck(ulong.Parse(parts[1], CultureInfo.InvariantCulture)),
                 "disk-stall-check" => DiskStallCheck(
                     ulong.Parse(parts[1], CultureInfo.InvariantCulture),
                     parts.Length > 2 ? ulong.Parse(parts[2], CultureInfo.InvariantCulture) : 50_000),
@@ -208,6 +213,65 @@ public sealed class PetDebuggerSession
 
     private string SuperPetDiagnose(int instructionCount) =>
         EnsureMachine().DiagnoseSuperPet6809Startup(instructionCount).Render();
+
+    /// <summary>Runs a SuperPET 6809 boot up to <paramref name="maxInstructions"/> steps and reports
+    /// which named boot stages (<see cref="SuperPetBootCheckpoints.WellKnown"/>) were reached, with a
+    /// full register + watched-memory snapshot each time, and which were never reached at all -
+    /// bounded by construction, unlike <c>superpet-diagnose</c>/<c>trace</c> which both OOM well
+    /// before the instruction counts a real boot needs (see docs/pet/superpet-6809-boot-hang.md's
+    /// "Tooling gap" section). When <paramref name="path"/> is given the full report is also written
+    /// there so a run doesn't need to be repeated to look at it again.</summary>
+    private string SuperPetBootCheckpointsCommand(ulong maxInstructions, string? path)
+    {
+        var report = SuperPetBootCheckpoints.Run(EnsureMachine(), maxInstructions);
+        var rendered = report.Render();
+        if (path is not null)
+            File.WriteAllText(path, rendered);
+
+        return path is null
+            ? rendered
+            : $"boot-checkpoints written: {Path.GetFullPath(path)} " +
+              $"({report.Hits.Count} hits, {report.NeverReached.Count} never reached)";
+    }
+
+    /// <summary>Steps <paramref name="steps"/> instructions sampling <see cref="PetMachine.Via"/>'s,
+    /// <see cref="PetMachine.Pia1"/>'s and <see cref="PetMachine.Acia"/>'s IRQ lines after each one -
+    /// answers "is anything actually interrupting" without writing a one-off instrumented test every
+    /// time that question comes up (see docs/pet/superpet-6809-boot-hang.md, which needed exactly
+    /// this and had none available).</summary>
+    private string ViaIrqCheck(ulong steps)
+    {
+        var machine = EnsureMachine();
+        var viaTrueCount = 0UL;
+        var lastViaTrueAt = -1L;
+        var pia1TrueCount = 0UL;
+        var lastPia1TrueAt = -1L;
+        var aciaTrueCount = 0UL;
+        var lastAciaTrueAt = -1L;
+        for (var i = 0UL; i < steps; i++)
+        {
+            machine.StepInstruction();
+            if (machine.Via.IRQ)
+            {
+                viaTrueCount++;
+                lastViaTrueAt = (long)i;
+            }
+            if (machine.Pia1.IRQ)
+            {
+                pia1TrueCount++;
+                lastPia1TrueAt = (long)i;
+            }
+            if (machine.Acia?.Irq == true)
+            {
+                aciaTrueCount++;
+                lastAciaTrueAt = (long)i;
+            }
+        }
+
+        return $"VIA.IRQ true on {viaTrueCount}/{steps} (last {lastViaTrueAt}); " +
+            $"PIA1.IRQ true on {pia1TrueCount}/{steps} (last {lastPia1TrueAt}); " +
+            $"ACIA.Irq true on {aciaTrueCount}/{steps} (last {lastAciaTrueAt})";
+    }
 
     /// <summary>Runs up to <paramref name="maxInstructions"/> instructions watching
     /// <see cref="PetMachine.IeeeByteTransferCount"/> for a plateau (<see cref="MachineExtensions.RunUntilOrStalled"/>)

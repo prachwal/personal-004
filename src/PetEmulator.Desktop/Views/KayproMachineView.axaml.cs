@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using PetEmulator.Desktop.ViewModels;
+using PetEmulator.Desktop.Views.Controls;
 
 namespace PetEmulator.Desktop.Views;
 
@@ -30,6 +31,13 @@ public partial class KayproMachineView : UserControl
         _wired.GeometryChanged += OnGeometryChanged;
         SetScreenSize();
         Screen.Focus();
+
+        var machine = _wired;
+        OnScreenKeyboard.Configure(KayproKeyboardLayoutFactory.Build(), (signal, pressed) =>
+        {
+            if (pressed && KayproKeyboardLayoutFactory.TryParseSignal(signal, out var value))
+                machine.SendKeyboardByte(value);
+        });
     }
 
     private void OnFrameReady(object? sender, EventArgs e) => Screen.UpdateFrame(_wired!.FrameBuffer);

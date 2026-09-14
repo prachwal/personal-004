@@ -26,6 +26,26 @@ public sealed partial class KeyboardMatrixViewModel : ObservableObject, IShellMo
     public ObservableCollection<KeyboardCell> Cells { get; }
     public string ReadColumnsText => $"0x{ReadColumns(0):X2}";
 
+    /// <summary>Drives the PET matrix directly from an on-screen keyboard's signal callback
+    /// (see PetGraphicsKeyboardLayoutFactory), bypassing the raw-cell ToggleButton grid.</summary>
+    public void SetPetMatrixCell(int row, int column, bool pressed)
+    {
+        if (pressed) _pet.Press(row, column); else _pet.Release(row, column);
+        OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(ReadColumnsText));
+    }
+
+    /// <summary>Drives the VIC-20 matrix from an on-screen keyboard's signal callback (see
+    /// Vic20KeyboardLayoutFactory). Also asserts just that cell's row, same as
+    /// <see cref="ToggleCell"/> does - nothing else scans this standalone matrix.</summary>
+    public void SetVicMatrixCell(int row, int column, bool pressed)
+    {
+        if (pressed) _vic.Press(row, column); else _vic.Release(row, column);
+        _vic.SetRowSelect((byte)~(1 << row));
+        OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(ReadColumnsText));
+    }
+
     partial void OnSelectedMachineChanged(string value)
     {
         Rebuild();

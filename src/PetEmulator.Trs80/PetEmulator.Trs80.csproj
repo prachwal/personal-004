@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>PetEmulator.Trs80</RootNamespace>
+  </PropertyGroup>
+</Project>
