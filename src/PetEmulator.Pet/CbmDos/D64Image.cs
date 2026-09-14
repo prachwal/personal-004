@@ -39,6 +39,11 @@ public sealed class D64Image
 
     public static D64Image Load(byte[] data) => Parse(data);
 
+    /// <summary>Content-based sniff for format detection: D64 has no magic byte, so the only
+    /// signal available is file length matching one of the standard 1541 image sizes (with or
+    /// without the trailing per-track error-info bytes some tools append).</summary>
+    public static bool LooksLikeD64(byte[] data) => data.Length is 174848 or 175531 or 196608 or 197376;
+
     private static D64Image Parse(byte[] data)
     {
         int bamOff = TrackSectorToOffset(18, 0);
@@ -264,6 +269,190 @@ public sealed class D64Image
             throw new ArgumentException("Sector data must be 256 bytes", nameof(data));
         int off = TrackSectorToOffset(track, sector);
         Array.Copy(data, 0, _data, off, 256);
+    }
+
+    public byte[] ReadSector(int track, int sector)
+    {
+        var data = new byte[256];
+        Array.Copy(_data, TrackSectorToOffset(track, sector), data, 0, data.Length);
+        return data;
+    }
+
+    public void CreateFile(string filename, ReadOnlySpan<byte> content, FileType type = FileType.Seq)
+    {
+        ValidateFilename(filename);
+        if (ReadDirectory().Any(entry => entry.Filename.Equals(filename, StringComparison.OrdinalIgnoreCase)))
+            throw new IOException($"File already exists: {filename}");
+
+        var sectors = AllocateFileSectors(content.Length);
+        WriteFileSectors(sectors, content);
+        var entry = new DirEntry(type, true, false,
+            (byte)(sectors.Count == 0 ? 0 : sectors[0].Track),
+            (byte)(sectors.Count == 0 ? 0 : sectors[0].Sector),
+            EncodeFilename(filename), (sectors.Count));
+        if (!TryAddDirectoryEntry(entry))
+        {
+            foreach (var sector in sectors) FreeSector(sector.Track, sector.Sector);
+            throw new IOException("Directory is full.");
+        }
+    }
+
+    public void UpdateFile(string filename, ReadOnlySpan<byte> content)
+    {
+        var entry = FindDirectoryEntry(filename, out _);
+        DeleteFile(filename);
+        try
+        {
+            CreateFile(filename, content, entry.Type);
+        }
+        catch
+        {
+            throw new IOException($"Unable to update file: {filename}");
+        }
+    }
+
+    public void DeleteFile(string filename)
+    {
+        var entry = FindDirectoryEntry(filename, out var offset);
+        FreeFileSectors(entry);
+        _data[offset + 2] = 0;
+    }
+
+    public void RenameFile(string oldName, string newName)
+    {
+        ValidateFilename(newName);
+        if (ReadDirectory().Any(entry => entry.Filename.Equals(newName, StringComparison.OrdinalIgnoreCase)))
+            throw new IOException($"File already exists: {newName}");
+        _ = FindDirectoryEntry(oldName, out var offset);
+        EncodeFilename(newName).CopyTo(_data, offset + 5);
+    }
+
+    private List<(int Track, int Sector)> AllocateFileSectors(int length)
+    {
+        var sectors = new List<(int Track, int Sector)>((length + 253) / 254);
+        while (length > 0)
+        {
+            if (!TryAllocateSector(out var track, out var sector))
+            {
+                foreach (var allocated in sectors) FreeSector(allocated.Track, allocated.Sector);
+                throw new IOException("Disk is full.");
+            }
+            sectors.Add((track, sector));
+            length -= 254;
+        }
+        return sectors;
+    }
+
+    private void WriteFileSectors(IReadOnlyList<(int Track, int Sector)> sectors, ReadOnlySpan<byte> content)
+    {
+        for (var index = 0; index < sectors.Count; index++)
+        {
+            var data = new byte[256];
+            var next = index + 1 < sectors.Count ? sectors[index + 1] : (0, Math.Min(254, content.Length - index * 254));
+            data[0] = (byte)next.Item1;
+            data[1] = (byte)next.Item2;
+            var count = Math.Min(254, content.Length - index * 254);
+            content.Slice(index * 254, count).CopyTo(data.AsSpan(2));
+            WriteSector(sectors[index].Track, sectors[index].Sector, data);
+        }
+    }
+
+    private void FreeFileSectors(DirEntry entry)
+    {
+        var track = entry.StartTrack;
+        var sector = entry.StartSector;
+        var visited = new HashSet<(int, int)>();
+        while (track > 0 && visited.Add((track, sector)))
+        {
+            var offset = TrackSectorToOffset(track, sector);
+            var nextTrack = _data[offset];
+            var nextSector = _data[offset + 1];
+            FreeSector(track, sector);
+            track = nextTrack;
+            sector = nextSector;
+        }
+    }
+
+    private void FreeSector(int track, int sector)
+    {
+        var bamEntry = TrackSectorToOffset(18, 0) + 4 + (track - 1) * 4;
+        var bitmap = _data[bamEntry + 1] | (_data[bamEntry + 2] << 8) | (_data[bamEntry + 3] << 16);
+        if ((bitmap & (1 << sector)) != 0)
+            return;
+        bitmap |= 1 << sector;
+        _data[bamEntry + 1] = (byte)bitmap;
+        _data[bamEntry + 2] = (byte)(bitmap >> 8);
+        _data[bamEntry + 3] = (byte)(bitmap >> 16);
+        _data[bamEntry]++;
+    }
+
+    private bool TryAddDirectoryEntry(DirEntry entry)
+    {
+        var dirTrack = _data[TrackSectorToOffset(18, 0)];
+        var dirSector = _data[TrackSectorToOffset(18, 0) + 1];
+        var track = dirTrack;
+        var sector = dirSector;
+        var visited = new HashSet<(int, int)>();
+        while (track > 0 && visited.Add((track, sector)))
+        {
+            var offset = TrackSectorToOffset(track, sector);
+            for (var index = 0; index < 8; index++)
+            {
+                var entryOffset = offset + index * 32;
+                if (_data[entryOffset + 2] == 0)
+                {
+                    FillDirEntry(entryOffset, entry);
+                    return true;
+                }
+            }
+            track = _data[offset];
+            sector = _data[offset + 1];
+        }
+        return false;
+    }
+
+    private DirEntry FindDirectoryEntry(string filename, out int offset)
+    {
+        ValidateFilename(filename);
+        var target = filename.Trim();
+        var dirTrack = _data[TrackSectorToOffset(18, 0)];
+        var dirSector = _data[TrackSectorToOffset(18, 0) + 1];
+        var visited = new HashSet<(int, int)>();
+        while (dirTrack > 0 && visited.Add((dirTrack, dirSector)))
+        {
+            var sectorOffset = TrackSectorToOffset(dirTrack, dirSector);
+            for (var index = 0; index < 8; index++)
+            {
+                var entryOffset = sectorOffset + index * 32;
+                var type = (FileType)(_data[entryOffset + 2] & 0x07);
+                if (type != 0 && ReadFilename(entryOffset).Equals(target, StringComparison.OrdinalIgnoreCase))
+                {
+                    offset = entryOffset;
+                    return new DirEntry(type, (_data[entryOffset + 2] & 0x80) != 0,
+                        (_data[entryOffset + 2] & 0x40) != 0, _data[entryOffset + 3], _data[entryOffset + 4],
+                        _data.AsSpan(entryOffset + 5, 16).ToArray(), _data[entryOffset + 30] | (_data[entryOffset + 31] << 8));
+                }
+            }
+            dirTrack = _data[sectorOffset];
+            dirSector = _data[sectorOffset + 1];
+        }
+        throw new FileNotFoundException($"File not found: {filename}");
+    }
+
+    private string ReadFilename(int offset) => Encoding.Latin1.GetString(_data, offset + 5, 16)
+        .TrimEnd('\xA0', '\0', ' ');
+
+    private static byte[] EncodeFilename(string filename)
+    {
+        var result = Enumerable.Repeat((byte)0xA0, 16).ToArray();
+        Encoding.ASCII.GetBytes(filename.Trim()).AsSpan(0, Math.Min(16, filename.Trim().Length)).CopyTo(result);
+        return result;
+    }
+
+    private static void ValidateFilename(string filename)
+    {
+        if (string.IsNullOrWhiteSpace(filename) || filename.Trim().Length > 16)
+            throw new ArgumentException("CBM filename must contain 1 to 16 characters.", nameof(filename));
     }
 
     public bool TryAllocateSector(out int track, out int sector)

@@ -3,53 +3,130 @@
              xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
              xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
              x:Class="PetEmulator.Desktop.Views.MediaTesterView"
+             x:Name="Root"
+             DragDrop.AllowDrop="True"
+             DragDrop.Drop="OnDrop"
              x:DataType="viewModels:MediaTesterViewModel">
-    <Grid Margin="16" RowDefinitions="Auto,Auto,*" RowSpacing="10">
-        <TextBlock Text="{Binding StatusText}" FontSize="20" />
-        <Button Grid.Row="1" Content="Open D64..." Command="{Binding OpenDiskCommand}" HorizontalAlignment="Left" />
-        <Grid Grid.Row="2" ColumnDefinitions="320,*" ColumnSpacing="16">
+    <Grid Margin="16" RowDefinitions="Auto,*" RowSpacing="12">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+            <StackPanel Spacing="3">
+                <TextBlock Text="{Binding DiskTitle}" FontSize="20" FontWeight="Bold" />
+                <TextBlock Text="{Binding DiskSummary}" />
+                <TextBlock Text="{Binding StatusText}" FontSize="12" />
+                <TextBlock Text="{Binding OperationStatus}" FontSize="12" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Border Background="DarkGoldenrod" Padding="8,3" CornerRadius="3" IsVisible="{Binding IsReadOnly}">
+                    <TextBlock Text="READ-ONLY" FontWeight="Bold" />
+                </Border>
+                <Button Content="Open" Command="{Binding OpenDiskCommand}" />
+                <Button Content="Save As..." Command="{Binding SaveDiskCommand}" IsEnabled="{Binding HasImage}" />
+                <Button Content="New file" Command="{Binding NewFileCommand}" IsEnabled="{Binding CanModify}" />
+                <Button Content="Import..." Command="{Binding ImportFileCommand}" IsEnabled="{Binding CanModify}" />
+                <Button Content="Export..." Command="{Binding ExportFileCommand}" IsEnabled="{Binding HasImage}" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnDefinitions="1*,2*" ColumnSpacing="12">
             <Border BorderBrush="Gray" BorderThickness="1" Padding="8">
-                <Grid RowDefinitions="Auto,*" RowSpacing="8">
-                    <TextBlock Text="Directory" FontWeight="Bold" />
-                    <ListBox Grid.Row="1" ItemsSource="{Binding Directory}" SelectedItem="{Binding SelectedEntry, Mode=TwoWay}">
+                <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8">
+                    <TextBox PlaceholderText="Filter files..." Text="{Binding FilterText, Mode=TwoWay}" />
+                    <Grid Grid.Row="1" ColumnDefinitions="28,*,Auto,Auto" ColumnSpacing="8">
+                        <TextBlock Text="" />
+                        <Button Grid.Column="1" Content="Name" HorizontalContentAlignment="Left"
+                                Command="{Binding SortByCommand}" CommandParameter="Name" />
+                        <Button Grid.Column="2" Content="Type" Command="{Binding SortByCommand}" CommandParameter="Type" />
+                        <Button Grid.Column="3" Content="Size" Command="{Binding SortByCommand}" CommandParameter="Size" />
+                    </Grid>
+                    <ListBox Grid.Row="2"
+                             ItemsSource="{Binding FilteredDirectory}"
+                             SelectedItem="{Binding SelectedEntry, Mode=TwoWay}">
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="viewModels:MediaDirectoryEntry">
-                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" Margin="0,3">
-                                    <TextBlock Text="{Binding Name}" FontFamily="monospace" />
-                                    <TextBlock Grid.Column="1" Text="{Binding Type}" />
-                                    <TextBlock Grid.Column="2" Text="{Binding SizeInSectors, StringFormat='{}{0} blocks'}" />
+                                <Grid ColumnDefinitions="28,*,Auto,Auto" ColumnSpacing="8" Margin="0,3"
+                                      PointerPressed="OnDirectoryPointerPressed">
+                                    <Grid.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Rename" Command="{Binding #Root.DataContext.RenameFileCommand}" />
+                                            <MenuItem Header="Delete" Command="{Binding #Root.DataContext.DeleteFileCommand}" />
+                                            <Separator />
+                                            <MenuItem Header="Export..." Command="{Binding #Root.DataContext.ExportFileCommand}" />
+                                        </ContextMenu>
+                                    </Grid.ContextMenu>
+                                    <TextBlock Text="{Binding TypeGlyph}" FontSize="16" HorizontalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontFamily="monospace" />
+                                    <TextBlock Grid.Column="2" Text="{Binding Type}" />
+                                    <TextBlock Grid.Column="3" Text="{Binding SizeInSectors, StringFormat='{}{0} blk'}" />
                                 </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
                 </Grid>
             </Border>
-            <Grid Grid.Column="1" RowDefinitions="Auto,Auto,Auto,Auto,180,Auto,*" RowSpacing="8">
-                <TextBlock Text="{Binding PreviewTitle}" FontSize="20" FontWeight="Bold" />
-                <TextBlock Grid.Row="1" Text="{Binding DiskTitle}" />
-                <TextBlock Grid.Row="2" Text="{Binding StartAddress}" FontFamily="monospace" />
-                <TextBlock Grid.Row="3" Text="Sector map (red: allocated, blue: selected file, gray: free)" FontWeight="Bold" />
-                <ScrollViewer Grid.Row="4" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <ItemsControl ItemsSource="{Binding SectorMap}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="viewModels:MediaSectorViewModel">
-                                <Border Width="14" Height="14" Margin="1" Background="{Binding Brush}" ToolTip.Tip="{Binding ToolTip}" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-                <TextBlock Grid.Row="5" Text="File preview" FontWeight="Bold" />
-                <controls:HexTextPreviewControl Grid.Row="6"
-                                                Bytes="{Binding PreviewBytes}"
-                                                StartAddress="{Binding PreviewStartAddress}"
-                                                BytesPerLine="40"
-                                                MaxLines="16" />
-            </Grid>
+
+            <TabControl Grid.Column="1">
+                <TabItem Header="Preview">
+                    <Grid Margin="8" RowDefinitions="Auto,Auto,Auto,*,Auto,2*" RowSpacing="8">
+                        <TextBlock Text="{Binding PreviewTitle}" FontSize="20" FontWeight="Bold" />
+                        <TextBlock Grid.Row="1" Text="{Binding StartAddress}" FontFamily="monospace" />
+                        <TextBlock Grid.Row="2" Text="Sector map: red allocated, blue selected, gray free" FontWeight="Bold" />
+                        <ScrollViewer Grid.Row="3" MinHeight="80" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding SectorMap}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="viewModels:MediaSectorViewModel">
+                                        <Border Width="14" Height="14" Margin="1" Background="{Binding Brush}" ToolTip.Tip="{Binding ToolTip}"
+                                                PointerPressed="OnSectorPointerPressed" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <TextBlock Grid.Row="4" Text="Hex / ASCII preview" FontWeight="Bold" />
+                        <controls:HexTextPreviewControl Grid.Row="5"
+                                                        Bytes="{Binding PreviewBytes}"
+                                                        StartAddress="{Binding PreviewStartAddress}"
+                                                        BytesPerLine="16"
+                                                        MaxLines="32" />
+                    </Grid>
+                </TabItem>
+                <TabItem Header="Edit" IsEnabled="{Binding IsEditPanelVisible}">
+                    <Grid Margin="2" RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="3">
+                        <Grid ColumnDefinitions="Auto,*,Auto,90" ColumnSpacing="4">
+                            <TextBlock Text="File" Margin="0,0,2,0" VerticalAlignment="Center" />
+                            <TextBox Grid.Column="1" Padding="4,1" MinHeight="0" Height="26"
+                                     Text="{Binding FileName, Mode=TwoWay}" />
+                            <TextBlock Grid.Column="2" Text="Type" Margin="8,0,2,0" VerticalAlignment="Center" />
+                            <TextBox Grid.Column="3" Padding="4,1" MinHeight="0" Height="26"
+                                     Text="{Binding FileType, Mode=TwoWay}" />
+                        </Grid>
+                        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="4">
+                            <TextBlock Text="New" Margin="0,0,2,0" VerticalAlignment="Center" />
+                            <TextBox Grid.Column="1" Padding="4,1" MinHeight="0" Height="26"
+                                     Text="{Binding NewFileName, Mode=TwoWay}" />
+                            <Button Grid.Column="2" Content="Close" Padding="8,1"
+                                    Command="{Binding CloseEditorCommand}" />
+                        </Grid>
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="4">
+                            <Button Content="Create" Padding="8,1" Command="{Binding CreateFileCommand}" IsEnabled="{Binding CanModify}" />
+                            <Button Content="Update" Padding="8,1" Command="{Binding UpdateFileCommand}" IsEnabled="{Binding CanModify}" />
+                            <Button Content="Rename" Padding="8,1" Command="{Binding RenameFileCommand}" IsEnabled="{Binding CanModify}" />
+                            <Button Content="Delete" Padding="8,1" Command="{Binding DeleteFileCommand}" IsEnabled="{Binding CanModify}" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="3" Spacing="1">
+                            <TextBlock Text="{Binding ContentSummary}" FontSize="12" />
+                            <TextBlock Text="{Binding ValidationError}" Foreground="Red" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <controls:HexEditorControl Grid.Row="4"
+                                                   Bytes="{Binding ContentBytes, Mode=TwoWay}"
+                                                   IsReadOnly="{Binding IsReadOnly}"
+                                                   BytesPerLine="8" />
+                    </Grid>
+                </TabItem>
+            </TabControl>
         </Grid>
     </Grid>
 </UserControl>
