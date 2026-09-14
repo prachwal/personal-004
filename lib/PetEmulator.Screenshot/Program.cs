@@ -18,7 +18,7 @@ namespace PetEmulator.Screenshot;
 /// (import/scrot/xwd) and installing one needs root it doesn't have.
 ///
 /// Usage: dotnet run --project lib/PetEmulator.Screenshot -- [--machine pet|vic20]
-///   [--ticks N] [--out path.png]
+///   [--ticks N] [--out path.png] [--cartridge path.crt] [--type "text"]
 /// </summary>
 internal static class Program
 {
@@ -48,6 +48,33 @@ internal static class Program
         }
 
         var machineViewModel = (IMachineViewModel)viewModel.CurrentModule;
+
+        var cartridgePath = ArgValue(args, "--cartridge");
+        if (cartridgePath is not null)
+        {
+            // Mounted before any Tick() runs, same as Vic20DebuggerSession's "cartridge" command -
+            // the machine's CPU hasn't executed a single instruction yet at this point (only
+            // Vic20Machine's constructor-time Reset() has run), so the KERNAL's own cold-start
+            // still gets to discover the freshly-inserted cartridge signature normally; no extra
+            // Reset() call needed here.
+            ((Vic20MachineViewModel)machineViewModel).LoadCartridge(cartridgePath);
+        }
+
+        // Stop viewModel's own 20ms render-loop DispatcherTimer as early as possible - this tool
+        // never needs it (it drives every Tick() manually below) and it is actively dangerous to
+        // leave armed: window.KeyPress/KeyRelease (used by the routed --type path further down)
+        // call Avalonia's own HeadlessWindowExtensions.RunJobsOnImpl internally, which itself
+        // calls the same unbounded Dispatcher.UIThread.RunJobs() this file's own end-of-run
+        // comment already warned about - "draining the job queue with one still armed never
+        // returns" (a self-re-enqueuing timer means the queue is never empty). That hazard used
+        // to be worked around only for the FINAL RunJobs() call below (by disposing viewModel
+        // first) but not for window.KeyPress/KeyRelease's own internal one, which hung for hours
+        // (not a busy spin - genuinely blocked) the first time --type ran without --direct on a
+        // machine with real on-screen content. Disposing here, before either the tick loop or
+        // --type ever call anything Avalonia-routed, removes the hazard at its source instead of
+        // dodging it call-by-call. CurrentModule.Dispose() (audio output) is harmless this early
+        // too - nothing after this point needs live audio.
+        viewModel.Dispose();
 
         // Tick the machine directly the same number of times real wall-clock ticks would -
         // PetMachineViewModel/Vic20MachineViewModel.Tick() raises FrameReady synchronously, which
@@ -92,13 +119,9 @@ internal static class Program
             }
         }
 
-        // viewModel's own DispatcherTimer (the real 20ms render-loop cadence a running app uses)
-        // is still live at this point and would keep re-enqueueing itself forever under
-        // RunJobs() - a headless dispatcher fast-forwards time for pending timers instead of
-        // waiting on the wall clock, so draining the queue with one still armed never
-        // terminates. Stop it before pumping the dispatcher to flush the one pending
+        // viewModel (and its DispatcherTimer) was already disposed above, before anything
+        // Avalonia-routed ran - safe to pump the dispatcher now to flush the one pending
         // layout/render pass PetScreenControl.InvalidateVisual() actually needs.
-        viewModel.Dispose();
         Dispatcher.UIThread.RunJobs();
 
         using var frame = window.CaptureRenderedFrame() ?? throw new InvalidOperationException("Headless capture returned no frame.");
