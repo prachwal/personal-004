@@ -308,6 +308,85 @@ public class InterruptTests
     }
 
     [Test]
+    public void IRQ_PushesTheFullFrameInRealHardwareByteOrder()
+    {
+        // Regression pin for docs/pet/superpet-6809-boot-hang.md: PushFullFrame used to push
+        // CC first and PC last, the exact reverse of real 6809 hardware (PC first, CC last) - so
+        // after the push, CC ended up at the highest address and PC's own bytes landed where CC/A
+        // belonged, with X and Y silently swapped in between. RTI (which pops in the documented
+        // [CC,A,B,DP,X,Y,U,PC] order - see RTI_PullsFullFrameWhenESet above, which writes memory
+        // in exactly that low-to-high order) would then resume at a garbage address instead of the
+        // interrupted PC. This is exactly what happened live: the SuperPET 6809 Waterloo ROM's
+        // first-ever IRQ corrupted its own return address and wandered into zeroed RAM, crashing
+        // before it ever reached the code that prints the "Waterloo microSystems...Select:" menu -
+        // fixing this one push order was the actual fix that made the menu render at all.
+        var memory = new RamMemoryBus(0x10000);
+        memory.Write(0xFFFE, 0x00);
+        memory.Write(0xFFFF, 0x00);
+        memory.Write(0xFFF8, 0x25);
+        memory.Write(0xFFF9, 0x00);
+        var cpu = new M6809Cpu(memory);
+        cpu.Reset();
+
+        cpu.State.S = 0x2000;
+        cpu.State.PC = 0x1234;
+        cpu.State.A = 0x11;
+        cpu.State.B = 0x22;
+        cpu.State.DP = 0x33;
+        cpu.State.X = 0x4455;
+        cpu.State.Y = 0x6677;
+        cpu.State.U = 0x8899;
+        cpu.State.Flags.I = false;
+
+        cpu.RequestIrq();
+        cpu.Step();
+
+        cpu.State.S.Should().Be(0x1FF4, "a full 12-byte frame was pushed");
+        // Real 6809 hardware layout, low address to high: CC, A, B, DP, X, Y, U, PC - matching
+        // RTI_PullsFullFrameWhenESet above, which writes memory in this exact order and expects
+        // RTI to restore it correctly.
+        memory.Read(0x1FF5).Should().Be(0x11, "A");
+        memory.Read(0x1FF6).Should().Be(0x22, "B");
+        memory.Read(0x1FF7).Should().Be(0x33, "DP");
+        memory.Read(0x1FF8).Should().Be(0x44, "X high byte");
+        memory.Read(0x1FF9).Should().Be(0x55, "X low byte");
+        memory.Read(0x1FFA).Should().Be(0x66, "Y high byte");
+        memory.Read(0x1FFB).Should().Be(0x77, "Y low byte");
+        memory.Read(0x1FFC).Should().Be(0x88, "U high byte");
+        memory.Read(0x1FFD).Should().Be(0x99, "U low byte");
+        memory.Read(0x1FFE).Should().Be(0x12, "PC high byte");
+        memory.Read(0x1FFF).Should().Be(0x34, "PC low byte - the interrupted return address, not swapped with anything");
+    }
+
+    [Test]
+    public void FIRQ_PushesTheFastFrameInRealHardwareByteOrder()
+    {
+        // Same bug, 3-byte frame: PushFastFrame used to push CC before PC, so RTI's [CC,PC] pop
+        // (see the E-clear branch exercised by RTI_PullsOnlyPCWhenEClear) would read PC's own high
+        // byte as CC and get a 1-byte-short address for PC. Real order is PC then CC.
+        var memory = new RamMemoryBus(0x10000);
+        memory.Write(0xFFFE, 0x00);
+        memory.Write(0xFFFF, 0x00);
+        memory.Write(0xFFF6, 0x35);
+        memory.Write(0xFFF7, 0x00);
+        var cpu = new M6809Cpu(memory);
+        cpu.Reset();
+
+        cpu.State.S = 0x2000;
+        cpu.State.PC = 0x1234;
+        cpu.State.Flags.F = false;
+
+        cpu.RequestFirq();
+        cpu.Step();
+
+        cpu.State.S.Should().Be(0x1FFD, "a 3-byte frame was pushed");
+        // PC is pushed first (ends up at the higher addresses), CC last (final/lowest S) -
+        // 0x1FFD holds CC, not asserted here since its exact bits depend on flags entering the call.
+        memory.Read(0x1FFE).Should().Be(0x12, "PC high byte");
+        memory.Read(0x1FFF).Should().Be(0x34, "PC low byte");
+    }
+
+    [Test]
     public void FIRQ_BlockedByFFlag()
     {
         var memory = new RamMemoryBus(0x10000);

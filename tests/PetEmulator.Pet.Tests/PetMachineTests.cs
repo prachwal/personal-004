@@ -64,6 +64,52 @@ public sealed class PetMachineTests
     }
 
     [Test]
+    public void BusObserver_SeesSuperPet6809SpecificBusHandling_NotJustTheSharedPetBus()
+    {
+        // Regression pin for a bug found while diagnosing docs/pet/superpet-6809-boot-hang.md:
+        // BusObserver used to always read/write the shared PetMemoryBus's Observer, regardless of
+        // which CPU was active. While the SuperPET 6809 was selected, that made every access
+        // SuperPet6809MemoryBus handles itself before falling through (bank-select $EFFC, the
+        // protection dongle, ACIA-via-6809) silently invisible to InstructionTracer/trace-log -
+        // an observability bug, not a functional one, but one that made this very investigation's
+        // own tooling under-report real bus activity.
+        var profile = PetProfileCatalog.SuperPet6502;
+        var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
+        var romsRoot = Directory.GetParent(profileDirectory)!.FullName;
+        var machine = new PetMachine(profile, romsRoot, serialTransport: new BufferedSerialTransport());
+        machine.SelectProcessor(SuperPetProcessor.Motorola6809);
+        var bankSelectWrites = new List<byte>();
+        machine.BusObserver = access =>
+        {
+            if (access.IsWrite && access.Address == SuperPetMemoryMap.BankSelectRegister)
+                bankSelectWrites.Add(access.Value);
+        };
+
+        machine.Memory.Write(SuperPetMemoryMap.BankSelectRegister, 0x07);
+
+        bankSelectWrites.Should().Equal(0x07);
+    }
+
+    [Test]
+    public void BusObserver_MovesToWhicheverBusIsActive_AcrossALiveProcessorSwitch()
+    {
+        var profile = PetProfileCatalog.SuperPet6502;
+        var profileDirectory = RomLocator.Directory(profile.RomDirectory, profile.RomManifest[0].Path);
+        var romsRoot = Directory.GetParent(profileDirectory)!.FullName;
+        var machine = new PetMachine(profile, romsRoot, serialTransport: new BufferedSerialTransport());
+        var accesses = new List<BusAccess>();
+        machine.BusObserver = accesses.Add;
+
+        machine.SelectProcessor(SuperPetProcessor.Motorola6809);
+        machine.Memory.Write(SuperPetMemoryMap.BankSelectRegister, 0x03);
+        machine.SelectProcessor(SuperPetProcessor.Mos6502);
+        machine.Memory.Write(0x0100, 0x42);
+
+        accesses.Should().Contain(a => a.IsWrite && a.Address == SuperPetMemoryMap.BankSelectRegister && a.Value == 0x03);
+        accesses.Should().Contain(a => a.IsWrite && a.Address == 0x0100 && a.Value == 0x42);
+    }
+
+    [Test]
     public void RunUntilOrStalled_MeetsCondition_WhenItBecomesTrueBeforeAnyStallWindow()
     {
         var machine = CreateMachine(PetProfileCatalog.Pet2001_8);
@@ -276,6 +322,36 @@ public sealed class PetMachineTests
         machine.SelectedProcessor.Should().Be(expected);
         machine.SuperPet6809Cpu.Should().NotBeNull();
         machine.SuperPetProtectionDongle.Should().NotBeNull();
+    }
+
+    [Test]
+    [CancelAfter(30_000)]
+    public void SuperPet_BootsInMotorola6809Mode_AndReachesTheRealKeyboardMatrixScanLoop()
+    {
+        // Runs the SuperPET the way a user actually launches it: the "superpet" profile powers on
+        // straight into 6809 mode (SuperPetProfile_SelectsItsProcessorModeAtPowerOn above pins
+        // that), so no explicit SelectProcessor call here - CreateMachine already did it via
+        // profile.InitialProcessor. Bounded (unlike the [Explicit] EveryImplementedProfile sweep)
+        // so this runs in every default test pass, not just an opt-in sweep - it's the permanent,
+        // always-on proof that docs/pet/superpet-6809-boot-hang.md's fix holds: before it, this
+        // exact run would have frozen forever in the $D6B4/$DD82 two-instruction loop; the real
+        // keyboard matrix scan at $DF2F ($E810 row-select write, $E812 column-read) is the
+        // furthest-verified stage of a healthy 6809 boot (see SuperPetBootCheckpoints.WellKnown).
+        var machine = CreateMachine(PetProfileCatalog.SuperPet);
+        machine.SelectedProcessor.Should().Be(SuperPetProcessor.Motorola6809);
+        var cpu = machine.SuperPet6809Cpu!;
+        var reachedKeyboardScan = false;
+
+        for (var i = 0; i < 30_000 && !reachedKeyboardScan; i++)
+        {
+            reachedKeyboardScan = cpu.State.PC == 0xDF2F;
+            machine.StepInstruction();
+        }
+
+        cpu.Halted.Should().BeFalse();
+        reachedKeyboardScan.Should().BeTrue(
+            "a healthy boot reaches the real keyboard matrix scan well within 30,000 instructions " +
+            "(observed around instruction 22,064) - never reaching it means the boot is frozen again");
     }
 
     [Test]

@@ -151,19 +151,51 @@ public sealed class PetMachine : IMachine
     /// <summary>The VIA - exposed for debug tooling (timer/IRQ state).</summary>
     public MOS6522 Via => _via;
 
+    /// <summary>PIA1 - exposed for debug tooling (IRQ state). Its CB1 line, not the VIA's, carries
+    /// the jiffy-clock/keyboard-scan pulse on real PET hardware - see <see cref="ClockPia1Cb1"/>.</summary>
+    public MT6520 Pia1 => _pia1;
+
     /// <summary>The SuperPET MOS 6551 ACIA, when the profile declares one.</summary>
     public MOS6551? Acia => _acia;
 
     /// <summary>The PET User Port wired to VIA Port A and CA2.</summary>
     public PetUserPort UserPort { get; } = new();
 
+    private Action<BusAccess>? _busObserver;
+
     /// <summary>Fires for every real bus access (RAM/ROM/chip read or write) the CPU makes - see
     /// <see cref="BusAccess"/>'s doc comment. Optional; zero added cost on the hot path when
-    /// unset.</summary>
+    /// unset. Routed to whichever bus <see cref="_activeMemory"/> currently is (only one of
+    /// <see cref="_memoryBus"/>/<see cref="_superPet6809Memory"/> has it set at a time - see
+    /// <see cref="ApplyBusObserver"/>) and re-routed across a live <see cref="SelectProcessor"/>
+    /// switch. Before this, the property always read/wrote <c>_memoryBus.Observer</c> regardless
+    /// of which CPU was selected, so anything the SuperPET 6809 view handles itself before
+    /// falling through to <c>_memoryBus</c> (bank-select $EFFC, the protection dongle, ACIA) was
+    /// silently invisible to every Observer-based tool (<c>InstructionTracer</c>/<c>trace-log</c>)
+    /// while 6809 was active - see docs/pet/superpet-6809-boot-hang.md.</summary>
     public Action<BusAccess>? BusObserver
     {
-        get => _memoryBus.Observer;
-        set => _memoryBus.Observer = value;
+        get => _busObserver;
+        set
+        {
+            _busObserver = value;
+            ApplyBusObserver();
+        }
+    }
+
+    private void ApplyBusObserver()
+    {
+        if (_superPet6809Memory is not null && ReferenceEquals(_activeMemory, _superPet6809Memory))
+        {
+            _memoryBus.Observer = null;
+            _superPet6809Memory.Observer = _busObserver;
+        }
+        else
+        {
+            _memoryBus.Observer = _busObserver;
+            if (_superPet6809Memory is not null)
+                _superPet6809Memory.Observer = null;
+        }
     }
 
     /// <summary>The cassette #1 datasette - a caller (GUI menu, debugger script) loads a tape
@@ -329,6 +361,7 @@ public sealed class PetMachine : IMachine
         {
             _activeProcessor = _cpu;
             _activeMemory = _memoryBus;
+            ApplyBusObserver();
             return;
         }
 
@@ -337,6 +370,7 @@ public sealed class PetMachine : IMachine
 
         _activeProcessor = _superPet6809Cpu;
         _activeMemory = _superPet6809Memory;
+        ApplyBusObserver();
         _activeProcessor.SetIRQ(_pia1.IRQ || _pia2.IRQ || _via.IRQ || (_acia?.Irq ?? false));
     }
 

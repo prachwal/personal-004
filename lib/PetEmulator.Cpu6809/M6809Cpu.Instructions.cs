@@ -875,24 +875,35 @@ private int Jmp(ushort addr)
         return (ushort)((hi << 8) | lo);
     }
 
+    /// <summary>Pushes the full 12-byte 6809 interrupt frame (NMI/IRQ/SWI/SWI2/SWI3/CWAI). Real
+    /// hardware pushes PC first and CC last, so that after the sequence completes CC sits at the
+    /// final (lowest) stack address and PC at the highest - <see cref="Rti"/> pops in the matching
+    /// [CC,A,B,DP,X,Y,U,PC] order, which only lines up if the push order here is the exact reverse.
+    /// Pushing CC first (as an earlier version of this method did) put PC's own bytes where CC/A
+    /// belonged and silently swapped X/Y - RTI would then resume at a garbage address instead of
+    /// the interrupted PC. See docs/pet/superpet-6809-boot-hang.md for how this was found (a real
+    /// SuperPET boot corrupting its return address the first time IRQ ever fired) and
+    /// M6809CpuInterruptFrameTests for the regression pin.</summary>
     protected void PushFullFrame()
     {
         State.Flags.E = true;
-        PushS8(State.Flags.ToByte());
-        PushS8(State.A);
-        PushS8(State.B);
-        PushS8(State.DP);
-        PushS16(State.X);
-        PushS16(State.Y);
-        PushS16(State.U);
         PushS16(State.PC);
+        PushS16(State.U);
+        PushS16(State.Y);
+        PushS16(State.X);
+        PushS8(State.DP);
+        PushS8(State.B);
+        PushS8(State.A);
+        PushS8(State.Flags.ToByte());
     }
 
+    /// <summary>Pushes the 3-byte FIRQ frame (PC, CC only) - see <see cref="PushFullFrame"/>'s doc
+    /// comment for why PC must be pushed before CC, not after.</summary>
     protected void PushFastFrame()
     {
         State.Flags.E = false;
-        PushS8(State.Flags.ToByte());
         PushS16(State.PC);
+        PushS8(State.Flags.ToByte());
     }
 
     public override void SetIRQ(bool active) => _irqPending = active;
