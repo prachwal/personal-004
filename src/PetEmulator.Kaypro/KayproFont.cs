@@ -37,4 +37,18 @@ public sealed class KayproFont
         var glyph = 0x80 | (screenCode & 0x7F);
         return (byte)~_rom[glyph * GlyphHeight + row];
     }
+
+    /// <summary>Returns the raw, uninverted ROM byte for glyph <paramref name="index"/> (0-255,
+    /// unlike <see cref="GetRow"/> this is a direct ROM index, not masked to the visible screen-code
+    /// half) - for browsing the ROM as-is (e.g. the Font/Glyph Viewer), not for rendering the CRT.
+    /// Bounds-safe: out-of-range input returns a blank (0) row instead of throwing.</summary>
+    public byte GetRawRow(int index, int row)
+    {
+        if ((uint)row >= GlyphHeight)
+            return 0;
+        var offset = index * GlyphHeight + row;
+        if (offset < 0 || offset >= _rom.Length)
+            return 0;
+        return _rom[offset];
+    }
 }

@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PetEmulator.Kaypro;
 using PetEmulator.Pet.Fonts;
+using PetEmulator.Vic20;
 
 namespace PetEmulator.Desktop.ViewModels;
 
@@ -13,16 +15,22 @@ public sealed partial class FontViewerViewModel : ObservableObject, IShellModule
     [ObservableProperty]
     private bool _reverse;
 
-    public FontViewerViewModel(string romsRoot)
+    public FontViewerViewModel(string romsRoot, IEnumerable<ICharacterRomProvider>? providers = null)
     {
-        var petRoot = Path.Combine(romsRoot, "pet");
-        var sources = Directory.EnumerateFiles(petRoot, "characters-*.bin", SearchOption.AllDirectories)
-            .Select(path => new FontSource(Path.GetFileName(path), new PetCharacterRomLoader().Load(path)))
-            .Append(new FontSource("VIC-20 character ROM", new PetCharacterRomLoader().Load(
-                Path.Combine(romsRoot, "vic20", "vic20-chargen.bin"))))
+        var sources = (providers ?? DefaultProviders())
+            .SelectMany(provider => provider.DiscoverFonts(romsRoot))
             .ToArray();
         Fonts = new ObservableCollection<FontSource>(sources);
         SelectedFont = Fonts.FirstOrDefault();
+    }
+
+    /// <summary>Every machine module that ships a character ROM registers its provider here -
+    /// the only place PetEmulator.Desktop needs to touch when a new one is added.</summary>
+    private static IEnumerable<ICharacterRomProvider> DefaultProviders()
+    {
+        yield return new PetCharacterRomProvider();
+        yield return new Vic20CharacterRomProvider();
+        yield return new KayproCharacterRomProvider();
     }
 
     public string WindowTitle => "Font / Glyph Viewer";
@@ -64,5 +72,4 @@ public sealed partial class FontViewerViewModel : ObservableObject, IShellModule
     public void Dispose() { }
 }
 
-public sealed record FontSource(string Name, IGlyphFont Font);
 public sealed record GlyphCell(int Code, string Pattern);

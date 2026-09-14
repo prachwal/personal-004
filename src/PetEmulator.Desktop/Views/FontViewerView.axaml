@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             xmlns:fonts="clr-namespace:PetEmulator.Pet.Fonts;assembly=PetEmulator.Pet"
              x:Class="PetEmulator.Desktop.Views.FontViewerView"
              x:DataType="viewModels:FontViewerViewModel">
     <Grid ColumnDefinitions="240,*" Margin="16">
@@ -8,7 +9,7 @@
             <TextBlock Text="Character ROM" FontWeight="Bold" />
             <ListBox ItemsSource="{Binding Fonts}" SelectedItem="{Binding SelectedFont}">
                 <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="viewModels:FontSource"><TextBlock Text="{Binding Name}" /></DataTemplate>
+                    <DataTemplate x:DataType="fonts:FontSource"><TextBlock Text="{Binding Name}" /></DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
             <Button Content="Reverse video" Command="{Binding ToggleReverseCommand}" />

@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:PetEmulator.Desktop.Views.Controls"
+             x:Class="PetEmulator.Desktop.Views.Controls.EmulatorKeyboardView">
+  <UserControl.Styles>
+    <Style Selector="local|EmulatorKeyButton">
+      <Setter Property="Background" Value="#292929" /><Setter Property="BorderBrush" Value="#8D8D8D" />
+      <Setter Property="BorderThickness" Value="2" /><Setter Property="CornerRadius" Value="5" />
+      <Setter Property="Foreground" Value="#F0F0F0" /><Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="local|EmulatorKeyButton:pointerover"><Setter Property="Background" Value="#424242" /></Style>
+    <Style Selector="local|EmulatorKeyButton:pressed"><Setter Property="Background" Value="#151515" /><Setter Property="BorderBrush" Value="#65C466" /></Style>
+    <Style Selector="local|EmulatorKeyButton:focus-visible"><Setter Property="BorderBrush" Value="#8CEB8E" /></Style>
+
+    <!-- Named accent classes, not a per-key local Background value - a local value overrides the
+         :pointerover/:pressed setters above outright (highest style precedence in Avalonia), so an
+         accented key would stop showing press feedback. Selecting a class instead keeps normal/hover/
+         pressed all themeable per accent. Add more accents here as new keyboards need them. -->
+    <Style Selector="local|EmulatorKeyButton.accent-red">
+      <Setter Property="Background" Value="#C0392B" /><Setter Property="BorderBrush" Value="#8E2A20" />
+    </Style>
+    <Style Selector="local|EmulatorKeyButton.accent-red:pointerover"><Setter Property="Background" Value="#D9483A" /></Style>
+    <Style Selector="local|EmulatorKeyButton.accent-red:pressed"><Setter Property="Background" Value="#151515" /><Setter Property="BorderBrush" Value="#D9483A" /></Style>
+
+    <Style Selector="local|EmulatorKeyButton.accent-green">
+      <Setter Property="Background" Value="#4FBF7A" /><Setter Property="BorderBrush" Value="#3A9560" />
+    </Style>
+    <Style Selector="local|EmulatorKeyButton.accent-green:pointerover"><Setter Property="Background" Value="#63D090" /></Style>
+    <Style Selector="local|EmulatorKeyButton.accent-green:pressed"><Setter Property="Background" Value="#151515" /><Setter Property="BorderBrush" Value="#63D090" /></Style>
+
+    <Style Selector="local|EmulatorKeyButton.accent-blue">
+      <Setter Property="Background" Value="#3E9BE0" /><Setter Property="BorderBrush" Value="#2F7BB8" />
+    </Style>
+    <Style Selector="local|EmulatorKeyButton.accent-blue:pointerover"><Setter Property="Background" Value="#5CB0EE" /></Style>
+    <Style Selector="local|EmulatorKeyButton.accent-blue:pressed"><Setter Property="Background" Value="#151515" /><Setter Property="BorderBrush" Value="#5CB0EE" /></Style>
+
+    <Style Selector="local|EmulatorKeyButton.accent-cream">
+      <Setter Property="Background" Value="#D6D3C4" /><Setter Property="BorderBrush" Value="#9A978A" />
+      <Setter Property="Foreground" Value="#1C1C18" />
+    </Style>
+    <Style Selector="local|EmulatorKeyButton.accent-cream:pointerover"><Setter Property="Background" Value="#E6E3D4" /></Style>
+    <Style Selector="local|EmulatorKeyButton.accent-cream:pressed"><Setter Property="Background" Value="#B8B5A6" /></Style>
+  </UserControl.Styles>
+  <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+    <Viewbox x:Name="KeyboardScale" Stretch="Uniform" HorizontalAlignment="Left" VerticalAlignment="Top">
+      <Canvas x:Name="KeyboardCanvas" Background="#171717" />
+    </Viewbox>
+  </ScrollViewer>
+</UserControl>

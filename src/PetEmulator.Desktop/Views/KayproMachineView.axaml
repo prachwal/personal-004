@@ -16,10 +16,24 @@
             <TextBlock FontFamily="monospace" Foreground="{DynamicResource StatusTextBrush}" Text="{Binding StatusText}" />
         </Border>
         <Border DockPanel.Dock="Top" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4">
-            <TextBlock Text="KAYPRO II TERMINAL  |  80×24  |  81-146A font ROM  |  ENTER sends CR" />
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="KAYPRO II TERMINAL  |  80×24  |  81-146A font ROM  |  ENTER sends CR" VerticalAlignment="Center" />
+                <ToggleButton Grid.Column="1" Content="⌨ Keyboard" IsChecked="{Binding IsKeyboardVisible}" Padding="8,2" />
+            </Grid>
         </Border>
-        <Border Background="#FF000000" Padding="8">
-            <controls:PetScreenControl Name="Screen" Focusable="True" />
-        </Border>
+        <Grid>
+            <Border BorderBrush="#FF3A3A3A" BorderThickness="1" Background="#FF000000" Padding="8">
+                <controls:PetScreenControl Name="Screen" Focusable="True" />
+            </Border>
+            <!-- Optional on-screen keyboard: hidden by default (see task doc comment on
+                 IsKeyboardVisible), floats centered over the screen instead of pushing the
+                 DockPanel layout around like a docked panel would. -->
+            <Border IsVisible="{Binding IsKeyboardVisible}"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="#F0101010" BorderBrush="#FF444444" BorderThickness="1" CornerRadius="6"
+                    Padding="12">
+                <controls:EmulatorKeyboardView x:Name="OnScreenKeyboard" Width="760" Height="260" />
+            </Border>
+        </Grid>
     </DockPanel>
 </UserControl>
