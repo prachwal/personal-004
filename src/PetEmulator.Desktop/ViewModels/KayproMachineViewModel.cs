@@ -1,6 +1,7 @@
 using Avalonia.Input;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using PetEmulator.Chips;
 using PetEmulator.Core;
 using PetEmulator.Desktop.Input;
 using PetEmulator.Kaypro;
@@ -12,7 +13,9 @@ namespace PetEmulator.Desktop.ViewModels;
 public sealed partial class KayproMachineViewModel : ObservableObject, IMachineViewModel, IDiskDriveViewModel
 {
     private const ulong InstructionsPerTick = 20_000;
+    private static readonly TimeSpan DiskActivityLinger = TimeSpan.FromMilliseconds(200);
     private readonly KayproMachine _machine;
+    private DateTime _diskActivityUntilUtc = DateTime.MinValue;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DiskIconBrush))]
     private bool _diskLoaded;
@@ -35,6 +38,7 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
         var kayproRoot = Path.Combine(romsRoot, "kaypro");
         _machine = new KayproMachine();
+        _machine.Bus.FdcWiring.ActivityChanged += OnFdcActivityChanged;
         _machine.LoadMonitorRom(File.ReadAllBytes(Path.Combine(kayproRoot, "kaypro-81-149c.bin")));
         Font = KayproFont.Load(Path.Combine(kayproRoot, "kaypro-81-146.bin"));
         var diskPath = Path.Combine(kayproRoot, "cpm22-rom149.dsk");
@@ -84,6 +88,7 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
     {
         _machine.Run(InstructionsPerTick);
         Render();
+        DiskBusy = DateTime.UtcNow < _diskActivityUntilUtc;
 
         var registers = ((IDebuggableProcessor)_machine.Processor).GetRegisters();
         StatusText = $"Kaypro II  Z80  PC=0x{registers["PC"]:X4} SP=0x{registers["SP"]:X4} " +
@@ -92,9 +97,22 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
         FrameReady?.Invoke(this, EventArgs.Empty);
     }
 
-    public void Dispose() { }
+    public void Dispose() => _machine.Bus.FdcWiring.ActivityChanged -= OnFdcActivityChanged;
 
     private void Render() => _machine.Video.Render(FrameBuffer, Font);
+
+    private void OnFdcActivityChanged(object? sender, FD1791ActivityEventArgs e)
+    {
+        if (e.Kind is FD1791ActivityKind.CommandStarted or
+            FD1791ActivityKind.DataRequested or
+            FD1791ActivityKind.DataTransferred or
+            FD1791ActivityKind.CommandCompleted or
+            FD1791ActivityKind.Error)
+        {
+            _diskActivityUntilUtc = DateTime.UtcNow + DiskActivityLinger;
+            DiskBusy = true;
+        }
+    }
 
     private static KayproDiskImage LoadKayproDisk(string path)
     {

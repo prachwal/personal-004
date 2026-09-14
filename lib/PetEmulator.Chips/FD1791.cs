@@ -85,6 +85,9 @@ public class FD1791
     public ulong InterruptSequence { get; private set; }
     public Action<FD1791DiagnosticEvent>? DiagnosticObserver { get; set; }
 
+    /// <summary>Raised for board-visible activity; this is intentionally separate from diagnostics.</summary>
+    public event EventHandler<FD1791ActivityEventArgs>? ActivityChanged;
+
     /// <summary>Enables automatic continuation of READ/WRITE multiple-record commands.</summary>
     public bool MultipleRecordEnabled { get; set; } = true;
 
@@ -142,6 +145,7 @@ public class FD1791
         InterruptSequence = 0;
         ClearDataRequest();
         Emit(FD1791DiagnosticKind.Reset);
+        RaiseActivity(FD1791ActivityKind.Reset);
     }
 
     public void InsertDisk(int drive, IFD1791DiskImage? disk)
@@ -240,6 +244,7 @@ public class FD1791
         ClearDataRequest();
         _data = _transfer[_transferIndex++];
         Emit(FD1791DiagnosticKind.DataRead, value: _data);
+        RaiseActivity(FD1791ActivityKind.DataTransferred);
         if (_transferIndex != _transfer.Length)
         {
             RequestData();
@@ -286,6 +291,7 @@ public class FD1791
         _status = BusyFlag;
         _typeICommand = (command & 0x80) == 0;
         Emit(FD1791DiagnosticKind.CommandAccepted, value: command);
+        RaiseActivity(FD1791ActivityKind.CommandStarted);
         var sectorCommand = (command & 0xC0) == 0x80;
         _pendingTStates = sectorCommand ? _sectorTStates : _seekTStates;
         if (_pendingTStates == 0)
@@ -301,6 +307,7 @@ public class FD1791
         ClearDataRequest();
         _transfer[_transferIndex++] = value;
         Emit(FD1791DiagnosticKind.DataWritten, value: value);
+        RaiseActivity(FD1791ActivityKind.DataTransferred);
         if (_transferIndex != _transfer.Length)
         {
             RequestData();
@@ -458,6 +465,7 @@ public class FD1791
         _dataDeadlineTStates = _dataByteTStates;
         InterruptSequence++;
         Emit(FD1791DiagnosticKind.DataRequested);
+        RaiseActivity(FD1791ActivityKind.DataRequested);
     }
 
     private void ClearDataRequest()
@@ -483,6 +491,22 @@ public class FD1791
         IntrqAsserted = true;
         InterruptSequence++;
         Emit(FD1791DiagnosticKind.CommandCompleted, value: error);
+        RaiseActivity(error == 0 ? FD1791ActivityKind.CommandCompleted : FD1791ActivityKind.Error);
+    }
+
+    private void RaiseActivity(FD1791ActivityKind kind)
+    {
+        ActivityChanged?.Invoke(this, new FD1791ActivityEventArgs(
+            kind,
+            _tStateCounter,
+            _pendingCommand,
+            _status,
+            _track,
+            _sector,
+            _transferIndex,
+            Busy,
+            DrqAsserted,
+            IntrqAsserted));
     }
 
     private void Emit(FD1791DiagnosticKind kind, byte register = 0xFF, byte value = 0)

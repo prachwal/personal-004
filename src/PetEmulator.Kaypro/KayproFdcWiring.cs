@@ -16,6 +16,7 @@ public sealed class KayproFdcWiring
     public KayproFdcWiring(FD1793 controller)
     {
         Controller = controller ?? throw new ArgumentNullException(nameof(controller));
+        Controller.ActivityChanged += OnControllerActivityChanged;
     }
 
     public FD1793 Controller { get; }
@@ -24,6 +25,7 @@ public sealed class KayproFdcWiring
     public bool NormalCharacterSetSelected => (SystemPortValue & 0x40) == 0;
     public bool WaitAsserted { get; private set; }
     public bool InterruptRequested => Controller.IntrqAsserted || Controller.DrqAsserted;
+    public event EventHandler<FD1791ActivityEventArgs>? ActivityChanged;
 
     public void WriteSystemPort(byte value)
     {
@@ -76,4 +78,7 @@ public sealed class KayproFdcWiring
         _waitWatchdogRemaining = 0;
         Controller.Side = 0;
     }
+
+    private void OnControllerActivityChanged(object? sender, FD1791ActivityEventArgs e) =>
+        ActivityChanged?.Invoke(this, e);
 }
