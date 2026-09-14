@@ -127,7 +127,9 @@ public partial class Cpu6502 : CpuProcessorBase<CpuState>
     /// Ustawia stan pinu NMI.
     /// Wykrywa opadające zbocze i zatrzaskuje przerwanie.
     /// </summary>
-    /// <param name="active">True = pin niski (aktywne przerwanie).</param>
+    /// <param name="active">True = pin wysoki (bezczynny); False = pin niski (aktywne
+    /// przerwanie) - odwrotna konwencja niż <see cref="SetIRQ"/>. Zatrzaskuje na zboczu
+    /// true→false (patrz <c>InterruptTests.Nmi_TriggersOnFallingEdge</c>).</param>
     public override void SetNMI(bool active)
     {
         if (_previousNMI && !active)

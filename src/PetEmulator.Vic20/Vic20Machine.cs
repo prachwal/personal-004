@@ -291,7 +291,20 @@ public sealed class Vic20Machine : IMachine
 
         CaptureSaveIfDispatched();
 
-        _cpu.SetIRQ(_via1.IRQ || _via2.IRQ || _memoryBus.ExpansionIrq);
+        // Real VIC-20 hardware: VIA1's interrupt output goes to the 6502's NMI pin (RESTORE key,
+        // and any software timing that must run regardless of the I flag); VIA2 and cartridge
+        // expansion devices share the ordinary maskable IRQ line. Confirmed against VICE's own C
+        // source (vic20via1.c: "via->irq_line = IK_NMI;" / vic20via2.c: "via->irq_line =
+        // IK_IRQ;"). Folding VIA1 into the same IRQ line as VIA2 (the previous behavior here)
+        // meant VIA1-driven interrupts were silently maskable and could be reordered/dropped
+        // relative to VIA2's, instead of always preempting like real NMI does.
+        // SetNMI's polarity is inverted from SetIRQ in this CPU core (confirmed against
+        // Cpu6502Tests.InterruptTests.Nmi_TriggersOnFallingEdge: true = pin idle/high, false =
+        // pin asserted/low, latching on the true->false transition) - so VIA1.IRQ (our own
+        // "interrupt condition present" bool) must be inverted here, unlike SetIRQ below where
+        // "true" already means asserted.
+        _cpu.SetNMI(!_via1.IRQ);
+        _cpu.SetIRQ(_via2.IRQ || _memoryBus.ExpansionIrq);
     }
 
     /// <summary>

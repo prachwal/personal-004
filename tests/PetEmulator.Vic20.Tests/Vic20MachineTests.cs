@@ -40,8 +40,12 @@ public sealed class Vic20MachineTests
 
     [Test]
     [CancelAfter(10_000)]
-    public void Via1TimerIrq_IsPropagatedToThe6502IrqVector()
+    public void Via1TimerIrq_IsPropagatedToThe6502NmiVector()
     {
+        // Real VIC-20 hardware: VIA1's interrupt output goes to the 6502's NMI pin, not IRQ -
+        // confirmed against VICE's own C source (vic20via1.c: "via->irq_line = IK_NMI;";
+        // vic20via2.c: "via->irq_line = IK_IRQ;"). Renamed/re-asserted from this test's previous
+        // (wrong) expectation that a VIA1 timer interrupt fetched the IRQ vector.
         var machine = CreateMachine();
         machine.RunUntil(_ => machine.Vic.Columns > 0 && machine.Vic.Rows > 0, 2_000_000)
             .Should().BeTrue("the KERNAL must finish initialization before the timer IRQ is injected");
@@ -54,14 +58,13 @@ public sealed class Vic20MachineTests
         };
 
         machine.Memory.Write(0x911D, 0x7F); // clear any boot-time VIA1 interrupt flags
-        ((PetEmulator.Cpu6502.Cpu6502)machine.Processor).Registers.P &= unchecked((byte)~0x04); // CLI for the test CPU
         machine.Memory.Write(0x911E, 0xC0); // enable VIA1 Timer 1 interrupt
         machine.Memory.Write(0x9114, 0x01);
         machine.Memory.Write(0x9115, 0x00); // start T1 with a two-cycle period
         machine.Run(20);
 
-        reads.Should().Contain(0xFFFE, "the 6502 must fetch the low byte of the IRQ vector");
-        reads.Should().Contain(0xFFFF, "the 6502 must fetch the high byte of the IRQ vector");
+        reads.Should().Contain(0xFFFA, "the 6502 must fetch the low byte of the NMI vector");
+        reads.Should().Contain(0xFFFB, "the 6502 must fetch the high byte of the NMI vector");
     }
 
     [Test]

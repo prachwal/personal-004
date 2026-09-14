@@ -370,17 +370,24 @@ public sealed class MOS6522 : IMemoryMappedDevice
         // T1 keeps decrementing/wrapping forever once started, in both modes - real 6522 hardware
         // never stops the counter itself; one-shot mode (ACR6=0) only stops firing REPEAT
         // interrupts (and doesn't reload from the latch) until T1CH is written again, tracked by
-        // _t1OneShotArmed. Free-run mode (ACR6=1) always fires and always reloads.
+        // _t1OneShotArmed. Free-run mode (ACR6=1) always fires, always reloads, and always
+        // toggles PB7 - a continuous square wave. One-shot PB7 (confirmed against VICE's
+        // viacore.c: the underflow alarm - and its PB7 toggle - is unset/skipped after the first
+        // one-shot firing, not repeated on every later wrap) is a single low-to-high pulse: goes
+        // high exactly once, on the underflow that fires the interrupt, then stays high (not
+        // toggled again) until T1CH is rewritten (which already resets it low, see the
+        // T1CounterHigh write case above).
         if (_t1Running && --_t1Counter == ushort.MaxValue)
         {
-            _t1Pb7 = !_t1Pb7;
             if ((_acr & 0x40) != 0)
             {
+                _t1Pb7 = !_t1Pb7;
                 SetInterrupt(Timer1Interrupt);
                 _t1Counter = _t1Latch;
             }
             else if (_t1OneShotArmed)
             {
+                _t1Pb7 = true;
                 SetInterrupt(Timer1Interrupt);
                 _t1OneShotArmed = false;
             }

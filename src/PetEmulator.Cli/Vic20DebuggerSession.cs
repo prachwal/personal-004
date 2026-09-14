@@ -43,6 +43,7 @@ public sealed class Vic20DebuggerSession
                 "cartridge-plugin" => LoadCartridgePlugin(parts[1], parts[2]),
                 "eject-cartridge" => EjectCartridge(),
                 "key" => Key(parts),
+                "joystick" => Joystick(parts),
                 "type" => Type(commandLine[(parts[0].Length + 1)..]),
                 "devices" => Devices(),
                 "status" => Status(),
@@ -71,6 +72,15 @@ public sealed class Vic20DebuggerSession
         var down = parts[3].Equals("down", StringComparison.OrdinalIgnoreCase);
         if (down) machine.Keyboard.Press(row, column); else machine.Keyboard.Release(row, column);
         return $"key {row},{column} {(down ? "down" : "up")}";
+    }
+
+    private string Joystick(string[] parts)
+    {
+        var machine = EnsureMachine();
+        var input = Enum.Parse<Vic20JoystickInput>(parts[1], ignoreCase: true);
+        var down = parts[2].Equals("down", StringComparison.OrdinalIgnoreCase);
+        machine.Joystick.Set(input, down);
+        return $"joystick {input} {(down ? "down" : "up")}";
     }
 
     private string Type(string text)
