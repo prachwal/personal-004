@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>PetEmulator.AySoundDemo</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../lib/PetEmulator.Chips/PetEmulator.Chips.csproj" />
+  </ItemGroup>
+</Project>

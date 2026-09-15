@@ -54,3 +54,14 @@ Work touching `lib/PetEmulator.Cpu6502/` goes through dedicated subagents instea
 | Review a CPU-core diff against `docs/architecture/overview.md` before commit | `cpu6502-reviewer` (`.claude/agents/cpu6502-reviewer.md`) |
 
 Both still obey the gitnexus gates above (impact before edit, detect_changes before commit, `UNKNOWN` risk = unresolved).
+
+## Codex delegation
+
+Delegating to Codex (`codex:codex-rescue` subagent, or `scripts/codex-delegate.sh` for the raw CLI) works, but tune the call to the task or it burns wall-clock on rediscovery instead of the actual work — lessons paid for the hard way in the CPC464 tape/keyboard/benchmark sessions:
+
+- **Split by sub-goal, not by feature.** One prompt covering "verify N keyboard positions AND run a CPU-bound benchmark AND round-trip a tape save" makes the slow, flaky part (an exhaustive matrix sweep = dozens of full ROM boots) block the parts that don't need it. Separate calls also let a stuck one fail without losing the others.
+- **Hand over facts, not open questions.** If you already know the exact constant (a tick-timing value, a file path, a verified matrix position, a working directory), give it as a fact ("PressKey holds 25,000 ticks, releases 15,000 - see Cpc464BootTests.cs") not a question to rediscover. Re-deriving something you've already established is the single biggest time sink observed.
+- **Point it at prior artifacts.** If an earlier run already built a `tools/*` project or wrote a `build/*.json`, say so explicitly and tell it to reuse/extend that rather than building a fresh scratch harness (`/tmp/...`) from zero - watched this happen twice, including a scratch project whose particular `dotnet build` flag combination (`-m:1 /p:BuildInParallel=false ...`) crashed with SIGABRT repeatedly in this sandbox.
+- **Match `--effort` to the task.** A well-specified, narrow fix doesn't need the default reasoning budget; only reach for `high`/`xhigh` when the task is genuinely open-ended (find an unknown key position, diagnose an unexplained failure).
+- **`--resume` a live investigation instead of starting fresh** when the follow-up needs the same context (same file, same half-finished sweep) - pass the prior Codex session ID explicitly and say "resume", not just mention it for reference.
+- **Never trust a completion report at face value.** Codex is often honest about what it couldn't verify (e.g. "not conclusively decoded from rendered glyphs") - read the report for exactly that kind of hedge, then re-verify anything load-bearing yourself before it lands in production code. A caught example: an "added and verified" keyboard mapping that silently pointed at a matrix column that doesn't exist.

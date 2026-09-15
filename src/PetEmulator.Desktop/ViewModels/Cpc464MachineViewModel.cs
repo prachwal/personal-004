@@ -1,5 +1,6 @@
 using Avalonia.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using PetEmulator.Audio;
 using PetEmulator.Core;
 using PetEmulator.Desktop.Input;
 using PetEmulator.Cpc464;
@@ -11,11 +12,14 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
 {
     private const ulong InstructionsPerTick = 20_000;
     private readonly Cpc464Machine _machine;
+    private readonly IAudioOutput _audioOutput;
     [ObservableProperty] private string _statusText = "Amstrad CPC464  Z80  PC=0x0000";
     public Cpc464MachineViewModel(string romsRoot)
     {
         var romPath = Path.Combine(romsRoot, "cpc464", "cpc464.rom");
         _machine = new Cpc464Machine(File.ReadAllBytes(romPath));
+        _audioOutput = AudioOutputFactory.CreateDefault();
+        _audioOutput.Start(_machine.Bus.Ay);
         FrameBuffer = new uint[320 * 200];
         Reset();
         GeometryChanged?.Invoke(this, EventArgs.Empty);
@@ -36,7 +40,7 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
         var cdt = Cpc464CdtImage.Parse(File.ReadAllBytes(path));
         _machine.Bus.Cassette.LoadPulses(cdt.PulseTicks);
     }
-    public void Dispose() { }
+    public void Dispose() => _audioOutput.Dispose();
     public void HandleKey(Key key, HostKeyEventKind kind) { if (TryMap(key, out var row, out var column)) _machine.Bus.Keyboard.SetKey(row, column, kind == HostKeyEventKind.Press); }
     private void Render()
     {
@@ -55,13 +59,18 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
     /// renders something else; only Shift+(3,4) parses as addition (see
     /// Cpc464BootTests.RealFirmwareBootsAndExecutesPrintOnePlusOne's own doc comment). The host's
     /// own Shift key (already mapped below) supplies that modifier naturally when the operator
-    /// actually presses Shift+= for '+'.</summary>
+    /// actually presses Shift+= for '+'. <see cref="Key.OemQuotes"/> at (8,1) - the same cell as
+    /// D2, again relying on the host's own Shift for the quote glyph - was confirmed the same way:
+    /// a fresh-boot "PRINT &quot;A&quot;" typed through this exact matrix position rendered a bare
+    /// 'A' (not a syntax error) and "Ready" reappeared, ruling out the earlier "glyph not
+    /// conclusive" hedge.</summary>
     private static readonly Dictionary<Key, (byte Row, byte Column)> Matrix = new()
     {
         [Key.Up] = (0, 0), [Key.Right] = (0, 1), [Key.Down] = (0, 2),
         [Key.Left] = (1, 0),
         [Key.Return] = (2, 2), [Key.Enter] = (2, 2), [Key.LeftShift] = (2, 5), [Key.RightShift] = (2, 5),
         [Key.OemMinus] = (3, 1), [Key.P] = (3, 3), [Key.OemPlus] = (3, 4), [Key.OemQuestion] = (3, 6), [Key.OemComma] = (3, 7),
+        [Key.OemSemicolon] = (3, 4), [Key.Multiply] = (3, 5), [Key.OemOpenBrackets] = (5, 0), [Key.OemCloseBrackets] = (4, 1), [Key.OemQuotes] = (8, 1),
         [Key.D0] = (4, 0), [Key.D9] = (4, 1), [Key.O] = (4, 2), [Key.I] = (4, 3), [Key.L] = (4, 4), [Key.K] = (4, 5), [Key.M] = (4, 6), [Key.OemPeriod] = (4, 7),
         [Key.D8] = (5, 0), [Key.D7] = (5, 1), [Key.U] = (5, 2), [Key.Y] = (5, 3), [Key.H] = (5, 4), [Key.J] = (5, 5), [Key.N] = (5, 6), [Key.Space] = (5, 7),
         [Key.D6] = (6, 0), [Key.D5] = (6, 1), [Key.R] = (6, 2), [Key.T] = (6, 3), [Key.G] = (6, 4), [Key.F] = (6, 5), [Key.B] = (6, 6), [Key.V] = (6, 7),

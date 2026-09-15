@@ -2,6 +2,7 @@
   <PropertyGroup><IsTestProject>true</IsTestProject><RootNamespace>PetEmulator.Cpc464.Tests</RootNamespace></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/PetEmulator.Cpc464/PetEmulator.Cpc464.csproj" />
+    <ProjectReference Include="../PetEmulator.TestSupport/PetEmulator.TestSupport.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="NUnit" /><PackageReference Include="NUnit3TestAdapter" />
   </ItemGroup>

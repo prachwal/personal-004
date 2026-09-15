@@ -49,5 +49,9 @@
     <Project Path="tests/PetEmulator.Audio.Tests/PetEmulator.Audio.Tests.csproj" />
     <Project Path="tests/PetEmulator.Desktop.Tests/PetEmulator.Desktop.Tests.csproj" />
     <Project Path="tests/PetEmulator.Cpc464.Tests/PetEmulator.Cpc464.Tests.csproj" />
+    <Project Path="tests/PetEmulator.TestSupport/PetEmulator.TestSupport.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/PetEmulator.AySoundDemo/PetEmulator.AySoundDemo.csproj" />
   </Folder>
 </Solution>

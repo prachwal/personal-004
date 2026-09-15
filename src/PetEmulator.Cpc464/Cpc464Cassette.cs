@@ -153,4 +153,15 @@ public sealed class Cpc464Cassette
             data[i] = (byte)((data[i] << 1) | (bits[i * 8 + bit] ? 1 : 0));
         return true;
     }
+
+    /// <summary>Returns the raw alternating pulse train captured from the write line. This is
+    /// intentionally separate from <see cref="TryGetRecordedTape"/> because real firmware tape
+    /// formats need not use the synthetic single-pulse-per-bit encoding.</summary>
+    public bool TryGetRecordedPulses(out IReadOnlyList<int> pulseTicks)
+    {
+        pulseTicks = [];
+        if (_recording || _recorded.Count == 0) return false;
+        pulseTicks = _recorded.Select(pulse => pulse.Ticks).ToArray();
+        return true;
+    }
 }

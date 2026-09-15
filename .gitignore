@@ -15,3 +15,4 @@ build/
 ## Local tooling
 .gitnexus/
 /.codex/config.toml
+**.pyc
