@@ -12,6 +12,7 @@
     <PackageReference Include="NUnit3TestAdapter" />
     <PackageReference Include="FluentAssertions" />
     <ProjectReference Include="../../src/PetEmulator.Vic20/PetEmulator.Vic20.csproj" />
+    <ProjectReference Include="../PetEmulator.TestSupport/PetEmulator.TestSupport.csproj" />
     <ProjectReference Include="../../lib/PetEmulator.Vic20.Cartridge.Abstractions/PetEmulator.Vic20.Cartridge.Abstractions.csproj" />
     <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Sample/PetEmulator.Vic20.Cartridge.Sample.csproj" />
     <ProjectReference Include="../../plugins/PetEmulator.Vic20.Cartridge.Ram/PetEmulator.Vic20.Cartridge.Ram.csproj" />
