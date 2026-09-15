@@ -24,12 +24,16 @@ public sealed class KayproPioWiringTests
     {
         var bus = new KayproBus();
 
-        bus.WritePort(KayproBus.SystemPort, 0x00);
+        // Bit pattern 0x01 selects drive A per the real 81-149C ROM's board-latch convention
+        // (see KayproFdcWiring's own class doc comment: "01=A and 02=B") - 0x00 selects no drive
+        // at all (matches KayproFdcWiring.WriteSystemPort's else branch), so it could never make
+        // Fdc.DriveSelect become 1 the way this test originally (and incorrectly) wrote it.
+        bus.WritePort(KayproBus.SystemPort, 0x01);
 
-        Assert.That(bus.SystemPortValue, Is.EqualTo(0x00));
+        Assert.That(bus.SystemPortValue, Is.EqualTo(0x01));
         Assert.That(bus.RomEnabled, Is.False);
         Assert.That(bus.Fdc.DriveSelect, Is.EqualTo(1));
-        Assert.That(bus.ReadPort(KayproBus.SystemPort), Is.EqualTo(0x00));
+        Assert.That(bus.ReadPort(KayproBus.SystemPort), Is.EqualTo(0x01));
     }
 
     [Test]
