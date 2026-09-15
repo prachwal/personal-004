@@ -37,6 +37,7 @@ public sealed class MachineDebugger
     private ulong? _breakCycle;
     private ulong? _breakInstructionCount;
     private ushort? _breakPc;
+    private static readonly string[] DefaultEightBitRegisterNames = ["A", "X", "Y", "SP", "P"];
 
     public MachineDebugger(IMachine machine) => _machine = machine;
 
@@ -91,8 +92,22 @@ public sealed class MachineDebugger
             if (_machine.Processor is IDebuggableProcessor dbg)
             {
                 var regs = dbg.GetRegisters();
-                pc = (ushort)regs["PC"];
-                sb.AppendLine($"[{i}]   PC={pc:X4} A={regs["A"]:X2} X={regs["X"]:X2} Y={regs["Y"]:X2} SP={regs["SP"]:X2} P={regs["P"]:X2}");
+                if (regs.TryGetValue("PC", out var pcValue))
+                    pc = (ushort)pcValue;
+                var preferred = new[] { "PC", "A", "X", "Y", "SP", "P" };
+                var orderedKeys = preferred.Where(regs.ContainsKey).Concat(regs.Keys.Except(preferred).OrderBy(key => key));
+                // Width must come from the register's own identity, not its current value - a
+                // 16-bit register (PC, or Z80's HL/BC/DE/AF/IX/IY) that happens to hold a small
+                // value is still 16-bit and must print 4 digits, or it's indistinguishable from a
+                // genuine 8-bit register in the same line. EightBitRegisterNames is empty for CPUs
+                // that don't override it (6502/6800/6809/8080), so DefaultEightBitRegisterNames
+                // reproduces exactly their original hardcoded PC=X4/A,X,Y,SP,P=X2 formatting.
+                var eightBit = dbg.EightBitRegisterNames;
+                if (eightBit.Count == 0)
+                    eightBit = DefaultEightBitRegisterNames;
+                var registerText = string.Join(" ", orderedKeys.Select(key =>
+                    $"{key}={(eightBit.Contains(key) ? regs[key].ToString("X2") : regs[key].ToString("X4"))}"));
+                sb.AppendLine($"[{i}]   {registerText}");
             }
             ReportWatchChanges(sb, i);
 

@@ -18,6 +18,10 @@ public abstract class CpuState
     /// <summary>Returns the family-specific architectural register view for debugging.</summary>
     public abstract IReadOnlyDictionary<string, ulong> GetRegisters();
 
+    /// <summary>See <see cref="IDebuggableProcessor.EightBitRegisterNames"/>. Empty by default -
+    /// override when <see cref="GetRegisters"/> mixes 8-bit and 16-bit registers.</summary>
+    public virtual IReadOnlyCollection<string> EightBitRegisterNames => [];
+
     /// <summary>Captures architectural state for debugging or time-travel integrations.</summary>
     public virtual CpuStateSnapshot CaptureSnapshot()
         => new(new Dictionary<string, ulong>(GetRegisters()), Halted);

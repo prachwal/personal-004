@@ -107,6 +107,16 @@ public class Z80State : CpuState
         ["PreviousNmi"] = PreviousNmi ? 1UL : 0UL
     };
 
+    // The genuinely 8-bit halves/flags/counters from GetRegisters() above - everything else there
+    // (PC, SP, IX, IY, AF/BC/DE/HL and their primed shadows) is 16-bit and must always print as 4
+    // hex digits, even when its current value happens to fit in one byte (e.g. HL=0x0005 right
+    // after a fresh Reset - see MachineDebugger.Trace, which used to infer width from the value
+    // and silently truncated exactly this case).
+    private static readonly string[] _eightBitRegisterNames =
+        ["A", "F", "B", "C", "D", "E", "H", "L", "I", "R", "IFF1", "IFF2", "IM", "InterruptDelay", "PreviousNmi"];
+
+    public override IReadOnlyCollection<string> EightBitRegisterNames => _eightBitRegisterNames;
+
     public override void RestoreSnapshot(CpuStateSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);

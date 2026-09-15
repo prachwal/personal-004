@@ -120,6 +120,9 @@ public abstract class CpuProcessorBase<TState> : IProcessor, IDebuggableProcesso
     public virtual IReadOnlyDictionary<string, ulong> GetRegisters()
         => State.GetRegisters();
 
+    public virtual IReadOnlyCollection<string> EightBitRegisterNames
+        => State.EightBitRegisterNames;
+
     /// <summary>
     /// Defines the common lifecycle. Families customize its stages through protected hooks.
     /// </summary>
