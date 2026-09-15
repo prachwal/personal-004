@@ -22,6 +22,7 @@
     <ProjectReference Include="../PetEmulator.Vic20/PetEmulator.Vic20.csproj" />
     <ProjectReference Include="../PetEmulator.Kaypro/PetEmulator.Kaypro.csproj" />
     <ProjectReference Include="../PetEmulator.Trs80/PetEmulator.Trs80.csproj" />
+    <ProjectReference Include="../PetEmulator.Cpc464/PetEmulator.Cpc464.csproj" />
     <!-- Direct reference, not just transitive through Vic20->Chips->Audio: Vic20MachineViewModel
          constructs AudioOutputFactory directly, and a stale project.assets.json (IDE build without
          a fresh restore right after that 3-hop chain was added) can skip copying PetEmulator.Audio.dll

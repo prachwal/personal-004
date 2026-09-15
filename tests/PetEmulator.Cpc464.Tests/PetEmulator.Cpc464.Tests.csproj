@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsTestProject>true</IsTestProject><RootNamespace>PetEmulator.Cpc464.Tests</RootNamespace></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/PetEmulator.Cpc464/PetEmulator.Cpc464.csproj" />
+    <PackageReference Include="NUnit" /><PackageReference Include="NUnit3TestAdapter" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../../roms/cpc464/cpc464.rom" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -45,7 +45,9 @@ Menu
     ├── SuperPET
     │   ├── 6502
     │   └── 6809
-    └── VIC-20
+    ├── VIC-20
+    └── Amstrad CPC464
+    │   └── CPC464 / Z80 / Gate Array / 320x200
 Tools
 ├── Chip Tester
 ├── Media Tester
@@ -58,3 +60,12 @@ Tools
 zgrupowane pod osobną pozycją `SuperPET`. `Tools` korzysta z osobnej listy modułów
 pomocniczych. Wybrana pozycja z obu menu zastępuje `CurrentModule`; dla obu profili SuperPET oznacza to tę samą
 platformę sprzętową, ale inny procesor wybrany przy uruchomieniu: MOS 6502 albo Waterloo 6809.
+
+## Amstrad CPC464
+
+Moduł `src/PetEmulator.Cpc464/` używa wspólnego rdzenia Z80, 64 KiB RAM z overlayem ROM,
+CRTC `MT6545`, Gate Array, AY-3-8910, PPI/klawiaturę i stub kasety. CPC6128, FDC i CP/M są
+poza zakresem tego wariantu. Firmware znajduje się w `roms/cpc464/cpc464.rom`; SHA-256:
+`00960d9bf75b2b90856c970f1aa078e1e2aa028b2c104f1dded0262f5d37b15e`.
+Obraz jest importem z wcześniejszego checkoutu `personal-002`; jego redystrybucja wymaga
+zweryfikowania praw do firmware poza repozytorium.

@@ -18,6 +18,7 @@
     <Project Path="src/PetEmulator.Vic20/PetEmulator.Vic20.csproj" />
     <Project Path="src/PetEmulator.Kaypro/PetEmulator.Kaypro.csproj" />
     <Project Path="src/PetEmulator.Trs80/PetEmulator.Trs80.csproj" />
+    <Project Path="src/PetEmulator.Cpc464/PetEmulator.Cpc464.csproj" />
     <Project Path="src/PetEmulator.Desktop/PetEmulator.Desktop.csproj" />
     <Project Path="src/PetEmulator.Cli/PetEmulator.Cli.csproj" />
   </Folder>
@@ -47,5 +48,6 @@
     <Project Path="tests/PetEmulator.Chips.Tests/PetEmulator.Chips.Tests.csproj" />
     <Project Path="tests/PetEmulator.Audio.Tests/PetEmulator.Audio.Tests.csproj" />
     <Project Path="tests/PetEmulator.Desktop.Tests/PetEmulator.Desktop.Tests.csproj" />
+    <Project Path="tests/PetEmulator.Cpc464.Tests/PetEmulator.Cpc464.Tests.csproj" />
   </Folder>
 </Solution>

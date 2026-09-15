@@ -10,6 +10,7 @@ using PetEmulator.Pet;
 using PetEmulator.Pet.Keyboard;
 using PetEmulator.Vic20;
 using PetEmulator.Trs80;
+using PetEmulator.Cpc464;
 
 namespace PetEmulator.Desktop.ViewModels;
 
@@ -61,6 +62,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
               new ModuleMenuEntry("VIC-20", CreateVic20),
               new ModuleMenuEntry("Kaypro II", () => new KayproMachineViewModel(_romsRoot)),
               new ModuleMenuEntry("TRS-80 Model I", () => new Trs80MachineViewModel(_romsRoot)),
+              new ModuleMenuEntry("Amstrad CPC464", () => new Cpc464MachineViewModel(_romsRoot)),
          ];
 
         ToolChoices =
