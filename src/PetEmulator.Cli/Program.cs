@@ -1,4 +1,5 @@
 using System.CommandLine;
+using PetEmulator.Pet.CbmDos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -63,10 +64,16 @@ internal static class CliCommandFactory
         vic20Debug.Arguments.Add(vic20Script);
         vic20Debug.SetAction((parseResult, _) => Task.FromResult(RunVic20DebugScript(parseResult.GetValue(vic20Script))));
 
+        var d64Path = new Argument<string>("path") { Description = "Path to a .d64 disk image." };
+        var d64Dir = new Command("d64-dir", "List a .d64 disk image's directory (name/type/size/lock), no machine needed.");
+        d64Dir.Arguments.Add(d64Path);
+        d64Dir.SetAction((parseResult, _) => Task.FromResult(RunD64Dir(parseResult.GetValue(d64Path)!)));
+
         root.Subcommands.Add(apps);
         root.Subcommands.Add(run);
         root.Subcommands.Add(debug);
         root.Subcommands.Add(vic20Debug);
+        root.Subcommands.Add(d64Dir);
         root.SetAction(async (parseResult, cancellationToken) =>
             await ExecuteAsync(parseResult, rootOptions, null,
                 static (registry, request, token) => registry.RunAsync(
@@ -128,6 +135,32 @@ internal static class CliCommandFactory
         }
 
         return hadError ? 1 : 0;
+    }
+
+    /// <summary>Reads a .d64 image straight off disk and lists its directory - no machine, no
+    /// ROMs, just <see cref="D64Image.Load(string)"/>/<see cref="D64Image.ReadDirectory"/>. Built
+    /// to verify a downloaded test disk's real program names before mounting it in a running
+    /// machine (see roms/vic20/test-disks/README.md) - previously done ad hoc by hand-decoding the
+    /// CBM DOS directory sectors, which this replaces with the repo's own, already-tested reader.</summary>
+    private static int RunD64Dir(string path)
+    {
+        try
+        {
+            var image = D64Image.Load(path);
+            Console.WriteLine($"0 \"{image.DiskName}\" {image.DiskId} {image.DosType}");
+            foreach (var entry in image.ReadDirectory())
+            {
+                var flags = (entry.IsLocked ? "<" : "") + (entry.IsClosed ? "" : " *");
+                Console.WriteLine($"{entry.SizeInSectors,-4} \"{entry.Filename}\" {entry.Type}{flags}");
+            }
+
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            Console.Error.WriteLine($"error: {exception.Message}");
+            return 1;
+        }
     }
 
     private static CliOptionSet AddOptions(Command command)

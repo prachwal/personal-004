@@ -6,7 +6,15 @@ namespace PetEmulator.Vic20.Keyboard;
 /// specific machine's Keyboard property type - see docs/vic20/migration-plan.md step 6).</summary>
 public static class Vic20TextTyper
 {
-    public static void Type(Vic20Machine machine, string text, ulong holdInstructions = 5_500, ulong gapInstructions = 5_500)
+    // 5_500 (roughly 2.6 jiffy-scan periods - a jiffy scan is ~6900 cycles, ~2100 instructions at
+    // this repo's average cycles/instruction ratio) proved too thin a margin: a real disk-load CLI
+    // session dropped a character mid-filename (LOAD"UNEXPANDED" -> "UNEXANDED", missing the 'P')
+    // even after giving the machine time to finish booting first. tests/PetEmulator.Vic20.Tests's
+    // own disk end-to-end tests already discovered this independently and pass 12_000 explicitly
+    // at every LOAD/SAVE call site - promoted that already-proven value to the default here so
+    // callers that don't override it (Vic20DebuggerSession's CLI "type" command included) get the
+    // same reliability without having to know this history.
+    public static void Type(Vic20Machine machine, string text, ulong holdInstructions = 12_000, ulong gapInstructions = 12_000)
     {
         ArgumentNullException.ThrowIfNull(machine);
         ArgumentNullException.ThrowIfNull(text);
