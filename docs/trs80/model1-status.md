@@ -22,7 +22,13 @@
   bit-banged SAVE -> `Reset()` -> bit-banged LOAD -> memory-read round trip through the real
   cassette port (drives `Trs80Machine.Bus.WritePort/ReadPort/Tick` directly, since real-ROM
   CSAVE/CLOAD isn't verified yet - see below).
-- Real-ROM READY/CLOAD requires follow-up hardware-validation work - not yet attempted.
+- **Real-ROM boot to READY confirmed working**, found while generalizing `PetEmulator.Screenshot`
+  (below): `--machine trs80` boots the real Level II v1.4 ROM to a real
+  `Enhanced Level II BASIC / Release 1.4 / 48,346 Free Bytes / READY / >_` prompt in 30 ticks
+  (20,000 instructions each) with no scripting or boot-wait tuning - the CPU/memory-map/video/
+  keyboard wiring is sound enough for a cold boot. CLOAD specifically (loading a real program from
+  tape after that prompt) is still unverified - the ROM reaching READY doesn't by itself prove its
+  cassette read routine works against this repo's port timing.
 - `FD1791`/`FD1793` (`lib/PetEmulator.Chips/`, shared with Kaypro) now implements STEP/STEP-IN/
   STEP-OUT, side select, READ ADDRESS with a real CRC-16, and READ TRACK/WRITE TRACK (0xE0/0xF0) -
   synthesized FM/MFM track layout since `IFD1791DiskImage` carries no raw track bytes, verified via
@@ -33,6 +39,14 @@
 - `Trs80DebuggerSession`'s `disk`/`tape` CLI commands now hot-swap into the running machine
   (`Trs80Machine.InsertDisk`/`LoadTape`) instead of rebuilding it from scratch - matches
   `Trs80MachineViewModel`'s Desktop fix and no longer loses in-progress CPU/RAM state mid-script.
+- `PetEmulator.Screenshot` (`lib/PetEmulator.Screenshot/Program.cs`) used to hardcode a
+  `--machine vic20` special case and silently render PET for anything else, including
+  `--machine trs80` or `--machine kaypro` - a real, previously-undiscovered bug. `--machine` now
+  matches any label in `MainWindowViewModel.ModuleChoices` (case/punctuation-insensitive prefix
+  match), with a clear error listing known machines instead of a silent wrong-machine screenshot.
+  Every machine gets this for free by being registered there and implementing
+  `IMachineViewModel` - no per-machine code in the tool. Verified: `pet`, `vic20`, `kaypro`,
+  `trs80` all render correctly; an unknown name throws instead of defaulting to PET.
 
 ## Asset provenance
 

@@ -4,7 +4,7 @@ using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using PetEmulator.Desktop;
-using PetEmulator.Desktop.Input;
+using PetEmulator.Desktop.Models;
 using PetEmulator.Desktop.ViewModels;
 using PetEmulator.Desktop.Views;
 using PetEmulator.Core.Keyboard;
@@ -17,8 +17,15 @@ namespace PetEmulator.Screenshot;
 /// saves one frame to a PNG. Built because this dev environment has no screenshot tool
 /// (import/scrot/xwd) and installing one needs root it doesn't have.
 ///
-/// Usage: dotnet run --project lib/PetEmulator.Screenshot -- [--machine pet|vic20]
+/// Usage: dotnet run --project lib/PetEmulator.Screenshot -- [--machine name]
 ///   [--ticks N] [--out path.png] [--cartridge path.crt] [--type "text"]
+///
+/// `--machine` matches any label in MainWindowViewModel.ModuleChoices (including nested PET/
+/// SuperPET profile entries), case- and punctuation-insensitive prefix match - e.g. "vic20"
+/// matches "VIC-20", "trs80" matches "TRS-80 Model I", "kaypro" matches "Kaypro II". This is
+/// deliberately NOT a per-machine if/else: every machine already implements IMachineViewModel
+/// and is registered in ModuleChoices, so a new machine gets a screenshot for free the moment
+/// it's added there - the tool doesn't get a bespoke case.
 /// </summary>
 internal static class Program
 {
@@ -41,23 +48,31 @@ internal static class Program
         window.Show();
 
         var viewModel = (MainWindowViewModel)window.DataContext!;
-        if (machine.Equals("vic20", StringComparison.OrdinalIgnoreCase))
-        {
-            var entry = viewModel.ModuleChoices.First(e => e.Label == "VIC-20");
-            viewModel.SwitchMachineCommand.Execute(entry);
-        }
+
+        // Every selectable entry, PET/SuperPET's nested per-profile children included - the same
+        // flatten MainWindowViewModel's own constructor uses to pick its initial machine.
+        var entries = viewModel.ModuleChoices
+            .SelectMany(entry => entry.Create is not null ? (IEnumerable<ModuleMenuEntry>)[entry] : entry.Children ?? [])
+            .ToList();
+        var selected = entries.FirstOrDefault(e => Normalize(e.Label).StartsWith(Normalize(machine), StringComparison.Ordinal))
+            ?? throw new ArgumentException(
+                $"No machine matches '--machine {machine}'. Known: {string.Join(", ", entries.Select(e => e.Label))}");
+        viewModel.SwitchMachineCommand.Execute(selected);
 
         var machineViewModel = (IMachineViewModel)viewModel.CurrentModule;
 
         var cartridgePath = ArgValue(args, "--cartridge");
         if (cartridgePath is not null)
         {
+            if (machineViewModel is not Vic20MachineViewModel vic20)
+                throw new ArgumentException($"--cartridge only applies to VIC-20, not '{selected.Label}'.");
+
             // Mounted before any Tick() runs, same as Vic20DebuggerSession's "cartridge" command -
             // the machine's CPU hasn't executed a single instruction yet at this point (only
             // Vic20Machine's constructor-time Reset() has run), so the KERNAL's own cold-start
             // still gets to discover the freshly-inserted cartridge signature normally; no extra
             // Reset() call needed here.
-            ((Vic20MachineViewModel)machineViewModel).LoadCartridge(cartridgePath);
+            vic20.LoadCartridge(cartridgePath);
         }
 
         // Stop viewModel's own 20ms render-loop DispatcherTimer as early as possible - this tool
@@ -137,6 +152,9 @@ internal static class Program
         var index = Array.IndexOf(args, name);
         return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
     }
+
+    private static string Normalize(string s) =>
+        new([.. s.Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant)]);
 
     // Diagnostic-only mirror of PetEmulator.Desktop.KeyMapping.ToHostKey (internal, not worth
     // exposing cross-project for a debug print) - just enough cases for this tool's own --type.
