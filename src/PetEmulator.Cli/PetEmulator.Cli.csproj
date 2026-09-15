@@ -18,6 +18,8 @@
     <ProjectReference Include="../PetEmulator.Pet/PetEmulator.Pet.csproj" />
     <ProjectReference Include="../../lib/PetEmulator.Debugger/PetEmulator.Debugger.csproj" />
     <ProjectReference Include="../PetEmulator.Vic20/PetEmulator.Vic20.csproj" />
+    <ProjectReference Include="../PetEmulator.Trs80/PetEmulator.Trs80.csproj" />
+    <ProjectReference Include="../../lib/PetEmulator.CpuZ80/PetEmulator.CpuZ80.csproj" />
   </ItemGroup>
 
   <ItemGroup>

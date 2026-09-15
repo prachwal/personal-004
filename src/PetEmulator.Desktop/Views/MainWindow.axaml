@@ -64,6 +64,9 @@
                  <DataTemplate DataType="viewModels:KayproMachineViewModel">
                      <views:KayproMachineView />
                  </DataTemplate>
+                 <DataTemplate DataType="viewModels:Trs80MachineViewModel">
+                     <views:Trs80MachineView />
+                 </DataTemplate>
                   <DataTemplate DataType="viewModels:ChipTesterViewModel">
                       <views:ChipTesterView />
                   </DataTemplate>

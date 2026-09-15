@@ -9,6 +9,7 @@ using PetEmulator.Desktop.Views;
 using PetEmulator.Pet;
 using PetEmulator.Pet.Keyboard;
 using PetEmulator.Vic20;
+using PetEmulator.Trs80;
 
 namespace PetEmulator.Desktop.ViewModels;
 
@@ -59,6 +60,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
               new ModuleMenuEntry("SuperPET", null, SuperPetChoices),
               new ModuleMenuEntry("VIC-20", CreateVic20),
               new ModuleMenuEntry("Kaypro II", () => new KayproMachineViewModel(_romsRoot)),
+              new ModuleMenuEntry("TRS-80 Model I", () => new Trs80MachineViewModel(_romsRoot)),
          ];
 
         ToolChoices =
@@ -182,6 +184,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             case PetMachineViewModel pet: pet.LoadTape(path); break;
             case Vic20MachineViewModel vic20: vic20.LoadTape(path); break;
+            case Trs80MachineViewModel trs80: trs80.LoadTape(path); break;
         }
     }
 
@@ -208,6 +211,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             case PetMachineViewModel pet: pet.LoadDisk(path); break;
             case Vic20MachineViewModel vic20: vic20.LoadDisk(path); break;
             case KayproMachineViewModel kaypro: kaypro.LoadDisk(path); break;
+            case Trs80MachineViewModel trs80: trs80.LoadDisk(path); break;
         }
     }
 

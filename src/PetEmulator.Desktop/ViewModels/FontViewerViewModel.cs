@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using PetEmulator.Kaypro;
 using PetEmulator.Pet.Fonts;
 using PetEmulator.Vic20;
+using PetEmulator.Trs80;
 
 namespace PetEmulator.Desktop.ViewModels;
 
@@ -31,6 +32,7 @@ public sealed partial class FontViewerViewModel : ObservableObject, IShellModule
         yield return new PetCharacterRomProvider();
         yield return new Vic20CharacterRomProvider();
         yield return new KayproCharacterRomProvider();
+        yield return new Trs80CharacterRomProvider();
     }
 
     public string WindowTitle => "Font / Glyph Viewer";

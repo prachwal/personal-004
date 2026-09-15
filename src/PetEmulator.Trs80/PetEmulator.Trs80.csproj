@@ -2,4 +2,11 @@
   <PropertyGroup>
     <RootNamespace>PetEmulator.Trs80</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../lib/PetEmulator.Core/PetEmulator.Core.csproj" />
+    <ProjectReference Include="../../lib/PetEmulator.CpuZ80/PetEmulator.CpuZ80.csproj" />
+    <ProjectReference Include="../../lib/PetEmulator.Chips/PetEmulator.Chips.csproj" />
+    <ProjectReference Include="../PetEmulator.Pet/PetEmulator.Pet.csproj" />
+  </ItemGroup>
 </Project>

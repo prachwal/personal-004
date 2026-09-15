@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using PetEmulator.Trs80;
 
 namespace PetEmulator.Cli;
 
@@ -64,16 +65,28 @@ internal static class CliCommandFactory
         vic20Debug.Arguments.Add(vic20Script);
         vic20Debug.SetAction((parseResult, _) => Task.FromResult(RunVic20DebugScript(parseResult.GetValue(vic20Script))));
 
+        var trs80Script = new Argument<string?>("script") { Description = "Path to a TRS-80 debugger script.", Arity = ArgumentArity.ZeroOrOne };
+        var trs80Debug = new Command("trs80-debug", "Run a scripted TRS-80 Model I debugger session.");
+        trs80Debug.Arguments.Add(trs80Script);
+        trs80Debug.SetAction((parseResult, _) => Task.FromResult(RunTrs80DebugScript(parseResult.GetValue(trs80Script))));
+
         var d64Path = new Argument<string>("path") { Description = "Path to a .d64 disk image." };
         var d64Dir = new Command("d64-dir", "List a .d64 disk image's directory (name/type/size/lock), no machine needed.");
         d64Dir.Arguments.Add(d64Path);
         d64Dir.SetAction((parseResult, _) => Task.FromResult(RunD64Dir(parseResult.GetValue(d64Path)!)));
 
+        var trs80DirPath = new Argument<string>("path") { Description = "Path to a TRS-80 JV1 or DMK disk image." };
+        var trs80Dir = new Command("trs80-dir", "List a TRS-80 NEWDOS/80 or LS-DOS directory.");
+        trs80Dir.Arguments.Add(trs80DirPath);
+        trs80Dir.SetAction((parseResult, _) => Task.FromResult(RunTrs80Dir(parseResult.GetValue(trs80DirPath)!)));
+
         root.Subcommands.Add(apps);
         root.Subcommands.Add(run);
         root.Subcommands.Add(debug);
         root.Subcommands.Add(vic20Debug);
+        root.Subcommands.Add(trs80Debug);
         root.Subcommands.Add(d64Dir);
+        root.Subcommands.Add(trs80Dir);
         root.SetAction(async (parseResult, cancellationToken) =>
             await ExecuteAsync(parseResult, rootOptions, null,
                 static (registry, request, token) => registry.RunAsync(
@@ -137,6 +150,23 @@ internal static class CliCommandFactory
         return hadError ? 1 : 0;
     }
 
+    private static int RunTrs80DebugScript(string? scriptPath)
+    {
+        using var reader = scriptPath is not null ? new StreamReader(scriptPath) : new StreamReader(Console.OpenStandardInput());
+        var session = new Trs80DebuggerSession();
+        var hadError = false;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0 || trimmed.StartsWith('#')) continue;
+            var output = session.Execute(trimmed);
+            if (output.Length > 0) Console.Write(output.EndsWith('\n') ? output : output + Environment.NewLine);
+            if (output.StartsWith("error:", StringComparison.Ordinal)) hadError = true;
+        }
+        return hadError ? 1 : 0;
+    }
+
     /// <summary>Reads a .d64 image straight off disk and lists its directory - no machine, no
     /// ROMs, just <see cref="D64Image.Load(string)"/>/<see cref="D64Image.ReadDirectory"/>. Built
     /// to verify a downloaded test disk's real program names before mounting it in a running
@@ -154,6 +184,29 @@ internal static class CliCommandFactory
                 Console.WriteLine($"{entry.SizeInSectors,-4} \"{entry.Filename}\" {entry.Type}{flags}");
             }
 
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            Console.Error.WriteLine($"error: {exception.Message}");
+            return 1;
+        }
+    }
+
+    private static int RunTrs80Dir(string path)
+    {
+        try
+        {
+            if (Path.GetExtension(path).Equals(".dmk", StringComparison.OrdinalIgnoreCase))
+            {
+                var entries = new LsDos6FileSystem(DmkDiskImage.Load(path)).ReadDirectory();
+                foreach (var entry in entries) Console.WriteLine($"{entry.SizeInBytes,6} {entry.FileName}");
+            }
+            else
+            {
+                var entries = new NewDos80FileSystem(Jv1DiskImage.Load(path)).ReadDirectory();
+                foreach (var entry in entries) Console.WriteLine($"{entry.SizeInBytes,6} {entry.FileName}");
+            }
             return 0;
         }
         catch (Exception exception)
