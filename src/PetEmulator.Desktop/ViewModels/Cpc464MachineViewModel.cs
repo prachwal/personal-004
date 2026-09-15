@@ -11,7 +11,6 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
 {
     private const ulong InstructionsPerTick = 20_000;
     private readonly Cpc464Machine _machine;
-    private static readonly uint[] Palette = [0xFF000000, 0xFFFFFFFF, 0xFF0000AA, 0xFFAA0000];
     [ObservableProperty] private string _statusText = "Amstrad CPC464  Z80  PC=0x0000";
     public Cpc464MachineViewModel(string romsRoot)
     {
@@ -34,7 +33,14 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
     public void Reset() { _machine.Reset(); Render(); FrameReady?.Invoke(this, EventArgs.Empty); }
     public void Dispose() { }
     public void HandleKey(Key key, HostKeyEventKind kind) { if (TryMap(key, out var row, out var column)) _machine.Bus.Keyboard.SetKey(row, column, kind == HostKeyEventKind.Press); }
-    private void Render() { _machine.Bus.GateArray.RenderFrame(); var pixels = _machine.Bus.GateArray.Pixels; for (var i = 0; i < FrameBuffer.Length; i++) FrameBuffer[i] = Palette[pixels[i] & 3]; }
+    private void Render()
+    {
+        var gateArray = _machine.Bus.GateArray;
+        gateArray.RenderFrame();
+        var pixels = gateArray.Pixels;
+        for (var i = 0; i < FrameBuffer.Length; i++)
+            FrameBuffer[i] = Cpc464GateArray.HardwareColors[gateArray.GetInkColorIndex(pixels[i])];
+    }
     private static bool TryMap(Key key, out byte row, out byte column)
     {
         var code = key is >= Key.A and <= Key.Z ? 0x85 + (key - Key.A) : key switch { Key.Space => 0x57, Key.Enter or Key.Return => 0x06, Key.LeftShift or Key.RightShift => 0x25, Key.Up => 0x00, Key.Down => 0x02, Key.Left => 0x10, Key.Right => 0x01, _ => -1 };

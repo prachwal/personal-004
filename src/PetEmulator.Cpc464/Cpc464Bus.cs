@@ -67,8 +67,9 @@ public sealed class Cpc464Bus : IBus, IMemoryBus
         InterruptLines.SetInt(GateArray.InterruptPending);
     }
     public void Reset() { Array.Clear(_ram); _portA = _portB = _portC = 0; _ppiControl = 0x9B; GateArray.Reset(); Crtc.Reset(); Ay.Reset(); Keyboard.Reset(); Cassette.Reset(); InterruptLines.Clear(); }
-    private void WriteControl(byte value) { if ((value & 0x80) != 0) { _ppiControl = value; return; } var bit = (value >> 1) & 7; if ((value & 1) != 0) _portC |= (byte)(1 << bit); else _portC &= (byte)~(1 << bit); Cassette.SetMotor((_portC & 0x10) != 0); ApplyPsg(); }
-    private void WritePortC(byte value) { var writable = (byte)((PortCUpperInput ? 0 : 0xF0) | (PortCLowerInput ? 0 : 0x0F)); _portC = (byte)((_portC & ~writable) | (value & writable)); Cassette.SetMotor((_portC & 0x10) != 0); ApplyPsg(); }
+    private void WriteControl(byte value) { if ((value & 0x80) != 0) { _ppiControl = value; return; } var bit = (value >> 1) & 7; if ((value & 1) != 0) _portC |= (byte)(1 << bit); else _portC &= (byte)~(1 << bit); ApplyCassetteControl(); ApplyPsg(); }
+    private void WritePortC(byte value) { var writable = (byte)((PortCUpperInput ? 0 : 0xF0) | (PortCLowerInput ? 0 : 0x0F)); _portC = (byte)((_portC & ~writable) | (value & writable)); ApplyCassetteControl(); ApplyPsg(); }
+    private void ApplyCassetteControl() { Cassette.SetMotor((_portC & 0x10) != 0); Cassette.WriteData((_portC & 0x20) != 0); }
     private void ApplyPsg() { if (PortCUpperInput) return; switch ((_portC >> 6) & 3) { case 2: Ay.WritePort(0xA1, _portA); break; case 3: Ay.WritePort(0xA0, _portA); break; } }
     private byte ReadPsg() => ((_portC >> 6) & 3) == 1 ? (_portA == 14 ? Keyboard.ReadRow((byte)(_portC & 0x0F)) : Ay.ReadSelected()) : (byte)0xFF;
 }
