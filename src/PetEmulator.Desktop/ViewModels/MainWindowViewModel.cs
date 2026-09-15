@@ -161,8 +161,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Loads a VICE-style .tap file into the current machine's datasette, if it has one -
-    /// both <see cref="PetMachineViewModel"/> and <see cref="Vic20MachineViewModel"/> do (see
-    /// docs/vic20/tape.md). The file-picker dialog itself is Avalonia-specific glue that lives in
+    /// supported machine. The file-picker dialog itself is Avalonia-specific glue that lives in
     /// <see cref="MainWindow"/>'s code-behind (needs a <c>TopLevel</c>), which calls straight
     /// through to this.</summary>
     [RelayCommand]
@@ -187,6 +186,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             case PetMachineViewModel pet: pet.LoadTape(path); break;
             case Vic20MachineViewModel vic20: vic20.LoadTape(path); break;
             case Trs80MachineViewModel trs80: trs80.LoadTape(path); break;
+            case Cpc464MachineViewModel cpc464: cpc464.LoadTape(path); break;
         }
     }
 

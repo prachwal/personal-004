@@ -7,7 +7,7 @@ public sealed class AvaloniaFilePickerService(Window window) : IFilePickerServic
 {
     public async Task<string?> PickTapeToOpenAsync()
     {
-        return await PickOpenFileAsync("Load tape", "Tape images", ["*.tap"]);
+        return await PickOpenFileAsync("Load tape", "Tape images", ["*.tap", "*.cdt"]);
     }
 
     public async Task<string?> PickDiskToOpenAsync()

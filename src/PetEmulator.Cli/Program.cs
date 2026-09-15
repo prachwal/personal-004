@@ -70,6 +70,13 @@ internal static class CliCommandFactory
         trs80Debug.Arguments.Add(trs80Script);
         trs80Debug.SetAction((parseResult, _) => Task.FromResult(RunTrs80DebugScript(parseResult.GetValue(trs80Script))));
 
+        var cpc464Script = new Argument<string?>("script") { Description = "Path to an Amstrad CPC464 debugger script.", Arity = ArgumentArity.ZeroOrOne };
+        var cpc464Debug = new Command("cpc464-debug",
+            "Run a scripted Cpc464DebuggerSession: roms/tape/key/status, plus trace/watch/watch-range/" +
+            "unwatch/break-cycle/break-instruction-count/dump.");
+        cpc464Debug.Arguments.Add(cpc464Script);
+        cpc464Debug.SetAction((parseResult, _) => Task.FromResult(RunCpc464DebugScript(parseResult.GetValue(cpc464Script))));
+
         var d64Path = new Argument<string>("path") { Description = "Path to a .d64 disk image." };
         var d64Dir = new Command("d64-dir", "List a .d64 disk image's directory (name/type/size/lock), no machine needed.");
         d64Dir.Arguments.Add(d64Path);
@@ -85,6 +92,7 @@ internal static class CliCommandFactory
         root.Subcommands.Add(debug);
         root.Subcommands.Add(vic20Debug);
         root.Subcommands.Add(trs80Debug);
+        root.Subcommands.Add(cpc464Debug);
         root.Subcommands.Add(d64Dir);
         root.Subcommands.Add(trs80Dir);
         root.SetAction(async (parseResult, cancellationToken) =>
@@ -154,6 +162,23 @@ internal static class CliCommandFactory
     {
         using var reader = scriptPath is not null ? new StreamReader(scriptPath) : new StreamReader(Console.OpenStandardInput());
         var session = new Trs80DebuggerSession();
+        var hadError = false;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0 || trimmed.StartsWith('#')) continue;
+            var output = session.Execute(trimmed);
+            if (output.Length > 0) Console.Write(output.EndsWith('\n') ? output : output + Environment.NewLine);
+            if (output.StartsWith("error:", StringComparison.Ordinal)) hadError = true;
+        }
+        return hadError ? 1 : 0;
+    }
+
+    private static int RunCpc464DebugScript(string? scriptPath)
+    {
+        using var reader = scriptPath is not null ? new StreamReader(scriptPath) : new StreamReader(Console.OpenStandardInput());
+        var session = new Cpc464DebuggerSession();
         var hadError = false;
         string? line;
         while ((line = reader.ReadLine()) is not null)

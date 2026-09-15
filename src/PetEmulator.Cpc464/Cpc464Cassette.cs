@@ -1,11 +1,8 @@
 namespace PetEmulator.Cpc464;
 
-/// <summary>A self-consistent pulse cassette: each bit is one HIGH pulse whose width encodes 0 or
-/// 1 (<see cref="ZeroBitTicks"/>/<see cref="OneBitTicks"/>), followed by a fixed LOW gap. Not real
-/// Amstrad tape firmware timing - this machine doesn't run real CSAVE/CLOAD ROM code yet, so this
-/// exists to prove the record/playback path end-to-end (see the boot test's own note on real-ROM
-/// scope), the same way <c>Trs80CassettePlayer</c> does for the TRS-80 before its ROM tape routines
-/// are verified.
+/// <summary>A cassette supporting CDT pulse streams and the synthetic byte format used by the
+/// CSAVE/CLOAD subsystem round-trip test. Synthetic bits are one HIGH pulse whose width encodes 0
+/// or 1 (<see cref="ZeroBitTicks"/>/<see cref="OneBitTicks"/>), followed by a fixed LOW gap.
 /// <para>One <see cref="Tick"/> call is one microsecond: <see cref="Cpc464Bus.Tick"/> already calls
 /// it once per Gate Array clock (1 MHz), so callers driving a T-state budget must pass 4x the
 /// desired tick count.</para></summary>
@@ -18,6 +15,9 @@ public sealed class Cpc464Cassette
     private byte[] _tape = [];
     private int _byteIndex, _bitIndex = 7, _remaining;
     private bool _playbackHigh, _started;
+    private IReadOnlyList<int> _pulseTicks = [];
+    private int _pulseIndex;
+    private bool _pulsePlayback;
 
     private readonly List<(int Ticks, bool Level)> _recorded = [];
     private int _recordTicks;
@@ -25,7 +25,7 @@ public sealed class Cpc464Cassette
     private bool _recording;
 
     public bool MotorOn { get; private set; }
-    public bool AtEndOfTape => _byteIndex >= _tape.Length;
+    public bool AtEndOfTape => _pulsePlayback ? _pulseIndex >= _pulseTicks.Count : _byteIndex >= _tape.Length;
     public bool Signal { get; private set; }
 
     public void Reset()
@@ -42,6 +42,18 @@ public sealed class Cpc464Cassette
     public void LoadTape(byte[] tape)
     {
         _tape = tape;
+        _pulsePlayback = false;
+        Rewind();
+    }
+
+    /// <summary>Mounts alternating pulse widths measured in one-microsecond cassette ticks.</summary>
+    public void LoadPulses(IReadOnlyList<int> pulseTicks)
+    {
+        ArgumentNullException.ThrowIfNull(pulseTicks);
+        if (pulseTicks.Any(ticks => ticks <= 0))
+            throw new ArgumentOutOfRangeException(nameof(pulseTicks), "Pulse widths must be positive.");
+        _pulseTicks = pulseTicks.ToArray();
+        _pulsePlayback = true;
         Rewind();
     }
 
@@ -52,6 +64,9 @@ public sealed class Cpc464Cassette
         _remaining = 0;
         _started = false;
         _playbackHigh = false;
+        _pulseIndex = 0;
+        if (_pulsePlayback && _pulseTicks.Count > 0)
+            _remaining = _pulseTicks[0];
         Signal = false;
     }
 
@@ -61,7 +76,7 @@ public sealed class Cpc464Cassette
         if (!enabled && _recording) { FlushPulse(); _recording = false; }
     }
 
-    public bool ReadSignal() => !MotorOn || AtEndOfTape || _tape.Length == 0 ? true : Signal;
+    public bool ReadSignal() => !MotorOn || AtEndOfTape ? true : Signal;
 
     /// <summary>Drives the write head (real Amstrad PPI Port C bit 5) while the motor is running;
     /// ignored otherwise, matching the real cassette relay cutting the write circuit.</summary>
@@ -84,6 +99,14 @@ public sealed class Cpc464Cassette
     {
         if (_recording) _recordTicks++;
         if (!MotorOn || AtEndOfTape) return;
+        if (_pulsePlayback)
+        {
+            if (--_remaining > 0) return;
+            Signal = !Signal;
+            _pulseIndex++;
+            if (!AtEndOfTape) _remaining = _pulseTicks[_pulseIndex];
+            return;
+        }
         if (!_started) { _started = true; EnterBit(); }
         if (--_remaining > 0) return;
         Advance();
