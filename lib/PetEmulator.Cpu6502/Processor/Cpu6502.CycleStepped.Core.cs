@@ -161,6 +161,7 @@ public partial class Cpu6502
             _currentDefinition!.ExecuteCycle!(State, ExecutionContext, _cycleCount);
             _cycleCount++;
             _clock.Advance(1);
+            CycleElapsed?.Invoke();
         }
 
         _instructionCount++;

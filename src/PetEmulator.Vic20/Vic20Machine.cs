@@ -78,6 +78,23 @@ public sealed class Vic20Machine : IMachine
 
         _memoryBus = new Vic20MemoryBus(roms, _vic, _via1, _via2, _colorRam, cartridge);
         _cpu = new Cpu6502Classic(_memoryBus);
+
+        // VIA1/VIA2 tick interleaved with the CPU's own per-cycle execution (Cpu6502.CycleElapsed
+        // fires once per elapsed cycle, right after the CPU's bus access for that cycle) instead
+        // of in a lump after the whole instruction completes. Real 6522 hardware resolves a
+        // register write (e.g. STA $9117, T1 latch-high) against its own internal timer underflow
+        // at cycle granularity; batching every VIA tick until the instruction finishes can never
+        // reproduce that race - see docs/vic20/via-nmi-irq-diagnosis.md §9 (the `via_pb7`/
+        // `via_t1irqack` VICE-testprogs regressions this was root-caused against). CycleElapsed's
+        // fire count exactly matches _cpu.CycleCount's delta (including the zero-cost interrupt
+        // injection path - InjectInterrupt never calls _clock.Advance), so this is a drop-in
+        // replacement for the old `_via1.Tick(cycles); _via2.Tick(cycles);` lump call, not an
+        // additional/duplicate tick source.
+        _cpu.CycleElapsed += () =>
+        {
+            _via1.Update();
+            _via2.Update();
+        };
         _datasette = new Vic20Datasette(_via1, _via2);
         _serialBus = new Vic20SerialBus();
         _serialBus.Activity += activity =>
@@ -279,8 +296,8 @@ public sealed class Vic20Machine : IMachine
 
         _memoryBus.TickCartridges(cycles);
         _vic.Tick(cycles);
-        _via1.Tick(cycles);
-        _via2.Tick(cycles);
+        // VIA1/VIA2 already ticked cycle-by-cycle via the CycleElapsed subscription set up in the
+        // constructor - see that comment for why this isn't a lump `_via1.Tick(cycles)` anymore.
 
         for (var i = 0UL; i < cycles; i++)
         {

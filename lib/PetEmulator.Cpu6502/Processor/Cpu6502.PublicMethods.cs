@@ -7,6 +7,15 @@ namespace PetEmulator.Cpu6502;
 /// </summary>
 public partial class Cpu6502 : CpuProcessorBase<CpuState>
 {
+    /// <summary>
+    /// Fired once per elapsed CPU cycle during <see cref="StepInstruction"/> — right after the
+    /// internal clock advances for that cycle and before the next cycle's handler (and therefore
+    /// before any memory access it makes) runs. Lets a machine-level caller tick peripherals
+    /// (e.g. VIA chips) in lockstep with the CPU instead of after the whole instruction completes.
+    /// Purely additive: no subscribers means no behavioral or perf change.
+    /// </summary>
+    public event Action? CycleElapsed;
+
     #region Metody publiczne - Reset
 
     /// <summary>

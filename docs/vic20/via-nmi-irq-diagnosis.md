@@ -81,8 +81,8 @@ became actual fixes):
 | "Alphoids" cartridge freezes at `$1242` forever | **not a bug** | it's a real "press any key" wait loop (`$CB`, real KERNAL keyboard-scan variable) - resolved by pressing a key |
 | Joystick simulation didn't unstick Alphoids | expected | Alphoids waits on the **keyboard**, not the joystick |
 | `Vic20TextTyper`'s default hold/gap (5,500 instructions) too thin | **real bug** | default bumped to 12,000 (uncommitted) |
-| `via_pb7` VICE regression test vs real-hardware reference | **partial mismatch found** | open, not yet root-caused (see below) |
-| `via_t1irqack` (`BANDITS-VIA1`) vs real-hardware reference | **mismatch found** - IFR sticks at `$C0` forever instead of cycling `C0 C0 00 C0 00 00` | open, not yet root-caused (see below) |
+| `via_pb7` VICE regression test vs real-hardware reference | **partial mismatch found** | open - cycle-interleaved VIA ticking implemented for VIC-20 (§9), zero regressions, but this specific mismatch is unchanged; needs its own investigation |
+| `via_t1irqack` (`BANDITS-VIA1`) vs real-hardware reference | was: IFR sticks at `$C0` forever instead of cycling `C0 C0 00 C0 00 00` | **fixed** (§10) - `MOS6522` T1-latch-high write now clears the T1 interrupt flag, matching VICE's `viacore.c` and real hardware; IFR now cycles `00/C0` and screen output shows the expected mixed reversed/non-reversed pattern |
 | $9000/$9001 (VIC origin X/Y) never read by the renderer | documented gap | not fixed (rare in practice) |
 | No CPU cycle-stealing during VIC display fetch | confirmed **correct** (matches VICE - real VIC-20 has no C64-style "bad lines") | no action needed |
 | Printer / RS-232 modem support | genuinely absent | not started |
@@ -291,12 +291,144 @@ been run yet, and would be a useful control: if VIA2's version matches the refer
 doesn't, that narrows the bug specifically to VIA1's interaction with the NMI change; if both
 mismatch the same way, the bug is in shared `MOS6522` logic, not the NMI/IRQ routing.
 
+## 9. §7/§8 root-caused: coarse-grained VIA ticking, not a logic bug
+
+Traced `via_t1irqack` (`BANDITS-VIA1`) instruction-by-instruction with `break-instruction-count` +
+`watch` (avoiding the `$9114`/T1CL side-effect trap - see Methodology) around the exact IFR
+transition (`instructions=3875009`). Disassembled the test's own NMI handler at `$11EE` (installed
+via the indirect vector `$0318/$0319 = $11EE`, confirmed via `dump 0300 0320`) directly from a
+`dump 11E0 1260`:
+
+```asm
+1200: AD 1D 91  LDA $911D      ; read IFR -> A=C0
+1203: 8D 00 1E  STA $1E00      ; screen col0 = C0
+1206: BD EA 11  LDA $11EA,X    ; table byte
+1209: 8D 16 91  STA $9116      ; T1 LATCH LOW (not counter!)
+120C: AD 1D 91  LDA $911D      ; read IFR -> still C0
+120F: 8D 01 1E  STA $1E01      ; screen col1 = C0
+1212: BD EC 11  LDA $11EC,X    ; table byte
+1215: 8D 17 91  STA $9117      ; T1 LATCH HIGH (not counter!)
+1218: AD 1D 91  LDA $911D      ; read IFR -> still C0
+121B: 8D 02 1E  STA $1E02      ; screen col2 = C0
+```
+
+All three `LDA $911D` come back `$C0` in this repo - matching the doc's `row0: [C0][C0][C0]`
+symptom. Real hardware (per the upstream reference table) returns `$00` for exactly one of these
+three reads, depending on ACR start state - a genuine race between the live T1 underflow and the
+`STA $9116`/`STA $9117` writes that land *between* two of the `LDA $911D` reads.
+
+**Root cause, confirmed, not a logic bug in `MOS6522`:** `Vic20Machine.StepInstruction`
+(`src/PetEmulator.Vic20/Vic20Machine.cs`) runs the CPU's *entire* instruction first
+(`_cpu.StepInstruction()`, which internally is cycle-stepped -
+`Cpu6502.CycleStepped.Core.cs`'s `while (!_sync)` loop calls each opcode's per-cycle handler and
+`_clock.Advance(1)`), and only **after** the whole instruction completes does it tick the VIAs by
+the instruction's total cycle count in one lump (`_via1.Tick(cycles); _via2.Tick(cycles);`). A
+`STA $9116`/`STA $9117` (4 cycles) lands in `MOS6522.Write` instantly at "cycle 0" of that
+instruction from the VIA's own internal-counter point of view, while the *real* T1 decrement that
+should be interleaved somewhere within those same 4 cycles only happens afterward, in bulk. This
+model can never reproduce a real 6522's write-vs-underflow race, because the write and the
+decrements are never actually concurrent in simulated time - only in wall-clock CPU cycles.
+
+`via_pb7`'s §7 mismatch ("PB7 bit lands one read later than real hardware" when ACR transitions
+from PB7-disabled to PB7-enabled mid-sequence) is the same root cause: an ACR write and a T1
+underflow that need to interleave at the cycle level instead resolve in the fixed "CPU instruction,
+then VIA catch-up" order this repo's stepping model imposes.
+
+**This is an architecture limitation, not a quick patch.** Confirmed via
+`impact({target: "StepInstruction", direction: "upstream", file_path: "src/PetEmulator.Vic20/Vic20Machine.cs"})`
+and `impact({target: "Tick", direction: "upstream", file_path: "lib/PetEmulator.Chips/MOS6522.cs"})`:
+both **CRITICAL** risk, 47 and 50 impacted symbols respectively, spanning PET *and* VIC-20 (both
+machines drive their VIAs the same coarse-grained way), cassette/Serial/CbmDos timing paths, and
+every debugger/CLI/desktop entry point that steps a machine. A real fix needs the CPU to expose a
+per-cycle stepping primitive (the internal cycle loop already exists - it's just not surfaced) and
+`Vic20Machine`/`PetMachine` to tick VIAs interleaved with each individual memory access instead of
+in a post-instruction lump. Not attempted here - flagged for a scoped decision (see chat) instead of
+an unreviewed rewrite of both machines' timing cores.
+
+### Follow-up: implemented for VIC-20, tests still don't match reference
+
+Given the go-ahead to pursue the fix: `Cpu6502` (`lib/PetEmulator.Cpu6502/Processor/`) now exposes
+`public event Action? CycleElapsed`, firing once per elapsed CPU cycle from inside
+`StepInstructionCore`'s cycle loop, right after that cycle's own bus access and `_clock.Advance(1)`,
+confirmed to fire exactly once per `CycleCount` delta, including the (pre-existing, zero-cost)
+interrupt-injection path, by a dedicated test (`tests/PetEmulator.Cpu6502.Tests/CycleElapsedHookTests.cs`).
+`Vic20Machine`'s constructor now subscribes `_via1.Update(); _via2.Update();` to that event instead
+of the old `_via1.Tick(cycles); _via2.Tick(cycles);` lump call in `StepInstruction()` - VIA state
+now advances in lockstep with the CPU's own cycles, so a register write on cycle N of an
+instruction is now correctly preceded by that same instruction's cycles 0..N-1 of VIA-internal
+timer decrement, instead of all N-of-N decrements happening only after the whole instruction
+(including the write) completes. Zero regressions: full `PetEmulator.Vic20.Tests` (153/153) and
+`PetEmulator.Cpu6502.Tests` (337/337, 1 pre-existing unrelated skip) pass; `detect_changes({scope:
+"all"})` reports `risk_level: "low"`, `affected_count: 0`.
+
+**Re-ran both VICE regression disks after the fix - byte-identical output to before, on both.**
+Traced why: `via_t1irqack`'s IFR-setting T1 underflow happens while the CPU is executing an
+unrelated tight polling loop (`$118C`/`$118E`, no VIA access at all that cycle) - not during any of
+the instructions that read/write VIA1 registers. Intra-instruction reordering only changes anything
+when a VIA-touching instruction's cycles literally straddle the moment T1 crosses zero; here they
+never do, so the fix (real and correct in general) has no effect on this specific captured
+execution.
+
+## 10. §8 (`via_t1irqack`) actually fixed - real cause found in VICE's own source
+
+The "vendor ambiguity" read of the `readme.txt` two-reference-pattern table (below, in this
+section's first draft) was wrong - corrected here. Fetched VICE's actual C source
+(`vice/src/core/viacore.c`, `VICE-Team/svn-mirror` on GitHub, `gh api search/code` +
+`gh api .../contents/...`) instead of reasoning from the reference table alone, and found the real
+answer sitting in a comment on the `VIA_T1LH` (T1 latch-high) store case:
+
+```c
+case VIA_T1LH:          /* Write timer A high order latch */
+    via_context->via[addr] = byte;
+    update_via_t1_latch(via_context, rclk);
+
+    /* CAUTION: according to the synertek notes, writing to T1LH does
+       NOT change the interrupt flags. however, not doing so breaks eg
+       the VIC20 game "bandits". also in a seperare test program it was
+       verified that indeed writing to the high order latch clears the
+       interrupt flag, also on synertek VIAs. (see via_t1irqack) */
+
+    /* Clear T1 interrupt */
+    via_context->ifr &= ~VIA_IM_T1;
+    update_myviairq_rclk(via_context, rclk);
+    break;
+```
+
+So this isn't vendor ambiguity - it's a **documented, single, real-hardware-verified behavior that
+contradicts the official 6522 datasheet**: writing the T1 **latch** high byte ($9117 on VIC-20 VIA1,
+`MOS6522`'s `T1LatchHigh`/offset `0x07`) clears the T1 interrupt flag, just like writing the
+**counter** high byte does - even though the datasheet says only the counter-high write should. The
+VICE devs' own comment names this exact test (`via_t1irqack`) as their proof, and notes real
+"Bandits" needs it too - matching this repo's own findings in §7-§9 precisely (the ISR's `STA
+$9117` at `$1215`, decoded above, is exactly that "ack via latch-high write" trick).
+
+**Fix**: `MOS6522.Write`'s `T1LatchHigh` case (`lib/PetEmulator.Chips/MOS6522.cs`) now calls
+`ClearInterrupt(Timer1Interrupt)` after updating the latch, matching VICE. Confirmed via
+`impact({target: "Write", file_path: "lib/PetEmulator.Chips/MOS6522.cs", direction: "upstream"})`
+(CRITICAL/110 symbols - expected for a hot shared method; the one-line change itself matches
+verified real-hardware behavior, not a guess). Zero regressions: `PetEmulator.Chips.Tests`
+(286/286), `PetEmulator.Vic20.Tests` (153/153), `PetEmulator.Pet.Tests` (350/350) all still green.
+
+**Re-ran `via_t1irqack` (`BANDITS-VIA1`) after the fix:**
+
+- IFR (`$911D`) now **cycles** `00→C0→00→C0→...` repeatedly for the rest of the trace window,
+  instead of latching at `$C0` forever - matches the shape of the upstream reference
+  (`C0 C0 00 C0 00 00`, a repeating pattern), not just one static value.
+- Screen row 0 (`$1E00-$1E02`) now reads `C0 C0 00` - a **mix** of reversed/non-reversed cells,
+  matching the shape of the real-hardware reference (one of the three reads returns a cleared
+  flag), instead of the pre-fix `C0 C0 C0` (all three reversed, matching neither reference pattern).
+
+`via_pb7` (§7) re-ran unchanged (byte-identical dump, same as the §9 follow-up's earlier run) - this
+fix is specific to the T1-latch-high IFR-ack path `via_t1irqack` exercises and `via_pb7` doesn't;
+§7's "PB7 bit lands one read later" mismatch remains open and needs its own investigation.
+
 ## Open items
 
-- Root-cause the `via_pb7` ACR-transition-timing mismatch (§7) and the `via_t1irqack` stuck-IFR
-  mismatch (§8) - possibly the same underlying `MOS6522` timing issue.
-- Run `BANDITS-VIA2` as a control (see §8) to narrow whether the bug is VIA1-specific (NMI-related)
-  or shared `MOS6522` logic.
+- Root-cause the `via_pb7` ACR-transition-timing mismatch (§7) - still open; §10's `T1LatchHigh`
+  IFR-clear fix didn't touch it (confirmed: byte-identical output before/after).
+  `via_t1irqack` (§8) is now fixed - see §10.
+- Run `BANDITS-VIA2` as a control to narrow whether `via_pb7`'s remaining mismatch is VIA1-specific
+  (NMI-related) or shared `MOS6522` logic.
 - `via_wrap`, `vic_9000test`, `joystick` (VICE-testprogs) have no ready `.d64` - would need
   packaging via this repo's own `D64Image.CreateFile` before they can be loaded the same way.
 - $9000/$9001 origin registers and interlace mode remain unread by the renderer.

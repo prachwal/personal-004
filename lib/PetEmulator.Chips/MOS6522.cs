@@ -228,7 +228,17 @@ public sealed class MOS6522 : IMemoryMappedDevice
                 ClearInterrupt(Timer1Interrupt);
                 break;
             case T1LatchHigh:
+                // Per the 6522 datasheet, writing the high-order LATCH (not the counter) should
+                // leave IFR alone. Real silicon disagrees: VICE's viacore.c clears T1's interrupt
+                // flag here too, with a comment citing their own empirical test ("via_t1irqack")
+                // showing this holds even on Synertek parts, contradicting Synertek's own notes -
+                // and noting that without it, the real VIC-20 game "Bandits" (this repo's
+                // roms/vic20/test-disks/vic20-via-t1irqack.d64 is the same VICE-testprogs disk)
+                // breaks, because its raster-IRQ trick re-arms by writing T1LH, not T1CH. Confirmed
+                // against this repo's own copy of that regression test - see
+                // docs/vic20/via-nmi-irq-diagnosis.md §9.
                 _t1Latch = (ushort)((_t1Latch & 0x00FF) | (value << 8));
+                ClearInterrupt(Timer1Interrupt);
                 break;
             case T2CounterLow:
                 _t2Latch = (ushort)((_t2Latch & 0xFF00) | value);
