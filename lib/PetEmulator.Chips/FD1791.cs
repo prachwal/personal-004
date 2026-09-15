@@ -21,6 +21,30 @@ public class FD1791
     public const byte WriteProtectFlag = 0x40;
     public const byte NotReadyFlag = 0x80;
 
+    private const byte IdAddressMark = 0xFE;
+    private const byte DataAddressMark = 0xFB;
+    private const byte DeletedDataAddressMark = 0xF8;
+    private const byte SyncMarkByte = 0xA1;
+
+    // FM (single-density, real TRS-80 Model I) track layout - IBM 3740 format. Gap lengths are
+    // representative standard values (real drives tolerate a range), not a byte-exact replica of
+    // any specific physical disk.
+    private const int FmGap1Length = 40;
+    private const int FmIdSyncLength = 6;
+    private const int FmGap2Length = 11;
+    private const int FmDataSyncLength = 6;
+    private const int FmGap3Length = 27;
+    private const byte FmFillByte = 0xFF;
+
+    // MFM (double-density) track layout - IBM System 34 format, same caveat as above.
+    private const int MfmGap1Length = 32;
+    private const int MfmIdSyncLength = 12;
+    private const int MfmSyncMarkLength = 3;
+    private const int MfmGap2Length = 22;
+    private const int MfmDataSyncLength = 12;
+    private const int MfmGap3Length = 54;
+    private const byte MfmFillByte = 0x4E;
+
     public const int DriveCount = 4;
     public const int DefaultDataByteTStates = 56;
     public const int DefaultSeekTStates = 12_000;
@@ -327,6 +351,13 @@ public class FD1791
             return;
         }
 
+        if ((_pendingCommand & 0xF0) == 0xF0)
+        {
+            ParseAndWriteTrack(_transfer, disk, _track, Side);
+            Complete(0);
+            return;
+        }
+
         if (!TryWriteSector(disk, _track, Side, _sector, _transfer))
         {
             Complete(RecordNotFoundFlag);
@@ -418,9 +449,35 @@ public class FD1791
             var sectors = disk.SectorsOnTrack(_track);
             _sector = (byte)(disk.FirstSectorId + (sectors > 0 ? _addressMarkIndex % sectors : 0));
             _addressMarkIndex++;
-            _transfer = [_track, Side, _sector, (byte)lengthCode, 0, 0];
+            var idField = new byte[] { IdAddressMark, _track, Side, _sector, (byte)lengthCode };
+            var crc = ComputeCrc16(disk.IsDoubleDensity ? PrependSyncMarks(idField) : idField);
+            _transfer = [_track, Side, _sector, (byte)lengthCode, (byte)(crc >> 8), (byte)crc];
             _transferIndex = 0;
             _writeTransfer = false;
+            RequestData();
+            return;
+        }
+
+        if ((_pendingCommand & 0xF0) == 0xE0)
+        {
+            _transfer = BuildTrack(disk, _track, Side);
+            _transferIndex = 0;
+            _writeTransfer = false;
+            RequestData();
+            return;
+        }
+
+        if ((_pendingCommand & 0xF0) == 0xF0)
+        {
+            if (disk.WriteProtected)
+            {
+                Complete(WriteProtectFlag);
+                return;
+            }
+
+            _transfer = new byte[ComputeTrackLength(disk, _track)];
+            _transferIndex = 0;
+            _writeTransfer = true;
             RequestData();
             return;
         }
@@ -448,6 +505,135 @@ public class FD1791
 
         _recordType = disk.IsDeletedDataMark(_track, _sector) ? RecordTypeFlag : (byte)0;
         RequestData();
+    }
+
+    /// <summary>Builds one full FM or MFM track (gaps, sync, address marks, real CRC-16) from the
+    /// logical sector data <paramref name="disk"/> exposes - used by READ TRACK (0xE0). There's no
+    /// raw-track byte source in <see cref="IFD1791DiskImage"/> (JV1 has none at all; DMK's are
+    /// private to <c>DmkDiskImage</c>), so this reconstructs a spec-correct, self-consistent track
+    /// rather than replaying the original physical layout byte-for-byte - any correct WD179x-driven
+    /// software parses it the same way either way.</summary>
+    private static byte[] BuildTrack(IFD1791DiskImage disk, int track, int side)
+    {
+        var mfm = disk.IsDoubleDensity;
+        var sectors = disk.SectorsOnTrack(track);
+        var firstSector = disk.FirstSectorId;
+        var lengthCode = disk.SectorSize switch { 128 => 0, 256 => 1, 512 => 2, 1024 => 3, _ => 0 };
+        var fill = mfm ? MfmFillByte : FmFillByte;
+        var buffer = new List<byte>(ComputeTrackLength(disk, track));
+
+        buffer.AddRange(Enumerable.Repeat(fill, mfm ? MfmGap1Length : FmGap1Length));
+
+        var sectorData = new byte[disk.SectorSize];
+        for (var i = 0; i < sectors; i++)
+        {
+            var sector = (byte)(firstSector + i);
+
+            buffer.AddRange(Enumerable.Repeat((byte)0x00, mfm ? MfmIdSyncLength : FmIdSyncLength));
+            if (mfm)
+                buffer.AddRange(Enumerable.Repeat(SyncMarkByte, MfmSyncMarkLength));
+            var idField = new byte[] { IdAddressMark, (byte)track, (byte)side, sector, (byte)lengthCode };
+            buffer.AddRange(idField);
+            var idCrc = ComputeCrc16(mfm ? PrependSyncMarks(idField) : idField);
+            buffer.Add((byte)(idCrc >> 8));
+            buffer.Add((byte)idCrc);
+
+            buffer.AddRange(Enumerable.Repeat(fill, mfm ? MfmGap2Length : FmGap2Length));
+            buffer.AddRange(Enumerable.Repeat((byte)0x00, mfm ? MfmDataSyncLength : FmDataSyncLength));
+            if (mfm)
+                buffer.AddRange(Enumerable.Repeat(SyncMarkByte, MfmSyncMarkLength));
+
+            // A sector this image doesn't actually have (short/damaged track) reads as zeros rather
+            // than failing the whole track - READ TRACK has no per-sector error status to report.
+            var deleted = TryReadSector(disk, track, side, sector, sectorData) && disk.IsDeletedDataMark(track, sector);
+            var mark = deleted ? DeletedDataAddressMark : DataAddressMark;
+            buffer.Add(mark);
+            buffer.AddRange(sectorData);
+            var dataField = new byte[sectorData.Length + 1];
+            dataField[0] = mark;
+            sectorData.CopyTo(dataField, 1);
+            var dataCrc = ComputeCrc16(mfm ? PrependSyncMarks(dataField) : dataField);
+            buffer.Add((byte)(dataCrc >> 8));
+            buffer.Add((byte)dataCrc);
+
+            buffer.AddRange(Enumerable.Repeat(fill, mfm ? MfmGap3Length : FmGap3Length));
+        }
+
+        return buffer.ToArray();
+    }
+
+    /// <summary>Exact byte length <see cref="BuildTrack"/> produces for this disk/track, computed
+    /// without reading any sector data - used to size the WRITE TRACK (0xF0) transfer buffer up
+    /// front, since the real command's data-request loop needs a fixed byte count before any data
+    /// arrives.</summary>
+    private static int ComputeTrackLength(IFD1791DiskImage disk, int track)
+    {
+        var mfm = disk.IsDoubleDensity;
+        var sectors = disk.SectorsOnTrack(track);
+        var idAndData = 5 + 2 + 1 + disk.SectorSize + 2; // idField(5) + idCrc(2) + mark(1) + data + dataCrc(2)
+        var perSector = mfm
+            ? MfmIdSyncLength + MfmSyncMarkLength + MfmGap2Length + MfmDataSyncLength + MfmSyncMarkLength + MfmGap3Length + idAndData
+            : FmIdSyncLength + FmGap2Length + FmDataSyncLength + FmGap3Length + idAndData;
+        return (mfm ? MfmGap1Length : FmGap1Length) + sectors * perSector;
+    }
+
+    /// <summary>Scans a raw track received via WRITE TRACK (0xF0) for ID+data field pairs and
+    /// writes each recognized sector back through the normal sector-write path - a logical-image
+    /// stand-in for what a real drive head does continuously as it passes over newly-written flux
+    /// transitions. ID-field and data-field CRC bytes are consumed but not validated: on a real
+    /// format pass, whatever the CPU just wrote is definitionally correct, there's nothing to check
+    /// it against yet.</summary>
+    private static void ParseAndWriteTrack(ReadOnlySpan<byte> raw, IFD1791DiskImage disk, int track, int side)
+    {
+        var sectorSize = disk.SectorSize;
+        byte? pendingSector = null;
+        var i = 0;
+        while (i < raw.Length)
+        {
+            if (raw[i] == IdAddressMark && i + 5 <= raw.Length)
+            {
+                pendingSector = raw[i + 3];
+                i += 5 + 2; // idField + its CRC bytes (unchecked, see doc comment)
+                continue;
+            }
+
+            if (pendingSector is { } sector
+                && raw[i] is DataAddressMark or DeletedDataAddressMark
+                && i + 1 + sectorSize + 2 <= raw.Length)
+            {
+                TryWriteSector(disk, track, side, sector, raw.Slice(i + 1, sectorSize));
+                pendingSector = null;
+                i += 1 + sectorSize + 2; // mark + data + CRC bytes (unchecked, see doc comment)
+                continue;
+            }
+
+            i++;
+        }
+    }
+
+    private static byte[] PrependSyncMarks(byte[] field)
+    {
+        var result = new byte[MfmSyncMarkLength + field.Length];
+        Array.Fill(result, SyncMarkByte, 0, MfmSyncMarkLength);
+        field.CopyTo(result, MfmSyncMarkLength);
+        return result;
+    }
+
+    /// <summary>CRC-16-CCITT (poly 0x1021, init 0xFFFF) - the real WD179x/FD179x family's ID- and
+    /// data-field check, computed over the address mark plus field bytes (MFM also includes the
+    /// three 0xA1 sync-mark bytes ahead of the mark - see <see cref="PrependSyncMarks"/>).</summary>
+    private static ushort ComputeCrc16(ReadOnlySpan<byte> data)
+    {
+        var crc = 0xFFFF;
+        foreach (var b in data)
+        {
+            crc ^= b << 8;
+            for (var bit = 0; bit < 8; bit++)
+                crc = (crc & 0x8000) != 0 ? (crc << 1) ^ 0x1021 : crc << 1;
+            crc &= 0xFFFF;
+        }
+
+        return (ushort)crc;
     }
 
     private static bool TryReadSector(IFD1791DiskImage disk, int track, int side, int sector, Span<byte> destination) =>
