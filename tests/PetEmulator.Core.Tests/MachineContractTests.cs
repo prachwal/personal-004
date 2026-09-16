@@ -43,6 +43,16 @@ public sealed class MachineContractTests
         machine.CycleCount.Should().BeGreaterThan(0);
     }
 
+    [TestCaseSource(nameof(RealMachines))]
+    public void Contract_exposes_a_machine_state_store_for_every_real_machine(Func<IMachine> factory)
+    {
+        var machine = factory();
+
+        machine.GetType().GetInterfaces()
+            .Should().Contain(contract => contract.IsGenericType
+                && contract.GetGenericTypeDefinition() == typeof(IMachineStateStore<>));
+    }
+
     private static IEnumerable RealMachines
     {
         get

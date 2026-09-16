@@ -78,7 +78,7 @@ jakości znalazła trzy problemy, wszystkie naprawione:
 Wszystkie trzy zweryfikowane: build 0/0, `Cpc464.Tests` 11/11,
 `Cpc6128.Tests` 16/16, `Desktop.Tests` 61/61.
 
-## Faza 1 — reszta rodzin: NIE ROZPOCZĘTA FORMALNIE
+## Faza 1 — reszta rodzin: snapshoty zrealizowane, pozostałe punkty otwarte
 
 Faza 1 nie startuje automatycznie po Fazie 0 — wymaga osobnej decyzji, że
 koszt migracji pozostałych czterech rodzin (PET, VIC-20, TRS-80, Kaypro)
@@ -86,7 +86,9 @@ jest tego wart, a nie że "skoro zrobiliśmy CPC, robimy resztę". Ta decyzja
 **nadal nie jest zapisana**. Dwa punkty poniżej (`IAudioDevice`,
 `IKeyboardViewModel`) zostały wykonane bez niej i cofnięte — patrz wyżej.
 
-Pozostałe punkty Fazy 1, w kolejności z oryginalnego planu:
+Decyzja go/no-go dla całej migracji nadal nie jest zapisana, ale zakres
+snapshotów został wykonany i zweryfikowany dla czterech rodzin. Pozostałe
+punkty Fazy 1, w kolejności z oryginalnego planu:
 
 1. `MachineClock` w Core — **zrobione już w Fazie 0** (punkt 1 wyżej),
    jako ekstrakcja z CPC, nie osobny krok Fazy 1.
@@ -96,15 +98,15 @@ Pozostałe punkty Fazy 1, w kolejności z oryginalnego planu:
 3. Wspólny kontrakt klawiatury i kasety poza CPC (CPC już ma
    `CpcKeyboard`/`CpcCassette`) — **cofnięte** w wersji bez konsumenta
    (`IKeyboardViewModel`); nie podjęte dla kasety.
-4. Pełne snapshoty PET, VIC-20, TRS-80, Kaypro według schematu z Fazy 0.
+4. **ZROBIONE:** pełne snapshoty PET, VIC-20, TRS-80, Kaypro według
+   schematu z Fazy 0; każdy typ zachowuje własne urządzenia i ograniczenia.
 5. Routing Desktop/CLI z testów typu konkretnego ViewModelu na capability
    interfaces — częściowo już prawda dziś (`ITapeViewModel`/
    `IDatasetteViewModel`/`IDiskDriveViewModel` istnieją od wcześniejszego
    refaktoru), ale nie systematycznie dla wszystkich operacji.
-6. Macierz testów kontraktowych na wszystkich realnych maszynach —
-   częściowo istnieje (`MachineContractTests.cs` obejmuje `IMachine` dla
-   wszystkich pięciu realnych maszyn), nie rozszerzona o pełny wzorzec
-   testów z sekcji niżej.
+6. **ZROBIONE:** macierz `MachineContractTests.cs` obejmuje `IMachine` i
+   `IMachineStateStore<TSnapshot>` dla sześciu implementacji: CPC464,
+   CPC6128, PET, VIC-20, TRS-80 i Kaypro.
 
 ## Docelowe projekty (aspiracyjne, nie wszystko zrobione)
 
@@ -135,10 +137,10 @@ typu `Fdc`/`Crtc`/`Cassette`, gdyby powstał.
 ```text
 PetEmulator.Cpc          — ISTNIEJE: CpcGateArray, CpcKeyboard, CpcCassette,
                             CpcMachineClock, CpcMachineSnapshot
-PetEmulator.Pet          — Faza 1, nie rozpoczęte
-PetEmulator.Vic20        — Faza 1, nie rozpoczęte
-PetEmulator.Trs80        — Faza 1, nie rozpoczęte
-PetEmulator.Kaypro       — Faza 1, nie rozpoczęte
+PetEmulator.Pet          — ISTNIEJE: PetSnapshot, IMachineStateStore<PetSnapshot>
+PetEmulator.Vic20        — ISTNIEJE: Vic20Snapshot, IMachineStateStore<Vic20Snapshot>
+PetEmulator.Trs80        — ISTNIEJE: Trs80Snapshot, IMachineStateStore<Trs80Snapshot>
+PetEmulator.Kaypro       — ISTNIEJE: KayproSnapshot, IMachineStateStore<KayproSnapshot>
 ```
 
 `CpcMachineBase<TSnapshot>` jako korzeń `Cpc464Machine`/`Cpc6128Machine` —
@@ -153,10 +155,10 @@ MachineSnapshot (Core, abstract)         — ISTNIEJE
 │   │   └── Cpc464MemorySnapshot, Cpc464PortsSnapshot
 │   └── Cpc6128Snapshot                  — ISTNIEJE
 │       └── Cpc6128MemorySnapshot, Cpc6128PortsSnapshot, I8272Snapshot
-├── PetMachineSnapshot                   — nie istnieje (Faza 1)
-├── Vic20MachineSnapshot                 — nie istnieje (Faza 1)
-├── Trs80MachineSnapshot                 — nie istnieje (Faza 1)
-└── KayproMachineSnapshot                — nie istnieje (Faza 1)
+├── PetSnapshot                          — ISTNIEJE
+├── Vic20Snapshot                        — ISTNIEJE
+├── Trs80Snapshot                        — ISTNIEJE
+└── KayproSnapshot                       — ISTNIEJE
 ```
 
 Każdy model ma własny codec, nie dzielić formatu między modelami (np. nie
@@ -191,11 +193,11 @@ maszyny. Brak FDC w CPC464 nie jest luką testową — oznaczyć jako
   CPU (spełnione: `CpcMachineBase<TSnapshot>` odrzucone),
 - wspólne klasy nie zawierają warunków `if (machine is ...)`,
 - UI i CLI zależą od capability interfaces,
-- każda maszyna ma jawny snapshot i restore (spełnione dla CPC, nie dla
-  reszty),
+- każda maszyna ma jawny snapshot i restore (spełnione dla wszystkich sześciu
+  implementacji),
 - opcjonalne urządzenia mają bezpieczny null object albo brak kontraktu,
-- testy kontraktowe obejmują wszystkie realne implementacje `IMachine`
-  (spełnione — `MachineContractTests.cs`),
+- testy kontraktowe obejmują wszystkie realne implementacje `IMachine` oraz
+  `IMachineStateStore<TSnapshot>` (spełnione — `MachineContractTests.cs`),
 - format dysku jest niezależny od ogólnego kontraktu napędu,
 - pełny build i testy rodziny przechodzą po każdej migracji.
 

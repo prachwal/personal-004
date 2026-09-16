@@ -1,7 +1,7 @@
 # Otwarte punkty — 2026-09-16
 
-Wszystko poza tą listą z dzisiejszych planów jest zrobione i zweryfikowane
-(build + testy). Szczegóły i kontekst: `2026-09-16-cpc6128-status.md`,
+Lista obejmuje wyłącznie punkty nadal otwarte albo wymagające osobnej,
+pełnej weryfikacji. Szczegóły i kontekst: `2026-09-16-cpc6128-status.md`,
 `2026-09-16-cpc-architecture.md`.
 
 ## CPC6128
@@ -9,12 +9,12 @@ Wszystko poza tą listą z dzisiejszych planów jest zrobione i zweryfikowane
 - [ ] Test firmware `CAT` (listing katalogu w BASIC) — realny ROM, brak
       dziś osobnego testu (boot do `Ready` i CP/M są pokryte).
 
-## Architektura — Faza 1 (PET/VIC-20/TRS-80/Kaypro)
+## Architektura — pozostałe elementy Fazy 1
 
-- [ ] Formalna decyzja go/no-go: czy w ogóle robić Fazę 1. Nie zakładać
-      "tak" domyślnie — dwa punkty poniżej już raz wystartowały bez tej
-      decyzji i zostały cofnięte.
-- [ ] Pełne snapshoty PET, VIC-20, TRS-80, Kaypro (wzór: `CpcMachineSnapshot`).
+- [ ] Ustalić status i zakres pozostałej Fazy 1. Snapshoty PET, VIC-20,
+      TRS-80 i Kaypro oraz podstawowe kontrakty `IMachine` i
+      `IMachineStateStore<TSnapshot>` są już zrealizowane; decyzja dotyczy
+      wyłącznie dalszych prac poniżej.
 - [ ] Wspólne kontrakty urządzeń w Core (`IKeyboardDevice`, `ICassetteDevice`,
       `IDiskController`, `IVideoDevice`) z null-adapterami — **`IAudioDevice`
       celowo pominięty**: dodać dopiero z realnym konsumentem w tym samym
@@ -22,4 +22,6 @@ Wszystko poza tą listą z dzisiejszych planów jest zrobione i zweryfikowane
 - [ ] Systematyczny routing Desktop/CLI przez capability interfaces dla
       wszystkich operacji (dziś częściowe: tape/disk już tak, reszta nie).
 - [ ] Rozszerzenie macierzy testów kontraktowych o pełny wzorzec (klawiatura,
-      video, audio, media, snapshot) — dziś tylko `IMachine` podstawowy.
+      video, audio, media, snapshot) — podstawowe `IMachine` oraz
+      `IMachineStateStore<TSnapshot>` są już sprawdzane dla wszystkich sześciu
+      maszyn; pozostałe capability nadal wymagają osobnej macierzy.

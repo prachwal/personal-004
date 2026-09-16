@@ -311,17 +311,21 @@ dotnet test tests/PetEmulator.Kaypro.Tests/PetEmulator.Kaypro.Tests.csproj --nol
 
 ## Zadanie 5 — domknięcie
 
-- [ ] `MachineContractTests.cs` (`tests/PetEmulator.Core.Tests/`) — dodaj
-      asercję `IMachineStateStore<TSnapshot>` dla wszystkich pięciu
+- [x] `MachineContractTests.cs` (`tests/PetEmulator.Core.Tests/`) — dodaj
+      asercję `IMachineStateStore<TSnapshot>` dla wszystkich sześciu
       realnych maszyn (CPC464/CPC6128 już mają, dodaj PET/VIC-20/TRS-80/
       Kaypro), wzorem istniejącej macierzy `IMachine`.
-- [ ] `2026-09-16-cpc-architecture.md` — zaznacz w diagramie
-      `MachineSnapshot` hierarchy `PetMachineSnapshot`/
-      `Vic20MachineSnapshot`/`Trs80MachineSnapshot`/`KayproMachineSnapshot`
+- [x] `2026-09-16-cpc-architecture.md` — zaznacz w diagramie
+      `MachineSnapshot` hierarchy `PetSnapshot`/`Vic20Snapshot`/
+      `Trs80Snapshot`/`KayproSnapshot`
       jako istniejące, odhacz punkt 4 Fazy 1 z listy.
-- [ ] `2026-09-16-open-items.md` — usuń zrealizowany punkt "Pełne
+- [x] `2026-09-16-open-items.md` — usuń zrealizowany punkt "Pełne
       snapshoty PET, VIC-20, TRS-80, Kaypro".
 - [ ] Pełny `dotnet test PetEmulator.slnx --filter
       "TestCategory!=BinaryBoot"` zielony na całym solution.
+
+  Uwaga: wszystkie testy VIC-20 wcześniej podejrzane o spowolnienie
+  przeszły osobno; pełny przebieg solution nie zwrócił końcowego
+  podsumowania, więc nie jest jeszcze formalnie zaliczony.
 
 **Commit:** `docs: close remaining-machine-snapshots plan`
