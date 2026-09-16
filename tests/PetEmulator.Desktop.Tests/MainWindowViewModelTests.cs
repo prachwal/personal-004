@@ -25,13 +25,6 @@ public sealed class MainWindowViewModelTests
         typeof(Trs80MachineViewModel).Should().Implement<IMachineViewModel>();
         typeof(Cpc464MachineViewModel).Should().Implement<IMachineViewModel>();
         typeof(Cpc6128MachineViewModel).Should().Implement<IMachineViewModel>();
-        typeof(PetMachineViewModel).Should().Implement<IKeyboardViewModel>();
-        typeof(Vic20MachineViewModel).Should().Implement<IKeyboardViewModel>();
-        typeof(KayproMachineViewModel).Should().Implement<IKeyboardViewModel>();
-        typeof(Trs80MachineViewModel).Should().Implement<IKeyboardViewModel>();
-        typeof(Cpc464MachineViewModel).Should().Implement<IKeyboardViewModel>();
-        typeof(Cpc6128MachineViewModel).Should().Implement<IKeyboardViewModel>();
-
     }
 
     [Test]

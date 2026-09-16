@@ -23,7 +23,7 @@ namespace PetEmulator.Desktop.ViewModels;
 /// over a concrete use during design; both PetMachineViewModel and Vic20MachineViewModel return
 /// null today).
 /// </summary>
-public interface IMachineViewModel : IShellModule, IKeyboardViewModel
+public interface IMachineViewModel : IShellModule
 {
     /// <summary>Host audio endpoint owned by this machine module. Machines without a modeled
     /// sound source expose a <see cref="NullAudioOutput"/>.</summary>
@@ -72,4 +72,5 @@ public interface IMachineViewModel : IShellModule, IKeyboardViewModel
 
     /// <summary>Translates one Avalonia key event into matrix presses/releases on the running
     /// machine's keyboard.</summary>
+    void HandleKey(Key key, HostKeyEventKind kind);
 }
