@@ -31,6 +31,24 @@ public sealed class Cpc464GateArray
     public int Height { get; private set; }
     public byte GetInk(byte index) => _inks[index & 0x0F];
 
+    public Cpc464GateArraySnapshot CaptureState() => new()
+    {
+        Mode = Mode, LowerRomEnabled = LowerRomEnabled, UpperRomEnabled = UpperRomEnabled,
+        RamConfiguration = RamConfiguration, InterruptPending = InterruptPending, Inks = _inks.ToArray(),
+        SelectedPen = _selectedPen, RequestedMode = _requestedMode, PreviousHSync = _previousHSync,
+        HsyncCount = _hsyncCount, Pixels = Pixels.ToArray(), Width = Width, Height = Height
+    };
+
+    public void RestoreState(Cpc464GateArraySnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        state.Inks.AsSpan().CopyTo(_inks); Mode = state.Mode; LowerRomEnabled = state.LowerRomEnabled;
+        UpperRomEnabled = state.UpperRomEnabled; RamConfiguration = state.RamConfiguration;
+        InterruptPending = state.InterruptPending; _selectedPen = state.SelectedPen;
+        _requestedMode = state.RequestedMode; _previousHSync = state.PreviousHSync; _hsyncCount = state.HsyncCount;
+        Pixels = state.Pixels.ToArray(); Width = state.Width; Height = state.Height;
+    }
+
     public void Reset()
     {
         Array.Clear(_inks);

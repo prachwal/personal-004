@@ -6,6 +6,16 @@ public sealed class Cpc464Keyboard
 
     public void Reset() => Array.Clear(_keys);
 
+    public Cpc464KeyboardSnapshot CaptureState()
+        => new() { Keys = Enumerable.Range(0, 10).SelectMany(row => Enumerable.Range(0, 8).Select(column => _keys[row, column])).ToArray() };
+
+    public void RestoreState(Cpc464KeyboardSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.Keys.Length != 80) throw new ArgumentException("Keyboard snapshot must contain 80 keys.", nameof(state));
+        for (var row = 0; row < 10; row++) for (var column = 0; column < 8; column++) _keys[row, column] = state.Keys[row * 8 + column];
+    }
+
     public void SetKey(byte row, byte column, bool pressed)
     {
         if (row < 10 && column < 8)

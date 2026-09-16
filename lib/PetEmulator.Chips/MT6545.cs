@@ -68,6 +68,26 @@ public sealed class MT6545 : IMemoryMappedDevice
 
     public bool LightPenRegistered => _lightPenRegistered;
 
+    public MT6545Snapshot CaptureState() => new()
+    {
+        Registers = _registers.ToArray(), SelectedRegister = _selectedRegister, HorizontalCounter = _horizontalCounter,
+        VerticalCounter = _verticalCounter, RasterCounter = _rasterCounter, VerticalAdjustCounter = _verticalAdjustCounter,
+        LineStartAddress = _lineStartAddress, InVerticalAdjust = _inVerticalAdjust, LightPenRegistered = _lightPenRegistered,
+        CursorBlinkVisible = _cursorBlinkVisible, CursorBlinkFrames = _cursorBlinkFrames, InterlaceField = _interlaceField,
+        DePipe = _dePipe.ToArray(), CursorPipe = _cursorPipe.ToArray(), MACounter = MACounter, HSync = HSync, VSync = VSync,
+        DisplayEnable = DisplayEnable, VerticalBlanking = VerticalBlanking, CursorEnable = CursorEnable
+    };
+
+    public void RestoreState(MT6545Snapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state); state.Registers.AsSpan().CopyTo(_registers); _selectedRegister = state.SelectedRegister;
+        _horizontalCounter = state.HorizontalCounter; _verticalCounter = state.VerticalCounter; _rasterCounter = state.RasterCounter;
+        _verticalAdjustCounter = state.VerticalAdjustCounter; _lineStartAddress = state.LineStartAddress; _inVerticalAdjust = state.InVerticalAdjust;
+        _lightPenRegistered = state.LightPenRegistered; _cursorBlinkVisible = state.CursorBlinkVisible; _cursorBlinkFrames = state.CursorBlinkFrames;
+        _interlaceField = state.InterlaceField; state.DePipe.AsSpan().CopyTo(_dePipe); state.CursorPipe.AsSpan().CopyTo(_cursorPipe);
+        MACounter = state.MACounter; HSync = state.HSync; VSync = state.VSync; DisplayEnable = state.DisplayEnable; VerticalBlanking = state.VerticalBlanking; CursorEnable = state.CursorEnable;
+    }
+
     /// <summary>
     /// Advances the controller by one character clock. Outputs and MA/RA describe
     /// the character clock being consumed; the counters then move to the next one.

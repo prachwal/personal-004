@@ -4,7 +4,7 @@ using PetEmulator.CpcFdc;
 
 namespace PetEmulator.Cpc6128;
 
-/// <summary>CPC6128 port decoder. FDC ports remain intentionally unimplemented until M5.</summary>
+/// <summary>CPC6128 port decoder.</summary>
 public sealed class Cpc6128Ports(Cpc464GateArray gateArray, MT6545 crtc, Ay38910 ay,
     Cpc464Keyboard keyboard, Cpc464Cassette cassette, I8272Chip fdc, Cpc6128MemoryBus memory)
 {
@@ -51,6 +51,12 @@ public sealed class Cpc6128Ports(Cpc464GateArray gateArray, MT6545 crtc, Ay38910
     }
 
     public byte AcknowledgeInterrupt() { gateArray.AcknowledgeInterrupt(); return 0xFF; }
+
+    public Cpc6128PortsSnapshot CaptureState() => new() { PortA = _portA, PortB = _portB, PortC = _portC, PpiControl = _ppiControl };
+    public void RestoreState(Cpc6128PortsSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state); _portA = state.PortA; _portB = state.PortB; _portC = state.PortC; _ppiControl = state.PpiControl;
+    }
 
     public void Reset() => (_portA, _portB, _portC, _ppiControl) = (0, 0, 0, 0x9B);
 

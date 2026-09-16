@@ -178,4 +178,20 @@ public sealed class Cpc464Cassette
         pulseTicks = _recorded.Select(pulse => pulse.Ticks).ToArray();
         return true;
     }
+
+    public Cpc464CassetteSnapshot CaptureState() => new()
+    {
+        Tape = _tape.ToArray(), ByteIndex = _byteIndex, BitIndex = _bitIndex, Remaining = _remaining,
+        PlaybackHigh = _playbackHigh, Started = _started, PulseTicks = _pulseTicks.ToArray(), PulseIndex = _pulseIndex,
+        PulsePlayback = _pulsePlayback, Recorded = _recorded.Select(p => new CassettePulseSnapshot { Ticks = p.Ticks, Level = p.Level }).ToList(),
+        RecordTicks = _recordTicks, RecordLevel = _recordLevel, Recording = _recording, MotorOn = MotorOn, Signal = Signal
+    };
+
+    public void RestoreState(Cpc464CassetteSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state); _tape = state.Tape.ToArray(); _byteIndex = state.ByteIndex; _bitIndex = state.BitIndex;
+        _remaining = state.Remaining; _playbackHigh = state.PlaybackHigh; _started = state.Started; _pulseTicks = state.PulseTicks.ToArray();
+        _pulseIndex = state.PulseIndex; _pulsePlayback = state.PulsePlayback; _recorded.Clear(); _recorded.AddRange(state.Recorded.Select(p => (p.Ticks, p.Level)));
+        _recordTicks = state.RecordTicks; _recordLevel = state.RecordLevel; _recording = state.Recording; MotorOn = state.MotorOn; Signal = state.Signal;
+    }
 }

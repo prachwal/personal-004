@@ -76,6 +76,43 @@ public sealed class Cpc6128MachineTests
         machine.Ports.Read(0xFB7F).Should().Be(0);
     }
 
+    [Test]
+    public void Snapshot_RestoresCpuRamPortsMediaAndVideoState()
+    {
+        var machine = new Cpc6128Machine(new byte[Cpc6128MemoryBus.RomSize]);
+        machine.Bus.WriteMemory(0x4000, 0xA5);
+        machine.Ports.Write(0x7F00, 0x86);
+        machine.Ports.Write(0xDF00, 7);
+        machine.Ports.Write(0xF700, 0x80);
+        machine.Keyboard.SetKey(3, 4, true);
+        machine.Cassette.LoadTape([1, 2, 3]);
+        machine.StepInstruction();
+        var snapshot = machine.CaptureState();
+
+        machine.Bus.WriteMemory(0x4000, 0x11);
+        machine.Ports.Write(0xDF00, 2);
+        machine.Keyboard.SetKey(3, 4, false);
+        machine.StepInstruction();
+        machine.RestoreState(snapshot);
+
+        machine.Bus.ReadRam(0x4000).Should().Be(0xA5);
+        machine.Bus.UpperRomNumber.Should().Be(7);
+        machine.Keyboard.ReadRow(3).Should().Be((byte)0xEF);
+        machine.Cpu.Registers.PC.Should().Be((ushort)snapshot.Cpu.Registers["PC"]);
+        machine.CycleCount.Should().Be(snapshot.Cpu.CycleCount);
+    }
+
+    [Test]
+    public void SnapshotCodec_RoundTripsSnapshot()
+    {
+        var machine = new Cpc6128Machine(new byte[Cpc6128MemoryBus.RomSize]);
+        var encoded = Cpc6128SnapshotCodec.Encode(machine.CaptureState());
+        var restored = Cpc6128SnapshotCodec.Decode(encoded);
+        restored.Version.Should().Be(1);
+        restored.PhysicalRam.Should().HaveCount(Cpc6128MemoryBus.PhysicalRamSize);
+        restored.Cpu.Registers["SP"].Should().Be(0xFFFF);
+    }
+
     private static byte[] CreateDsk(byte fill)
     {
         var dsk = new byte[0x400];
