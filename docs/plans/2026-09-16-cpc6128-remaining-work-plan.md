@@ -239,8 +239,11 @@ Commit: `docs: document CPC6128 media capabilities and I8272 controller`
 ## Krok 5 — M9: regresja i zamknięcie planu
 
 1. `dotnet build PetEmulator.slnx --nologo` — 0/0.
-2. `dotnet test` na **całym** solution (nie pojedynczych projektach) —
-   wszystkie zielone, zanotuj łączną liczbę testów w commit message.
+2. `dotnet test PetEmulator.slnx --filter "TestCategory!=BinaryBoot"` na
+   **całym** solution (nie pojedynczych projektach) — wszystkie zwykłe testy
+   zielone, zanotuj łączną liczbę testów w commit message. Testy oznaczone
+   `BinaryBoot` są długotrwałe i pozostają opt-in; uruchamiaj je osobno przez
+   `dotnet test PetEmulator.slnx --filter "TestCategory=BinaryBoot"`.
 3. `detect_changes({scope: "compare", base_ref: "main"})` (albo CLI
    odpowiednik) na całej gałęzi zmian od `2ffacea` (pierwszy commit
    CPC6128) do HEAD — potwierdź brak nieoczekiwanych efektów ubocznych
