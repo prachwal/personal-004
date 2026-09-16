@@ -116,5 +116,5 @@ public sealed class Cpc464CassetteSaveLoadRoundTripTests
     /// <summary>Cpc464Bus.Tick counts raw Z80 T-states (4 per Gate Array/cassette clock), while
     /// Cpc464Cassette's own timing constants are in cassette-clock ticks - this converts once so
     /// every other call site in this file can read as "N cassette ticks".</summary>
-    private static void Tick(Cpc464Machine machine, int cassetteTicks) => machine.Bus.Tick(cassetteTicks * 4);
+    private static void Tick(Cpc464Machine machine, int cassetteTicks) => machine.Tick(cassetteTicks * 4);
 }

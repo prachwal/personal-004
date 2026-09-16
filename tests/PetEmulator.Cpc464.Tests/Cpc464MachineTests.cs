@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using PetEmulator.Core;
 using PetEmulator.Cpc;
 using PetEmulator.Cpc464;
 
@@ -25,7 +26,7 @@ public sealed class Cpc464MachineTests
         Assert.That(machine.Bus.GateArray.UpperRomEnabled, Is.False);
         // The real Gate Array latches a mode change at the next HSync, not immediately on the
         // port write - one CRTC clock reaches that edge from the post-Reset counter state.
-        machine.Bus.Tick(4);
+        machine.Tick(4);
         Assert.That(machine.Bus.GateArray.Mode, Is.EqualTo(CpcDisplayMode.Mode2));
     }
 
@@ -52,6 +53,8 @@ public sealed class Cpc464MachineTests
         var snapshot = machine.CaptureState();
         var restored = new Cpc464Machine(new byte[0x8000]);
         restored.RestoreState(snapshot);
+        Assert.That(machine, Is.AssignableTo<IMachineStateStore<Cpc464Snapshot>>());
+        Assert.That(snapshot, Is.AssignableTo<IMachineSnapshot>());
 
         Assert.That(snapshot, Is.TypeOf<Cpc464Snapshot>());
         Assert.That(snapshot, Is.AssignableTo<CpcMachineSnapshot>());
@@ -92,7 +95,7 @@ public sealed class Cpc464MachineTests
         var machine = new Cpc464Machine(new byte[0x8000]);
         machine.Memory.Write(0, 0xFF);
         machine.Bus.WritePort(0x7F00, (byte)(0x80 | modeBits));
-        machine.Bus.Tick(4);
+        machine.Tick(4);
         machine.Bus.GateArray.RenderFrame();
         Assert.That(machine.Bus.GateArray.Pixels[0], Is.EqualTo(expectedPixel0));
     }

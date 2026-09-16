@@ -7,13 +7,13 @@ using PetEmulator.CpcFdc;
 namespace PetEmulator.Cpc6128;
 
 /// <summary>Initial CPC6128 machine composition: Z80, 128 KB RAM, CPC I/O, video, AY and cassette.</summary>
-public sealed class Cpc6128Machine : IMachine
+public sealed class Cpc6128Machine : IMachine, IMachineStateStore<Cpc6128Snapshot>
 {
     private readonly Z80Cpu _cpu;
     private readonly Cpc6128MemoryBus _bus;
     private readonly Cpc6128Ports _ports;
     private readonly I8272Chip _fdc;
-    private int _deviceCycleRemainder;
+    private readonly CpcMachineClock _clock;
     private ulong _frameCycles;
 
     public Cpc6128Machine(ReadOnlySpan<byte> rom)
@@ -27,6 +27,7 @@ public sealed class Cpc6128Machine : IMachine
         Ay = new Ay38910();
         Keyboard = new CpcKeyboard();
         Cassette = new CpcCassette();
+        _clock = new CpcMachineClock(GateArray, Cassette);
         InterruptLines = new PetEmulator.CpuZ80.Interrupts.InterruptLines();
         _fdc = new I8272Chip();
         _ports = new Cpc6128Ports(GateArray, Crtc, Ay, Keyboard, Cassette, _fdc, _bus);
@@ -55,7 +56,7 @@ public sealed class Cpc6128Machine : IMachine
     public Cpc6128Snapshot CaptureState() => new()
     {
         Cpu = _cpu.CaptureSnapshot(), Memory = new() { PhysicalRam = _bus.CapturePhysicalRam(), UpperRomNumber = _bus.UpperRomNumber },
-        FrameCount = FrameCount, DeviceCycleRemainder = _deviceCycleRemainder, FrameCycles = _frameCycles,
+        FrameCount = FrameCount, DeviceCycleRemainder = _clock.DeviceCycleRemainder, FrameCycles = _frameCycles,
         GateArray = GateArray.CaptureState(), Crtc = Crtc.CaptureState(), Ay = Ay.CaptureState(), Keyboard = Keyboard.CaptureState(),
         Cassette = Cassette.CaptureState(), Ports = Ports.CaptureState(), Fdc = _fdc.CaptureState()
     };
@@ -64,10 +65,10 @@ public sealed class Cpc6128Machine : IMachine
     {
         ArgumentNullException.ThrowIfNull(state);
         if (state.Version != 1) throw new InvalidDataException($"Unsupported CPC6128 snapshot version {state.Version}.");
-        _bus.RestorePhysicalRam(state.Memory.PhysicalRam); _bus.SelectUpperRom(state.Memory.UpperRomNumber); _cpu.RestoreSnapshot(state.Cpu);
+        _bus.RestorePhysicalRam(state.Memory.PhysicalRam); _bus.SelectUpperRom(state.Memory.UpperRomNumber); _cpu.RestoreSnapshot(state.Cpu); _clock.Restore(state.DeviceCycleRemainder);
         GateArray.RestoreState(state.GateArray); Crtc.RestoreState(state.Crtc); Ay.RestoreState(state.Ay); Keyboard.RestoreState(state.Keyboard);
         Cassette.RestoreState(state.Cassette); Ports.RestoreState(state.Ports); _fdc.RestoreState(state.Fdc);
-        _deviceCycleRemainder = state.DeviceCycleRemainder; _frameCycles = state.FrameCycles; FrameCount = state.FrameCount;
+        _frameCycles = state.FrameCycles; FrameCount = state.FrameCount;
     }
 
     public void LoadExpansionRom(byte number, ReadOnlySpan<byte> rom) => _bus.LoadUpperRom(number, rom);
@@ -92,7 +93,7 @@ public sealed class Cpc6128Machine : IMachine
         _fdc.Reset();
         _ports.Reset();
         InterruptLines.SetInt(false);
-        _deviceCycleRemainder = 0;
+        _clock.Restore(0);
         _frameCycles = FrameCount = 0;
     }
 
@@ -102,13 +103,7 @@ public sealed class Cpc6128Machine : IMachine
         _cpu.StepInstruction();
         var cycles = checked((int)(_cpu.CycleCount - before));
         InterruptLines.SetInt(GateArray.InterruptPending);
-        _deviceCycleRemainder += cycles;
-        while (_deviceCycleRemainder >= 4)
-        {
-            _deviceCycleRemainder -= 4;
-            GateArray.Tick();
-            Cassette.Tick();
-        }
+        _clock.Tick(cycles);
         _fdc.Tick(cycles);
         _frameCycles += (uint)cycles;
         if (_frameCycles >= 80_000)

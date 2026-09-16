@@ -4,7 +4,7 @@ using PetEmulator.Core;
 namespace PetEmulator.Cpc;
 
 /// <summary>Common snapshot state shared by CPC machine families.</summary>
-public abstract class CpcMachineSnapshot
+public abstract class CpcMachineSnapshot : IMachineSnapshot
 {
     public int Version { get; set; } = 1;
     public CpuDebugSnapshot Cpu { get; set; } = null!;

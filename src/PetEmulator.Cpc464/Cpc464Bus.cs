@@ -76,11 +76,6 @@ public sealed class Cpc464Bus : IBus, IMemoryBus
         }
     }
     public byte AcknowledgeInterrupt() { GateArray.AcknowledgeInterrupt(); return 0xFF; }
-    public void Tick(int cycles)
-    {
-        for (var i = 0; i < cycles / 4; i++) { GateArray.Tick(); Cassette.Tick(); }
-        InterruptLines.SetInt(GateArray.InterruptPending);
-    }
     public void Reset() { Array.Clear(_ram); _portA = _portB = _portC = 0; _ppiControl = 0x9B; GateArray.Reset(); Crtc.Reset(); Ay.Reset(); Keyboard.Reset(); Cassette.Reset(); InterruptLines.Clear(); }
     private void WriteControl(byte value) { if ((value & 0x80) != 0) { _ppiControl = value; return; } var bit = (value >> 1) & 7; if ((value & 1) != 0) _portC |= (byte)(1 << bit); else _portC &= (byte)~(1 << bit); ApplyCassetteControl(); ApplyPsg(); }
     private void WritePortC(byte value) { var writable = (byte)((PortCUpperInput ? 0 : 0xF0) | (PortCLowerInput ? 0 : 0x0F)); _portC = (byte)((_portC & ~writable) | (value & writable)); ApplyCassetteControl(); ApplyPsg(); }

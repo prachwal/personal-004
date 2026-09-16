@@ -1,6 +1,7 @@
 using System.Text;
 using FluentAssertions;
 using NUnit.Framework;
+using PetEmulator.Core;
 using PetEmulator.Cpc6128;
 using PetEmulator.CpcFdc;
 
@@ -116,6 +117,8 @@ public sealed class Cpc6128MachineTests
         machine.StepInstruction();
         var restoredMachine = new Cpc6128Machine(new byte[Cpc6128MemoryBus.RomSize]);
         restoredMachine.RestoreState(snapshot);
+        machine.Should().BeAssignableTo<IMachineStateStore<Cpc6128Snapshot>>();
+        snapshot.Should().BeAssignableTo<IMachineSnapshot>();
 
         restoredMachine.Bus.ReadRam(0x4000).Should().Be(0xA5);
         restoredMachine.Bus.UpperRomNumber.Should().Be(7);
