@@ -1,7 +1,6 @@
 using PetEmulator.Chips;
 using PetEmulator.Core;
 using PetEmulator.CpuZ80.Cpu;
-using PetEmulator.Cpc464;
 using PetEmulator.Cpc;
 using PetEmulator.CpcFdc;
 
@@ -26,8 +25,8 @@ public sealed class Cpc6128Machine : IMachine
         gateArray = new CpcGateArray(Crtc, _bus.ReadVideoRam);
         GateArray = gateArray;
         Ay = new Ay38910();
-        Keyboard = new Cpc464Keyboard();
-        Cassette = new Cpc464Cassette();
+        Keyboard = new CpcKeyboard();
+        Cassette = new CpcCassette();
         InterruptLines = new PetEmulator.CpuZ80.Interrupts.InterruptLines();
         _fdc = new I8272Chip();
         _ports = new Cpc6128Ports(GateArray, Crtc, Ay, Keyboard, Cassette, _fdc, _bus);
@@ -47,8 +46,8 @@ public sealed class Cpc6128Machine : IMachine
     public CpcGateArray GateArray { get; }
     public MT6545 Crtc { get; }
     public Ay38910 Ay { get; }
-    public Cpc464Keyboard Keyboard { get; }
-    public Cpc464Cassette Cassette { get; }
+    public CpcKeyboard Keyboard { get; }
+    public CpcCassette Cassette { get; }
     public I8272Chip Fdc => _fdc;
     public PetEmulator.CpuZ80.Interrupts.InterruptLines InterruptLines { get; }
     public ulong FrameCount { get; private set; }

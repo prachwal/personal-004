@@ -1,5 +1,4 @@
 using PetEmulator.Chips;
-using PetEmulator.Cpc464;
 using PetEmulator.Cpc;
 using PetEmulator.CpcFdc;
 
@@ -7,7 +6,7 @@ namespace PetEmulator.Cpc6128;
 
 /// <summary>CPC6128 port decoder.</summary>
 public sealed class Cpc6128Ports(CpcGateArray gateArray, MT6545 crtc, Ay38910 ay,
-    Cpc464Keyboard keyboard, Cpc464Cassette cassette, I8272Chip fdc, Cpc6128MemoryBus memory)
+    CpcKeyboard keyboard, CpcCassette cassette, I8272Chip fdc, Cpc6128MemoryBus memory)
 {
     private byte _portA, _portB, _portC, _ppiControl = 0x9B;
 

@@ -1,6 +1,7 @@
 namespace PetEmulator.Cpc;
 
-public sealed class Cpc464KeyboardSnapshot { public bool[] Keys { get; set; } = []; }
+/// <summary>Common CPC keyboard matrix state. Machine-specific keyboards may derive from this.</summary>
+public class CpcKeyboardSnapshot { public bool[] Keys { get; set; } = []; }
 public sealed class CpcCassetteSnapshot
 {
     public byte[] Tape { get; set; } = []; public int ByteIndex { get; set; } public int BitIndex { get; set; } public int Remaining { get; set; }
