@@ -65,3 +65,37 @@ Delegating to Codex (`codex:codex-rescue` subagent, or `scripts/codex-delegate.s
 - **Match `--effort` to the task.** A well-specified, narrow fix doesn't need the default reasoning budget; only reach for `high`/`xhigh` when the task is genuinely open-ended (find an unknown key position, diagnose an unexplained failure).
 - **`--resume` a live investigation instead of starting fresh** when the follow-up needs the same context (same file, same half-finished sweep) - pass the prior Codex session ID explicitly and say "resume", not just mention it for reference.
 - **Never trust a completion report at face value.** Codex is often honest about what it couldn't verify (e.g. "not conclusively decoded from rendered glyphs") - read the report for exactly that kind of hedge, then re-verify anything load-bearing yourself before it lands in production code. A caught example: an "added and verified" keyboard mapping that silently pointed at a matrix column that doesn't exist.
+
+## Writing implementation plans (`docs/plans/*.md`)
+
+Lesson from the 2026-09-16 CPC6128/composition planning sessions, where five
+overlapping plan files with status prose scattered across them turned into a
+mess that needed a full consolidation pass. Write plans so a fresh session
+(or a weaker model) can tell, at a glance, exactly what's done:
+
+- **Every actionable item is a markdown checkbox**, `- [ ]`/`- [x]`, not a
+  numbered step or a prose paragraph claiming completion. Sub-steps of one
+  task are nested checkboxes under it, not a separate "status" section
+  bolted on later.
+- **The plan file itself carries the instruction to check items off.** Put a
+  line near the top, e.g. "Check off each box in this file as you complete
+  and verify it - do not just report completion in chat." An executing
+  session (including a future, context-free one) must not need to be told
+  this separately; it has to be part of the document it's reading.
+- **Only check a box after verifying, not after writing code.** "Verified"
+  means you ran the build/test/grep yourself this session and saw the
+  result - a prior session's or subagent's claim of done is a reason to
+  re-check, not a reason to check the box.
+- **One bounded, independently-committable task per top-level checklist
+  section**, with the exact file(s) it touches and the verification command
+  for that section inline - not a shared "run everything at the end" step
+  that hides which specific task broke.
+- **Update the plan in place, don't append a growing "status" log at the
+  bottom.** A status paragraph appended after every session is exactly what
+  produced today's mess across `cpc6128-integration-plan.md`,
+  `cpc6128-remaining-work-plan.md`, `machine-composition-and-reuse-plan.md`,
+  and `cpc-composition-cleanup-plan.md` - four files all partially
+  describing the same current state. When a plan is fully checked off,
+  either fold its still-relevant facts into a status doc for that theme and
+  delete the plan file, or leave it checked-off as a closed historical
+  record - don't keep editing a "done" plan's prose indefinitely.
