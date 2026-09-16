@@ -95,15 +95,16 @@ public sealed class Cpc6128MachineTests
         machine.Keyboard.SetKey(3, 4, false);
         machine.LoadDisk(0, DskDiskImage.Load(CreateDsk(0x11)));
         machine.StepInstruction();
-        machine.RestoreState(snapshot);
+        var restoredMachine = new Cpc6128Machine(new byte[Cpc6128MemoryBus.RomSize]);
+        restoredMachine.RestoreState(snapshot);
 
-        machine.Bus.ReadRam(0x4000).Should().Be(0xA5);
-        machine.Bus.UpperRomNumber.Should().Be(7);
-        machine.Keyboard.ReadRow(3).Should().Be((byte)0xEF);
-        machine.Cpu.Registers.PC.Should().Be((ushort)snapshot.Cpu.Registers["PC"]);
-        machine.CycleCount.Should().Be(snapshot.Cpu.CycleCount);
+        restoredMachine.Bus.ReadRam(0x4000).Should().Be(0xA5);
+        restoredMachine.Bus.UpperRomNumber.Should().Be(7);
+        restoredMachine.Keyboard.ReadRow(3).Should().Be((byte)0xEF);
+        restoredMachine.Cpu.Registers.PC.Should().Be((ushort)snapshot.Cpu.Registers["PC"]);
+        restoredMachine.CycleCount.Should().Be(snapshot.Cpu.CycleCount);
         var sector = new byte[512];
-        ((DskFloppyDrive)machine.Fdc.Drive0!).Image.TryRead(0, 0, 1, 2, sector).Should().BeTrue();
+        ((DskFloppyDrive)restoredMachine.Fdc.Drive0!).Image.TryRead(0, 0, 1, 2, sector).Should().BeTrue();
         sector.Should().OnlyContain(value => value == 0x5A);
     }
 

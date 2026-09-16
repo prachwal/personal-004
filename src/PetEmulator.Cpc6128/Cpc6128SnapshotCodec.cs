@@ -13,6 +13,10 @@ public static class Cpc6128SnapshotCodec
     }
 
     public static Cpc6128Snapshot Decode(ReadOnlySpan<byte> data)
-        => JsonSerializer.Deserialize<Cpc6128Snapshot>(data, Options)
+    {
+        var snapshot = JsonSerializer.Deserialize<Cpc6128Snapshot>(data, Options)
             ?? throw new InvalidDataException("CPC6128 snapshot is empty.");
+        if (snapshot.Version != 1) throw new InvalidDataException($"Unsupported CPC6128 snapshot version {snapshot.Version}.");
+        return snapshot;
+    }
 }
