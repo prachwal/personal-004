@@ -18,7 +18,13 @@ Nie tworzyć jednej uniwersalnej klasy zawierającej wszystkie możliwe urządze
 - [x] Macierz kontraktu `IMachine` obejmuje wszystkie realne maszyny, w tym CPC6128.
 - [x] Audio, taśma, routing capability Desktop i headless debug CPC są już dostępne w bieżącej implementacji.
 - [ ] Pełne snapshoty PET, VIC-20, TRS-80 i Kaypro.
-- [ ] Wspólne kontrakty urządzeń w Core (`IKeyboardDevice`, `ICassetteDevice`, `IDiskController`, `IVideoDevice`, `IAudioDevice`) z implementacjami/null-adapterami.
+- [ ] Wspólne kontrakty urządzeń w Core (`IKeyboardDevice`, `ICassetteDevice`, `IDiskController`, `IVideoDevice`) z implementacjami/null-adapterami.
+
+### Sprzątanie CPC composition — 2026-09-16
+
+- [x] Usunięto martwe `MachineSnapshot.CycleCount` (`5ea5067`).
+- [x] Usunięto nieużywane `IAudioDevice`, `AudioDevice` i `NullAudioDevice` (`78091dc`).
+- [x] Scalono `IKeyboardViewModel` z `IMachineViewModel` (`ceed646`).
 
 Powyższe punkty oznaczone jako ukończone zostały zweryfikowane w kodzie i testach. Pozostałe wymagają implementacji, a nie tylko dopisania typów lub dokumentacji.
 
