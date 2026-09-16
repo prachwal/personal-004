@@ -1,12 +1,12 @@
 # Plan integracji Amstrad CPC6128
 
-Status: M1-M5 oraz pierwszy pionowy zakres M7 zaimplementowane; M0 fixture ROM,
-M6 realny firmware, M8 snapshot/debug i M9 pełna regresja pozostają do wykonania.
+Status: M0-M5 oraz pierwszy pionowy zakres M7 zaimplementowane; M6 realny
+firmware, M8 snapshot/debug i M9 pełna regresja pozostają do wykonania.
 
-Known issue: CPC6128 pozostaje ukryty w menu do czasu M0. Wcześniejsze
-podłączenie menu powodowało `FileNotFoundException`, ponieważ konstruktor
-`Cpc6128MachineViewModel` wymaga `roms/cpc6128/cpc6128.rom`, którego jeszcze
-nie ma w repozytorium.
+ROM fixture M0: `roms/cpc6128/cpc6128.rom` (32 KB, SHA-256
+`31c3668c67bea027dab698ece233c9434d9324f9ba7dac84db58f400b6689562`) oraz
+`roms/cpc6128/amsdos.rom` (16 KB, SHA-256
+`ea65e0fb44ee93ede4b6c507509b7e5ddf497fb7155023bea91ef229469fa04d`).
 
 ## Źródła wcześniejszych implementacji
 

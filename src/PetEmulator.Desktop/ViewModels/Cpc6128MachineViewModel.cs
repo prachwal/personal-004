@@ -26,6 +26,7 @@ public sealed partial class Cpc6128MachineViewModel : ObservableObject, IMachine
     public Cpc6128MachineViewModel(string romsRoot)
     {
         _machine = new Cpc6128Machine(File.ReadAllBytes(Path.Combine(romsRoot, "cpc6128", "cpc6128.rom")));
+        _machine.LoadExpansionRom(7, File.ReadAllBytes(Path.Combine(romsRoot, "cpc6128", "amsdos.rom")));
         _audioOutput = AudioOutputFactory.CreateDefault();
         _audioOutput.Start(_machine.Ay);
         FrameBuffer = new uint[320 * 200];
