@@ -256,3 +256,13 @@ Commit: `docs: document CPC6128 media capabilities and I8272 controller`
    w commitach X..Y" z realnymi hashami po zamknięciu.
 
 Commit: `docs: close CPC6128 integration plan (M0-M9 complete)`
+
+## Status wykonania — 2026-09-16
+
+- Zrealizowane: M0-M8 oraz M9 build/domyślna regresja solution z filtrem
+  `TestCategory!=BinaryBoot`; testy `BinaryBoot` pozostają opt-in zgodnie z
+  `AGENTS.md`.
+- Potwierdzone firmware: CPC6128 boot do `Ready` i `PRINT 1+1`; CPC464 boot
+  oraz real-firmware SAVE/LOAD pozostają zielone.
+- Otwarte: brak automatycznych testów firmware dla `CAT`, `|CPM` i odczytu DSK
+  przez AMSDOS, więc plan nie jest jeszcze zamknięty jako pełne M0-M9.

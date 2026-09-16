@@ -1,7 +1,9 @@
 # Plan integracji Amstrad CPC6128
 
-Status: M0-M5 oraz pierwszy pionowy zakres M7 zaimplementowane; M6 realny
-firmware, M8 snapshot/debug i M9 pełna regresja pozostają do wykonania.
+Status: M0-M8 zaimplementowane; M9 ma zakończony build i domyślną regresję
+solution z wyłączeniem długich testów `BinaryBoot`. Potwierdzono boot realnego
+ROM-u i `PRINT 1+1`; scenariusze firmware `CAT`, `|CPM` oraz odczyt DSK przez
+AMSDOS pozostają niepotwierdzone.
 
 ROM fixture M0: `roms/cpc6128/cpc6128.rom` (32 KB, SHA-256
 `31c3668c67bea027dab698ece233c9434d9324f9ba7dac84db58f400b6689562`) oraz
@@ -141,8 +143,9 @@ rozrzuconym po `Cpc464Machine`.
 
 - pięć warstw ma test kontraktu: CPU/machine, RAM/banking, video/raster, I/O/audio
   i FDC/media;
-- prawdziwy ROM CPC6128 bootuje do `Ready`, a `PRINT 1+1`, `CAT`, `|CPM` i
-  odczyt sektora DSK przechodzą przez rzeczywistą ścieżkę firmware;
+- prawdziwy ROM CPC6128 bootuje do `Ready`, a `PRINT 1+1` przechodzi przez
+  rzeczywistą ścieżkę firmware; `CAT`, `|CPM` i odczyt sektora DSK przez
+  AMSDOS wymagają osobnych testów firmware;
 - wszystkie osiem konfiguracji RAM oraz overlaye ROM są sprawdzone na granicach;
 - audio AY jest podłączone przez `IAudioOutput`, a kaseta i dysk są dostępne z
   Desktop przez capability interfaces;
