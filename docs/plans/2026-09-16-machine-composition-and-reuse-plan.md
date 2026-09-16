@@ -116,10 +116,13 @@ IMachine
 wewnątrz magistrali; `Cpc6128Machine.StepInstruction()` robi to samo bezpośrednio w maszynie
 (z pominięciem `Bus`), dokłada osobno `_fdc.Tick(cycles)` bez dzielenia przez 4 i liczy ramki
 we własnym polu `_frameCycles`, którego `Cpc464Machine` w ogóle nie ma. Właściciel pętli tick
-jest dziś inny w każdej z dwóch maszyn (Bus vs Machine) — to nie jest kosmetyczna różnica, tylko
-inny punkt kompozycji. Przed krokiem 6 trzeba najpierw ujednolicić, kto woła tick urządzeń
-(przenieść pętlę CPC6128 do jej `Bus`, albo odwrotnie), i dopiero to potwierdzić testami
-regresyjnymi obu maszyn — nie zakładać zgodności z góry.
+jest dziś wspólny (`CpcMachineClock`), ale kolejność próbkowania IRQ nadal nie jest wspólna:
+`Cpc464Machine` wykonuje `_clock.Tick()` i dopiero potem `SetInt`, natomiast
+`Cpc6128Machine` wykonuje `SetInt` i dopiero potem `_clock.Tick()`. To oznacza różne momenty
+zobaczenia `GateArray.InterruptPending`; nie należy opisywać zegara jako w pełni ujednoliconego.
+Przed krokiem 6 trzeba osobno rozstrzygnąć tę kolejność i potwierdzić ją testem regresyjnym obu
+maszyn. Wspólny właściciel pętli jest już ujednolicony, ale próbkowanie IRQ pozostaje świadomym
+otwartym punktem.
 
 Jeśli po tym ujednoliceniu nadal zostaną istotne różnice, pozostawić obie klasy bez wspólnej
 klasy maszynowej i współdzielić wyłącznie urządzenia oraz snapshot bazowy (to już działa —
@@ -276,5 +279,6 @@ Dlatego pierwszym celem wdrożenia powinny pozostać kontrakty i macierz testów
 - `IMachineSnapshot` i `IMachineStateStore<TSnapshot>` zostały dodane jako cienkie kontrakty nad istniejącymi snapshotami.
 - `CpcMachineBase<TSnapshot>` nie został wprowadzony. Po ujednoliceniu zegara nadal pozostają różnice należące do maszyny: CPC6128 ma FDC i licznik ramek, a CPC464 nie ma tych elementów.
 - Decyzja: współdzielić zegar, urządzenia CPC i snapshot bazowy, ale pozostawić `Cpc464Machine` i `Cpc6128Machine` jako niezależne kompozycje.
-- Boot CPC464 przechodzi izolowany test w około 6 sekund; test Sieve/save/load przekracza 90 sekund bez wyniku i wymaga osobnego usprawnienia scenariusza testowego. Nie traktować go jako zaliczonego.
+- Boot CPC464 przechodzi izolowany test w około 6 sekund. `SieveProgram_SurvivesTypeSaveResetLoad` jest wolnym testem real-firmware SAVE/LOAD (około 2–3 minut), ale przechodzi deterministycznie i należy go traktować jako zaliczony. Nie mylić go z osobnym `tools/Cpc464SieveBenchmark`, który wykonuje właściwe sito do końca i pozostaje problemem wydajnościowym.
+- Pełny zestaw `Cpc464.Tests` przechodzi `13/13`; pełny zestaw `Cpc6128.Tests` przechodzi `16/16`.
 - Faza 1 dla PET/VIC-20/TRS-80/Kaypro pozostaje odłożona do osobnej decyzji.
