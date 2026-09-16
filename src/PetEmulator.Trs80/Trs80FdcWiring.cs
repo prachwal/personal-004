@@ -23,5 +23,12 @@ public sealed class Trs80FdcWiring : IMemoryBus
         else if (address is >= 0x37EC and <= 0x37EF) Controller.Write((byte)(address - 0x37EC), value);
     }
     public void Tick(int tStates) => Controller.Tick(tStates);
+    public Trs80FdcSnapshot CaptureState() => new() { Controller = Controller.CaptureState(), SelectedDrive = SelectedDrive };
+    public void RestoreState(Trs80FdcSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        Controller.RestoreState(state.Controller);
+        SelectedDrive = state.SelectedDrive;
+    }
     public void Reset() { Controller.Reset(); SelectedDrive = null; }
 }

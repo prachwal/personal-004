@@ -231,7 +231,7 @@ przez `LoadTape`), `Trs80FdcWiring? Fdc` (nullable, kontroler `FD1791` —
 dziś). `Trs80RasterDisplay Video` renderuje z `Bus.Ram` bezpośrednio — nie
 ma własnego stanu do przechwycenia.
 
-- [ ] `FD1791.CaptureState()`/`RestoreState()` w
+- [x] `FD1791.CaptureState()`/`RestoreState()` w
       `lib/PetEmulator.Chips/FD1791.cs` — pola: `_driveSelect, _track,
       _sector, _data, _status, _pendingCommand, _recordType` (byte),
       `_pendingTStates, _readSearchTStates, _transferIndex,
@@ -243,22 +243,22 @@ ma własnego stanu do przechwycenia.
       (obraz dysku montowany po restore jak w CPC6128, nie w samym
       snapshotcie). Impact analysis przed edycją — chip współdzielony z
       Kaypro przez `FD1793 : FD1791`.
-- [ ] `Trs80CassettePlayer.CaptureState()`/`RestoreState()` — sprawdź
+- [x] `Trs80CassettePlayer.CaptureState()`/`RestoreState()` — sprawdź
       dokładne pola pozycji odtwarzania przed pisaniem (nie zgaduj z nazwy
       klasy, przeczytaj plik).
-- [ ] `Trs80KeyboardMatrix.CaptureState()`/`RestoreState()` — trywialne,
+- [x] `Trs80KeyboardMatrix.CaptureState()`/`RestoreState()` — trywialne,
       jeden `byte[]`/macierz stanu klawiszy.
-- [ ] `Trs80MemoryBus.CaptureState()`/`RestoreState()` — tylko `_ram`, ROM
+- [x] `Trs80MemoryBus.CaptureState()`/`RestoreState()` — tylko `_ram`, ROM
       nie wchodzi do snapshotu (niezmienny per konstrukcja).
-- [ ] `Trs80Snapshot : MachineSnapshot` (nowy plik w
+- [x] `Trs80Snapshot : MachineSnapshot` (nowy plik w
       `src/PetEmulator.Trs80/`) — pola `Fdc`/`Cassette` nullable
       (odzwierciedlają nullability na maszynie — wzorzec już sprawdzony w
       Zadaniu 2 na PET), `Memory`, `Keyboard`.
-- [ ] `Trs80Machine : IMachineStateStore<Trs80Snapshot>`, `CaptureState()`/
+- [x] `Trs80Machine : IMachineStateStore<Trs80Snapshot>`, `CaptureState()`/
       `RestoreState()` wołające każdy składnik; `RestoreState` waliduje
       `Version` i rzuca czytelny wyjątek przy niezgodności (wzór:
       `Cpc464Machine.RestoreState`).
-- [ ] Test w `tests/PetEmulator.Trs80.Tests/` — round-trip na **nowej**
+- [x] Test w `tests/PetEmulator.Trs80.Tests/` — round-trip na **nowej**
       instancji maszyny (nie tej samej, wzór z `ebf373d` w historii CPC:
       restore na świeżym obiekcie łapie więcej niż restore na żywym), oraz
       wariant z zamontowanym FDC/dyskiem.

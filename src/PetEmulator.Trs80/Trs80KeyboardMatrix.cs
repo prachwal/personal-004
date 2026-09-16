@@ -6,6 +6,16 @@ public sealed class Trs80KeyboardMatrix : IMemoryBus
 {
     private readonly byte[] _rows = new byte[8];
 
+    public Trs80KeyboardSnapshot CaptureState() => new() { Rows = _rows.ToArray() };
+
+    public void RestoreState(Trs80KeyboardSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.Rows.Length != _rows.Length)
+            throw new ArgumentException("Invalid TRS-80 keyboard row count.", nameof(state));
+        state.Rows.CopyTo(_rows, 0);
+    }
+
     public void SetKeyDown(Trs80Key key, bool down)
     {
         var (row, bit) = Position(key);

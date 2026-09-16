@@ -17,6 +17,32 @@ public sealed class Trs80CassettePlayer : IIoBus
     public bool MotorOn { get; private set; }
     public bool AtEndOfTape => _byteIndex >= _tape.Length;
 
+    public Trs80CassetteSnapshot CaptureState() => new()
+    {
+        Tape = _tape.ToArray(), ByteIndex = _byteIndex, BitIndex = _bitIndex,
+        SegmentIndex = _segmentIndex, Remaining = _remaining, PulsePending = _pulsePending,
+        Started = _started, Recording = _recording, RecordDuration = _recordDuration,
+        RecordLevel = _recordLevel, MotorOn = MotorOn,
+        RecordedPulses = _recordedPulses.Select(p => new Trs80CassettePulseSnapshot
+        { DurationTStates = p.DurationTStates, Level = p.Level }).ToArray()
+    };
+
+    public void RestoreState(Trs80CassetteSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.ByteIndex < 0 || state.ByteIndex > state.Tape.Length || state.BitIndex is < 0 or > 7
+            || state.SegmentIndex < 0 || state.Remaining < 0)
+            throw new ArgumentException("Invalid TRS-80 cassette position.", nameof(state));
+        if (state.Tape.Length != _tape.Length || !state.Tape.SequenceEqual(_tape))
+            throw new InvalidDataException("TRS-80 cassette tape content does not match the machine.");
+        _byteIndex = state.ByteIndex; _bitIndex = state.BitIndex; _segmentIndex = state.SegmentIndex;
+        _remaining = state.Remaining; _pulsePending = state.PulsePending; _started = state.Started;
+        _recording = state.Recording; _recordDuration = state.RecordDuration; _recordLevel = state.RecordLevel;
+        MotorOn = state.MotorOn;
+        _recordedPulses.Clear();
+        _recordedPulses.AddRange(state.RecordedPulses.Select(p => (p.DurationTStates, p.Level)));
+    }
+
     public void Tick(int tStates)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(tStates);

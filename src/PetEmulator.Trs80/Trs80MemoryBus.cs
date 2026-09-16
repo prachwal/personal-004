@@ -15,6 +15,15 @@ public sealed class Trs80MemoryBus : IBus, IMemoryBus
     // disk/tape without rebuilding the whole machine) - see Trs80Machine.InsertDisk/LoadTape.
     public Trs80FdcWiring? Fdc { get; set; }
     public Trs80CassettePlayer? Cassette { get; set; }
+    public Trs80MemorySnapshot CaptureState() => new() { Ram = _ram.ToArray() };
+
+    public void RestoreState(Trs80MemorySnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.Ram.Length != _ram.Length)
+            throw new ArgumentException("Invalid TRS-80 RAM size.", nameof(state));
+        state.Ram.CopyTo(_ram, 0);
+    }
     public byte Read(ushort address) => address < Trs80MemoryMap.RomEnd ? _rom[address] :
         address is >= Trs80MemoryMap.PrinterStart and <= Trs80MemoryMap.PrinterEnd ? Printer.Read(address) :
         address is >= Trs80MemoryMap.FdcStart and <= Trs80MemoryMap.FdcEnd && Fdc is not null ? Fdc.Read(address) :

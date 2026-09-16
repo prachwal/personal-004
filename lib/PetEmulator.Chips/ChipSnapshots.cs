@@ -93,3 +93,31 @@ public sealed class MT6520Snapshot
     public byte Ca2PulseCyclesRemaining { get; set; }
     public byte Cb2PulseCyclesRemaining { get; set; }
 }
+
+public sealed class FD1791Snapshot
+{
+    public byte DriveSelect { get; set; }
+    public bool DriveSelectWritten { get; set; }
+    public byte Track { get; set; }
+    public byte Sector { get; set; }
+    public byte Data { get; set; }
+    public byte Status { get; set; }
+    public byte PendingCommand { get; set; }
+    public int PendingTStates { get; set; }
+    public int ReadSearchTStates { get; set; }
+    public byte[]? Transfer { get; set; }
+    public int TransferIndex { get; set; }
+    public bool WriteTransfer { get; set; }
+    public bool DataRequestPending { get; set; }
+    public byte RecordType { get; set; }
+    public int DataDeadlineTStates { get; set; }
+    public int AddressMarkIndex { get; set; }
+    public long TStateCounter { get; set; }
+    public bool TypeICommand { get; set; }
+    public int LastStepDirection { get; set; }
+    public bool IntrqAsserted { get; set; }
+    public bool DoubleDensityEnabled { get; set; }
+    public ulong InterruptSequence { get; set; }
+    public bool MultipleRecordEnabled { get; set; }
+    public byte Side { get; set; }
+}
