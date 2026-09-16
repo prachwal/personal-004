@@ -98,6 +98,20 @@ public sealed class MachineContractTests
     }
 
     [Test]
+    public void Machine_clock_ticks_devices_at_configured_ratio_and_restores_remainder()
+    {
+        var ticks = 0;
+        var clock = new MachineClock(4, () => ticks++);
+
+        clock.Tick(10);
+
+        ticks.Should().Be(2);
+        clock.DeviceCycleRemainder.Should().Be(2);
+        clock.Restore(1);
+        clock.DeviceCycleRemainder.Should().Be(1);
+    }
+
+    [Test]
     public void Optional_capabilities_remain_separate_from_processor_lifecycle()
     {
         IPortBus ports = new TestPortBus();
