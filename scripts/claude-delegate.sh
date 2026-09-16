@@ -6,8 +6,9 @@ set -euo pipefail
 usage() {
     cat <<'EOF'
 Usage:
-  claude-delegate.sh send MSG...   Continue the latest session in this repo
-  claude-delegate.sh new MSG...    Start a new session
+  claude-delegate.sh send MSG...                  Continue the latest session in this repo
+  claude-delegate.sh send --session ID MSG...     Continue a specific session
+  claude-delegate.sh new MSG...                   Start a new session
 
 Env:
   CLAUDE_AGENT           --agent passed to claude
@@ -33,7 +34,18 @@ cmd=${1:-}
 
 case "$cmd" in
     send)
-        claude_run --continue "$*"
+        session=""
+        if [ "${1:-}" = "--session" ]; then
+            [ $# -ge 2 ] || { echo "send --session requires a session ID" >&2; usage; exit 1; }
+            session=$2
+            shift 2
+        fi
+        [ $# -gt 0 ] || { echo "send requires a message" >&2; usage; exit 1; }
+        if [ -n "$session" ]; then
+            claude_run --resume "$session" "$*"
+        else
+            claude_run --continue "$*"
+        fi
         ;;
     new)
         claude_run "$*"
