@@ -2,6 +2,7 @@ using System.Collections;
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Cpc464;
+using PetEmulator.Cpc6128;
 using PetEmulator.Core;
 using PetEmulator.Kaypro;
 using PetEmulator.Pet;
@@ -61,6 +62,9 @@ public sealed class MachineContractTests
             yield return new TestCaseData((Func<IMachine>)(() =>
                 new Cpc464Machine(File.ReadAllBytes(Path.Combine(root, "roms", "cpc464", "cpc464.rom")))))
                 .SetName("CPC464 implements IMachine");
+            yield return new TestCaseData((Func<IMachine>)(() =>
+                new Cpc6128Machine(File.ReadAllBytes(Path.Combine(root, "roms", "cpc6128", "cpc6128.rom")))))
+                .SetName("CPC6128 implements IMachine");
         }
     }
 
