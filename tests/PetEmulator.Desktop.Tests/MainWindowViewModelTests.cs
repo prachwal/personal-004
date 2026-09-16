@@ -32,8 +32,6 @@ public sealed class MainWindowViewModelTests
         typeof(Cpc464MachineViewModel).Should().Implement<IKeyboardViewModel>();
         typeof(Cpc6128MachineViewModel).Should().Implement<IKeyboardViewModel>();
 
-        typeof(IMachineViewModel).GetProperty(nameof(IMachineViewModel.AudioDevice))
-            .Should().NotBeNull();
     }
 
     [Test]

@@ -19,24 +19,6 @@ public interface IAudioSource
     int Render(Span<AudioFrame> destination);
 }
 
-/// <summary>Emulated machine audio endpoint. Machines without physical audio expose a null device.</summary>
-public interface IAudioDevice
-{
-    IAudioSource? Source { get; }
-}
-
-/// <summary>Audio endpoint for a machine that has no modeled physical output.</summary>
-public sealed class NullAudioDevice : IAudioDevice
-{
-    public IAudioSource? Source => null;
-}
-
-/// <summary>Audio endpoint backed by one emulated audio source.</summary>
-public sealed class AudioDevice(IAudioSource source) : IAudioDevice
-{
-    public IAudioSource Source { get; } = source ?? throw new ArgumentNullException(nameof(source));
-}
-
 /// <summary>
 /// The platform seam: plays an <see cref="IAudioSource"/> on the host's actual speakers. A
 /// consumer (a machine's ViewModel, the CLI) codes against this interface, never against a

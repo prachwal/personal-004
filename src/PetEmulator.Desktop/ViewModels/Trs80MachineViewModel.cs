@@ -15,7 +15,6 @@ public sealed partial class Trs80MachineViewModel : ObservableObject, IMachineVi
     private readonly string _romsRoot;
     private Trs80Machine _machine;
     private readonly IAudioOutput _audioOutput;
-    private readonly IAudioDevice _audioDevice;
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(DiskIconBrush))] private bool _diskLoaded;
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(DiskIconBrush))] private bool _diskBusy;
     [ObservableProperty] private string _statusText = "TRS-80 Model I  Z80  PC=0x0000  Cycles=0";
@@ -24,7 +23,6 @@ public sealed partial class Trs80MachineViewModel : ObservableObject, IMachineVi
         _romsRoot = romsRoot;
         _machine = CreateMachine();
         _audioOutput = AudioOutputFactory.CreateNull();
-        _audioDevice = new NullAudioDevice();
         FrameBuffer = new uint[PixelWidth * PixelHeight];
         Reset();
         GeometryChanged?.Invoke(this, EventArgs.Empty);
@@ -32,7 +30,6 @@ public sealed partial class Trs80MachineViewModel : ObservableObject, IMachineVi
     public string WindowTitle => "TRS-80 Model I";
     public int PixelWidth => PetEmulator.Trs80.Display.Trs80RasterDisplay.PixelWidth;
     public IAudioOutput AudioOutput => _audioOutput;
-    public IAudioDevice AudioDevice => _audioDevice;
     public int PixelHeight => PetEmulator.Trs80.Display.Trs80RasterDisplay.PixelHeight;
     public (int Width, int Height) PixelAspect => (1, 1);
     public uint[] FrameBuffer { get; }
