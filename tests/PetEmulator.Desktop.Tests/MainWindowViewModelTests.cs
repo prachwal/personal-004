@@ -16,12 +16,15 @@ public sealed class MainWindowViewModelTests
         typeof(KayproMachineViewModel).Should().Implement<IDiskDriveViewModel>();
         typeof(Trs80MachineViewModel).Should().Implement<ITapeViewModel>();
         typeof(Cpc464MachineViewModel).Should().Implement<IDatasetteViewModel>();
+        typeof(Cpc6128MachineViewModel).Should().Implement<IDatasetteViewModel>();
+        typeof(Cpc6128MachineViewModel).Should().Implement<IDiskDriveViewModel>();
 
         typeof(PetMachineViewModel).Should().Implement<IMachineViewModel>();
         typeof(Vic20MachineViewModel).Should().Implement<IMachineViewModel>();
         typeof(KayproMachineViewModel).Should().Implement<IMachineViewModel>();
         typeof(Trs80MachineViewModel).Should().Implement<IMachineViewModel>();
         typeof(Cpc464MachineViewModel).Should().Implement<IMachineViewModel>();
+        typeof(Cpc6128MachineViewModel).Should().Implement<IMachineViewModel>();
     }
 
     [Test]
