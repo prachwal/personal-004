@@ -11,6 +11,17 @@ Ujednolicić strukturę PET, VIC-20, CPC464, CPC6128, TRS-80 i Kaypro tak, aby:
 
 Nie tworzyć jednej uniwersalnej klasy zawierającej wszystkie możliwe urządzenia.
 
+## Status wdrożenia
+
+- [x] Wspólny zegar CPU (`IClock`/`EmulationClock`) oraz wspólny zegar urządzeń CPC (`CpcMachineClock`).
+- [x] Wspólna baza snapshotu (`MachineSnapshot`) i pełne snapshoty CPC464/CPC6128.
+- [x] Macierz kontraktu `IMachine` obejmuje wszystkie realne maszyny, w tym CPC6128.
+- [x] Audio, taśma, routing capability Desktop i headless debug CPC są już dostępne w bieżącej implementacji.
+- [ ] Pełne snapshoty PET, VIC-20, TRS-80 i Kaypro.
+- [ ] Wspólne kontrakty urządzeń w Core (`IKeyboardDevice`, `ICassetteDevice`, `IDiskController`, `IVideoDevice`, `IAudioDevice`) z implementacjami/null-adapterami.
+
+Powyższe punkty oznaczone jako ukończone zostały zweryfikowane w kodzie i testach. Pozostałe wymagają implementacji, a nie tylko dopisania typów lub dokumentacji.
+
 ## Zasada architektoniczna
 
 Stosować trzy poziomy współdzielenia:
