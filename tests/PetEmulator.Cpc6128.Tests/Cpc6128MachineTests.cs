@@ -1,6 +1,8 @@
+using System.Text;
 using FluentAssertions;
 using NUnit.Framework;
 using PetEmulator.Cpc6128;
+using PetEmulator.CpcFdc;
 
 namespace PetEmulator.Cpc6128.Tests;
 
@@ -41,7 +43,7 @@ public sealed class Cpc6128MachineTests
     {
         var machine = new Cpc6128Machine(new byte[Cpc6128MemoryBus.RomSize]);
         machine.Ports.Read(0x1200).Should().Be(0xFF);
-        machine.Ports.Read(0xFB7E).Should().Be(0xFF);
+        machine.Ports.Read(0xFA7F).Should().Be(0xFF);
     }
 
     [Test]
@@ -54,5 +56,35 @@ public sealed class Cpc6128MachineTests
 
         machine.Bus.ReadPort(0xDF00).Should().Be(7);
         machine.Bus.ReadMemory(0xC000).Should().Be(0xA5);
+    }
+
+    [Test]
+    public void Standard_dsk_is_loaded_and_exposed_through_8272_ports()
+    {
+        var machine = new Cpc6128Machine(new byte[Cpc6128MemoryBus.RomSize]);
+        var image = DskDiskImage.Load(CreateDsk(0x5A));
+
+        machine.LoadDisk(0, image);
+
+        machine.Fdc.Drive0.Should().BeOfType<DskFloppyDrive>();
+        machine.Ports.Read(0xFB7E).Should().Be(0x80);
+        machine.Ports.Write(0xFA7E, 0);
+        ((DskFloppyDrive)machine.Fdc.Drive0!).MotorOn.Should().BeFalse();
+    }
+
+    private static byte[] CreateDsk(byte fill)
+    {
+        var dsk = new byte[0x400];
+        Encoding.ASCII.GetBytes("MV - CPCEMU Disk-File\r\nDisk-Info\r\n").CopyTo(dsk, 0);
+        dsk[0x30] = 1;
+        dsk[0x31] = 1;
+        dsk[0x32] = 0;
+        dsk[0x33] = 3;
+        Encoding.ASCII.GetBytes("Track-Info\r\n").CopyTo(dsk, 0x100);
+        dsk[0x115] = 1;
+        dsk[0x11A] = 1;
+        dsk[0x11B] = 2;
+        dsk.AsSpan(0x200).Fill(fill);
+        return dsk;
     }
 }

@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/lib/">
+    <Project Path="lib/PetEmulator.CpcFdc/PetEmulator.CpcFdc.csproj" />
     <Project Path="lib/PetEmulator.Core/PetEmulator.Core.csproj" />
     <Project Path="lib/PetEmulator.Vic20.Cartridge.Abstractions/PetEmulator.Vic20.Cartridge.Abstractions.csproj" />
     <Project Path="lib/PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />

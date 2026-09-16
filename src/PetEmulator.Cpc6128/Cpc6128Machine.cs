@@ -2,6 +2,7 @@ using PetEmulator.Chips;
 using PetEmulator.Core;
 using PetEmulator.CpuZ80.Cpu;
 using PetEmulator.Cpc464;
+using PetEmulator.CpcFdc;
 
 namespace PetEmulator.Cpc6128;
 
@@ -11,6 +12,7 @@ public sealed class Cpc6128Machine : IMachine
     private readonly Z80Cpu _cpu;
     private readonly Cpc6128MemoryBus _bus;
     private readonly Cpc6128Ports _ports;
+    private readonly I8272Chip _fdc;
     private int _deviceCycleRemainder;
     private ulong _frameCycles;
 
@@ -26,7 +28,8 @@ public sealed class Cpc6128Machine : IMachine
         Keyboard = new Cpc464Keyboard();
         Cassette = new Cpc464Cassette();
         InterruptLines = new PetEmulator.CpuZ80.Interrupts.InterruptLines();
-        _ports = new Cpc6128Ports(GateArray, Crtc, Ay, Keyboard, Cassette, _bus);
+        _fdc = new I8272Chip();
+        _ports = new Cpc6128Ports(GateArray, Crtc, Ay, Keyboard, Cassette, _fdc, _bus);
         _bus.AttachPorts(_ports);
         _cpu = new Z80Cpu(_bus, InterruptLines);
         Reset();
@@ -44,10 +47,19 @@ public sealed class Cpc6128Machine : IMachine
     public Ay38910 Ay { get; }
     public Cpc464Keyboard Keyboard { get; }
     public Cpc464Cassette Cassette { get; }
+    public I8272Chip Fdc => _fdc;
     public PetEmulator.CpuZ80.Interrupts.InterruptLines InterruptLines { get; }
     public ulong FrameCount { get; private set; }
 
     public void LoadExpansionRom(byte number, ReadOnlySpan<byte> rom) => _bus.LoadUpperRom(number, rom);
+
+    public void LoadDisk(int drive, DskDiskImage image)
+    {
+        var floppy = new DskFloppyDrive(image) { MotorOn = true };
+        if (drive == 0) _fdc.Drive0 = floppy;
+        else if (drive == 1) _fdc.Drive1 = floppy;
+        else throw new ArgumentOutOfRangeException(nameof(drive));
+    }
 
     public void Reset()
     {
@@ -58,6 +70,7 @@ public sealed class Cpc6128Machine : IMachine
         Ay.Reset();
         Keyboard.Reset();
         Cassette.Reset();
+        _fdc.Reset();
         _ports.Reset();
         InterruptLines.SetInt(false);
         _deviceCycleRemainder = 0;
@@ -77,6 +90,7 @@ public sealed class Cpc6128Machine : IMachine
             GateArray.Tick();
             Cassette.Tick();
         }
+        _fdc.Tick(cycles);
         _frameCycles += (uint)cycles;
         if (_frameCycles >= 80_000)
         {

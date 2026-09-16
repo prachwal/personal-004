@@ -1,17 +1,20 @@
 using PetEmulator.Chips;
 using PetEmulator.Cpc464;
+using PetEmulator.CpcFdc;
 
 namespace PetEmulator.Cpc6128;
 
 /// <summary>CPC6128 port decoder. FDC ports remain intentionally unimplemented until M5.</summary>
 public sealed class Cpc6128Ports(Cpc464GateArray gateArray, MT6545 crtc, Ay38910 ay,
-    Cpc464Keyboard keyboard, Cpc464Cassette cassette, Cpc6128MemoryBus memory)
+    Cpc464Keyboard keyboard, Cpc464Cassette cassette, I8272Chip fdc, Cpc6128MemoryBus memory)
 {
     private byte _portA, _portB, _portC, _ppiControl = 0x9B;
 
     public byte Read(byte port) => Read((ushort)port);
     public byte Read(ushort port)
     {
+        if (port == 0xFB7E) return fdc.ReadMainStatus();
+        if (port == 0xFB7F) return fdc.ReadDataRegister();
         if ((port & 0xFF00) == 0xDF00) return memory.UpperRomNumber;
         return (byte)(port >> 8) switch
         {
@@ -27,6 +30,13 @@ public sealed class Cpc6128Ports(Cpc464GateArray gateArray, MT6545 crtc, Ay38910
     public void Write(byte port, byte value) => Write((ushort)port, value);
     public void Write(ushort port, byte value)
     {
+        if (port == 0xFB7F) { fdc.WriteDataRegister(value); return; }
+        if (port == 0xFA7E)
+        {
+            if (fdc.Drive0 is DskFloppyDrive drive0) drive0.MotorOn = (value & 1) != 0;
+            if (fdc.Drive1 is DskFloppyDrive drive1) drive1.MotorOn = (value & 1) != 0;
+            return;
+        }
         if ((port & 0xFF00) == 0xDF00) { memory.SelectUpperRom(value); return; }
         switch ((byte)(port >> 8))
         {
