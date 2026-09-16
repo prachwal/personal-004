@@ -6,4 +6,6 @@ public abstract class MachineSnapshot : IMachineSnapshot
     public int Version { get; set; } = 1;
 
     public CpuDebugSnapshot Cpu { get; set; } = null!;
+
+    public ulong CycleCount { get; set; }
 }
