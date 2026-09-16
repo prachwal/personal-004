@@ -93,7 +93,7 @@ public sealed partial class Cpc6128MachineViewModel : ObservableObject, IMachine
         _machine.GateArray.RenderFrame();
         var pixels = _machine.GateArray.Pixels;
         for (var index = 0; index < FrameBuffer.Length; index++)
-            FrameBuffer[index] = Cpc464GateArray.HardwareColors[_machine.GateArray.GetInkColorIndex(pixels[index])];
+            FrameBuffer[index] = PetEmulator.Cpc.CpcGateArray.HardwareColors[_machine.GateArray.GetInkColorIndex(pixels[index])];
     }
 
     private static readonly Dictionary<Key, (byte Row, byte Column)> Matrix = new()

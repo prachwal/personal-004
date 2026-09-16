@@ -2,6 +2,7 @@ using PetEmulator.Chips;
 using PetEmulator.Core;
 using PetEmulator.CpuZ80.Bus;
 using PetEmulator.CpuZ80.Interrupts;
+using PetEmulator.Cpc;
 
 namespace PetEmulator.Cpc464;
 
@@ -15,14 +16,14 @@ public sealed class Cpc464Bus : IBus, IMemoryBus
         if (rom.Length != RomSize) throw new ArgumentException("CPC464 ROM must be exactly 32 KB.", nameof(rom));
         _rom = rom.ToArray();
         Crtc = new MT6545("CPC CRTC", 0xBC00);
-        GateArray = new Cpc464GateArray(Crtc, ReadRam);
+        GateArray = new CpcGateArray(Crtc, ReadRam);
         Ay = new Ay38910();
         Keyboard = new Cpc464Keyboard();
         Cassette = new Cpc464Cassette();
         InterruptLines = new InterruptLines();
     }
     public MT6545 Crtc { get; }
-    public Cpc464GateArray GateArray { get; }
+    public CpcGateArray GateArray { get; }
     public Ay38910 Ay { get; }
     public Cpc464Keyboard Keyboard { get; }
     public Cpc464Cassette Cassette { get; }

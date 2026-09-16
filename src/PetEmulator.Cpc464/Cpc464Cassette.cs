@@ -1,3 +1,5 @@
+using PetEmulator.Cpc;
+
 namespace PetEmulator.Cpc464;
 
 /// <summary>A cassette supporting CDT pulse streams and the synthetic byte format used by the
@@ -179,7 +181,7 @@ public sealed class Cpc464Cassette
         return true;
     }
 
-    public Cpc464CassetteSnapshot CaptureState() => new()
+    public CpcCassetteSnapshot CaptureState() => new()
     {
         Tape = _tape.ToArray(), ByteIndex = _byteIndex, BitIndex = _bitIndex, Remaining = _remaining,
         PlaybackHigh = _playbackHigh, Started = _started, PulseTicks = _pulseTicks.ToArray(), PulseIndex = _pulseIndex,
@@ -187,7 +189,7 @@ public sealed class Cpc464Cassette
         RecordTicks = _recordTicks, RecordLevel = _recordLevel, Recording = _recording, MotorOn = MotorOn, Signal = Signal
     };
 
-    public void RestoreState(Cpc464CassetteSnapshot state)
+    public void RestoreState(CpcCassetteSnapshot state)
     {
         ArgumentNullException.ThrowIfNull(state); _tape = state.Tape.ToArray(); _byteIndex = state.ByteIndex; _bitIndex = state.BitIndex;
         _remaining = state.Remaining; _playbackHigh = state.PlaybackHigh; _started = state.Started; _pulseTicks = state.PulseTicks.ToArray();

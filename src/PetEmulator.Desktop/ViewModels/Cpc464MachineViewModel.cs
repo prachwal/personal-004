@@ -80,7 +80,7 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
         gateArray.RenderFrame();
         var pixels = gateArray.Pixels;
         for (var i = 0; i < FrameBuffer.Length; i++)
-            FrameBuffer[i] = Cpc464GateArray.HardwareColors[gateArray.GetInkColorIndex(pixels[i])];
+            FrameBuffer[i] = PetEmulator.Cpc.CpcGateArray.HardwareColors[gateArray.GetInkColorIndex(pixels[i])];
     }
     /// <summary>Real Amstrad CPC 10x8 keyboard matrix positions - NOT a linear A-Z formula (the
     /// physical PCB scan lines interleave letters, digits and punctuation with no alphabetic

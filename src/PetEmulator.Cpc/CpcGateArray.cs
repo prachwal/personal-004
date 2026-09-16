@@ -1,10 +1,10 @@
 using PetEmulator.Chips;
 
-namespace PetEmulator.Cpc464;
+namespace PetEmulator.Cpc;
 
 public enum CpcDisplayMode : byte { Mode0, Mode1, Mode2 }
 
-public sealed class Cpc464GateArray
+public sealed class CpcGateArray
 {
     private readonly MT6545 _crtc;
     private readonly Func<ushort, byte> _readRam;
@@ -14,7 +14,7 @@ public sealed class Cpc464GateArray
     private bool _previousHSync;
     private int _hsyncCount;
 
-    public Cpc464GateArray(MT6545 crtc, Func<ushort, byte> readRam)
+    public CpcGateArray(MT6545 crtc, Func<ushort, byte> readRam)
     {
         _crtc = crtc;
         _readRam = readRam;
@@ -31,7 +31,7 @@ public sealed class Cpc464GateArray
     public int Height { get; private set; }
     public byte GetInk(byte index) => _inks[index & 0x0F];
 
-    public Cpc464GateArraySnapshot CaptureState() => new()
+    public CpcGateArraySnapshot CaptureState() => new()
     {
         Mode = Mode, LowerRomEnabled = LowerRomEnabled, UpperRomEnabled = UpperRomEnabled,
         RamConfiguration = RamConfiguration, InterruptPending = InterruptPending, Inks = _inks.ToArray(),
@@ -39,7 +39,7 @@ public sealed class Cpc464GateArray
         HsyncCount = _hsyncCount, Pixels = Pixels.ToArray(), Width = Width, Height = Height
     };
 
-    public void RestoreState(Cpc464GateArraySnapshot state)
+    public void RestoreState(CpcGateArraySnapshot state)
     {
         ArgumentNullException.ThrowIfNull(state);
         state.Inks.AsSpan().CopyTo(_inks); Mode = state.Mode; LowerRomEnabled = state.LowerRomEnabled;

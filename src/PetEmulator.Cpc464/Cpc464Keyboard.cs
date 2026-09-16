@@ -1,3 +1,5 @@
+using PetEmulator.Cpc;
+
 namespace PetEmulator.Cpc464;
 
 public sealed class Cpc464Keyboard

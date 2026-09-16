@@ -15,6 +15,7 @@
     <Project Path="lib/PetEmulator.Audio/PetEmulator.Audio.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/PetEmulator.Cpc/PetEmulator.Cpc.csproj" />
     <Project Path="src/PetEmulator.Pet/PetEmulator.Pet.csproj" />
     <Project Path="src/PetEmulator.Vic20/PetEmulator.Vic20.csproj" />
     <Project Path="src/PetEmulator.Kaypro/PetEmulator.Kaypro.csproj" />

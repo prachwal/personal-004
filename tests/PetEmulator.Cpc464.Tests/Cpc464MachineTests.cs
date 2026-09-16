@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using PetEmulator.Cpc;
 using PetEmulator.Cpc464;
 
 namespace PetEmulator.Cpc464.Tests;

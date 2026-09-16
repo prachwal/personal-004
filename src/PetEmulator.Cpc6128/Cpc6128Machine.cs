@@ -2,6 +2,7 @@ using PetEmulator.Chips;
 using PetEmulator.Core;
 using PetEmulator.CpuZ80.Cpu;
 using PetEmulator.Cpc464;
+using PetEmulator.Cpc;
 using PetEmulator.CpcFdc;
 
 namespace PetEmulator.Cpc6128;
@@ -18,11 +19,11 @@ public sealed class Cpc6128Machine : IMachine
 
     public Cpc6128Machine(ReadOnlySpan<byte> rom)
     {
-        Cpc464GateArray? gateArray = null;
+        CpcGateArray? gateArray = null;
         Crtc = new MT6545("CPC6128 CRTC", 0xBC00);
         _bus = new Cpc6128MemoryBus(rom, () => gateArray!.LowerRomEnabled,
             () => gateArray!.UpperRomEnabled, () => gateArray!.RamConfiguration);
-        gateArray = new Cpc464GateArray(Crtc, _bus.ReadVideoRam);
+        gateArray = new CpcGateArray(Crtc, _bus.ReadVideoRam);
         GateArray = gateArray;
         Ay = new Ay38910();
         Keyboard = new Cpc464Keyboard();
@@ -43,7 +44,7 @@ public sealed class Cpc6128Machine : IMachine
     public IMemoryBus Memory => _bus;
     public Cpc6128MemoryBus Bus => _bus;
     public Cpc6128Ports Ports => _ports;
-    public Cpc464GateArray GateArray { get; }
+    public CpcGateArray GateArray { get; }
     public MT6545 Crtc { get; }
     public Ay38910 Ay { get; }
     public Cpc464Keyboard Keyboard { get; }

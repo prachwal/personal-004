@@ -8,5 +8,6 @@
     <ProjectReference Include="../../lib/PetEmulator.CpuZ80/PetEmulator.CpuZ80.csproj" />
     <ProjectReference Include="../../lib/PetEmulator.CpcFdc/PetEmulator.CpcFdc.csproj" />
     <ProjectReference Include="../PetEmulator.Cpc464/PetEmulator.Cpc464.csproj" />
+    <ProjectReference Include="../PetEmulator.Cpc/PetEmulator.Cpc.csproj" />
   </ItemGroup>
 </Project>
