@@ -68,8 +68,12 @@ public sealed class Cpc6128MachineTests
 
         machine.Fdc.Drive0.Should().BeOfType<DskFloppyDrive>();
         machine.Ports.Read(0xFB7E).Should().Be(0x80);
-        machine.Ports.Write(0xFA7E, 0);
-        ((DskFloppyDrive)machine.Fdc.Drive0!).MotorOn.Should().BeFalse();
+        machine.Ports.Write(0xFB7F, 0x46);
+        foreach (var value in new byte[] { 0, 0, 0, 1, 2, 1, 0x1B, 0xFF }) machine.Ports.Write(0xFB7F, value);
+        var data = new byte[512];
+        for (var index = 0; index < data.Length; index++) data[index] = machine.Ports.Read(0xFB7F);
+        data.Should().OnlyContain(value => value == 0x5A);
+        machine.Ports.Read(0xFB7F).Should().Be(0);
     }
 
     private static byte[] CreateDsk(byte fill)

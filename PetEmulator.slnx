@@ -52,6 +52,7 @@
     <Project Path="tests/PetEmulator.Desktop.Tests/PetEmulator.Desktop.Tests.csproj" />
     <Project Path="tests/PetEmulator.Cpc464.Tests/PetEmulator.Cpc464.Tests.csproj" />
     <Project Path="tests/PetEmulator.Cpc6128.Tests/PetEmulator.Cpc6128.Tests.csproj" />
+    <Project Path="tests/PetEmulator.CpcFdc.Tests/PetEmulator.CpcFdc.Tests.csproj" />
     <Project Path="tests/PetEmulator.TestSupport/PetEmulator.TestSupport.csproj" />
   </Folder>
   <Folder Name="/tools/">
