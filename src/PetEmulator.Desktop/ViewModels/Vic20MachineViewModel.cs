@@ -32,6 +32,7 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     private readonly string _romsRoot;
     private readonly Vic20RasterDisplay _display;
     private readonly IAudioOutput _audioOutput;
+    private readonly IAudioDevice _audioDevice;
     private readonly Vic20KeyboardMap _keyboardMap = new();
     private static readonly TimeSpan DiskActivityLinger = TimeSpan.FromMilliseconds(200);
     private DateTime _diskActivityUntilUtc = DateTime.MinValue;
@@ -91,6 +92,7 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
         ProgramProfileSelector = new Vic20ProgramProfileSelectorViewModel();
         _display = new Vic20RasterDisplay(_machine.Memory, _machine.Vic);
         _audioOutput = AudioOutputFactory.CreateDefault();
+        _audioDevice = new AudioDevice(_machine.Vic);
         _audioOutput.Start(_machine.Vic);
         FrameBuffer = new uint[_display.PixelWidth * _display.PixelHeight];
         UpdateCartridgeState();
@@ -103,6 +105,7 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     public int PixelWidth => _display.PixelWidth;
 
     public IAudioOutput AudioOutput => _audioOutput;
+    public IAudioDevice AudioDevice => _audioDevice;
 
     public Vic20ProgramProfileSelectorViewModel ProgramProfileSelector { get; }
 

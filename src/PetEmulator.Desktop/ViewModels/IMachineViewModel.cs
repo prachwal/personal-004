@@ -29,6 +29,8 @@ public interface IMachineViewModel : IShellModule
     /// sound source expose a <see cref="NullAudioOutput"/>.</summary>
     IAudioOutput AudioOutput { get; }
 
+    IAudioDevice AudioDevice { get; }
+
     int PixelWidth { get; }
 
     int PixelHeight { get; }

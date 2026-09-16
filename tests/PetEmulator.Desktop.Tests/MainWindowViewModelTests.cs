@@ -25,6 +25,9 @@ public sealed class MainWindowViewModelTests
         typeof(Trs80MachineViewModel).Should().Implement<IMachineViewModel>();
         typeof(Cpc464MachineViewModel).Should().Implement<IMachineViewModel>();
         typeof(Cpc6128MachineViewModel).Should().Implement<IMachineViewModel>();
+
+        typeof(IMachineViewModel).GetProperty(nameof(IMachineViewModel.AudioDevice))
+            .Should().NotBeNull();
     }
 
     [Test]

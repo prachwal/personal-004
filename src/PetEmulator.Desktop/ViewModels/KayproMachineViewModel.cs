@@ -17,6 +17,7 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
     private static readonly TimeSpan DiskActivityLinger = TimeSpan.FromMilliseconds(200);
     private readonly KayproMachine _machine;
     private readonly IAudioOutput _audioOutput;
+    private readonly IAudioDevice _audioDevice;
     private DateTime _diskActivityUntilUtc = DateTime.MinValue;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DiskIconBrush))]
@@ -47,6 +48,7 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
         var kayproRoot = Path.Combine(romsRoot, "kaypro");
         _machine = new KayproMachine();
         _audioOutput = AudioOutputFactory.CreateNull();
+        _audioDevice = new NullAudioDevice();
         _machine.Bus.FdcWiring.ActivityChanged += OnFdcActivityChanged;
         _machine.LoadMonitorRom(File.ReadAllBytes(Path.Combine(kayproRoot, "kaypro-81-149c.bin")));
         Font = KayproFont.Load(Path.Combine(kayproRoot, "kaypro-81-146.bin"));
@@ -66,6 +68,7 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
     public IBrush DiskIconBrush => !DiskLoaded ? Brushes.Gray : DiskBusy ? Brushes.Red : Brushes.LimeGreen;
     public int PixelWidth => KayproVideo.PixelWidth;
     public IAudioOutput AudioOutput => _audioOutput;
+    public IAudioDevice AudioDevice => _audioDevice;
     public int PixelHeight => KayproVideo.PixelHeight;
     // The 640x240 Kaypro raster uses a 2:1 vertical pixel correction to
     // reproduce the 4:3 CRT geometry of the 80x24, 8x10 character display.

@@ -15,6 +15,7 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
     private const ulong InstructionsPerTick = 20_000;
     private readonly Cpc464Machine _machine;
     private readonly IAudioOutput _audioOutput;
+    private readonly IAudioDevice _audioDevice;
     [ObservableProperty] private bool _tapeLoaded;
     [ObservableProperty] private bool _tapePlaying;
 
@@ -25,6 +26,7 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
         var romPath = Path.Combine(romsRoot, "cpc464", "cpc464.rom");
         _machine = new Cpc464Machine(File.ReadAllBytes(romPath));
         _audioOutput = AudioOutputFactory.CreateDefault();
+        _audioDevice = new AudioDevice(_machine.Bus.Ay);
         _audioOutput.Start(_machine.Bus.Ay);
         FrameBuffer = new uint[320 * 200];
         Reset();
@@ -33,6 +35,7 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
     public string WindowTitle => "Amstrad CPC464";
     public int PixelWidth => 320;
     public IAudioOutput AudioOutput => _audioOutput;
+    public IAudioDevice AudioDevice => _audioDevice;
     public int PixelHeight => 200;
     public (int Width, int Height) PixelAspect => (1, 1);
     public uint[] FrameBuffer { get; }

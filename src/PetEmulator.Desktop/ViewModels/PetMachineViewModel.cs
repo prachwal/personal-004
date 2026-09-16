@@ -37,6 +37,7 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
     private readonly IPetKeyboardMap _keyboardMap;
     private readonly PetProfile _profile;
     private readonly IAudioOutput _audioOutput;
+    private readonly IAudioDevice _audioDevice;
     private DateTime _diskActivityUntilUtc = DateTime.MinValue;
 
     [ObservableProperty]
@@ -94,6 +95,7 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
 
         _machine = new PetMachine(profile, romsRoot);
         _audioOutput = AudioOutputFactory.CreateNull();
+        _audioDevice = new NullAudioDevice();
         _display = new PetRasterDisplay(profile, _machine.Memory, font);
         FrameBuffer = new uint[_display.PixelWidth * _display.PixelHeight];
 
@@ -118,6 +120,7 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
     public int PixelWidth => _display.PixelWidth;
 
     public IAudioOutput AudioOutput => _audioOutput;
+    public IAudioDevice AudioDevice => _audioDevice;
 
     public int PixelHeight => _display.PixelHeight;
 

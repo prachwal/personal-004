@@ -17,6 +17,7 @@ public sealed partial class Cpc6128MachineViewModel : ObservableObject, IMachine
     private const ulong InstructionsPerTick = 20_000;
     private readonly Cpc6128Machine _machine;
     private readonly IAudioOutput _audioOutput;
+    private readonly IAudioDevice _audioDevice;
     [ObservableProperty] private bool _tapeLoaded;
     [ObservableProperty] private bool _tapePlaying;
     [ObservableProperty] private bool _diskLoaded;
@@ -28,6 +29,7 @@ public sealed partial class Cpc6128MachineViewModel : ObservableObject, IMachine
         _machine = new Cpc6128Machine(File.ReadAllBytes(Path.Combine(romsRoot, "cpc6128", "cpc6128.rom")));
         _machine.LoadExpansionRom(7, File.ReadAllBytes(Path.Combine(romsRoot, "cpc6128", "amsdos.rom")));
         _audioOutput = AudioOutputFactory.CreateDefault();
+        _audioDevice = new AudioDevice(_machine.Ay);
         _audioOutput.Start(_machine.Ay);
         FrameBuffer = new uint[320 * 200];
         Reset();
@@ -35,6 +37,7 @@ public sealed partial class Cpc6128MachineViewModel : ObservableObject, IMachine
 
     public string WindowTitle => "Amstrad CPC6128";
     public IAudioOutput AudioOutput => _audioOutput;
+    public IAudioDevice AudioDevice => _audioDevice;
     public int PixelWidth => 320;
     public int PixelHeight => 200;
     public (int Width, int Height) PixelAspect => (1, 1);
