@@ -22,6 +22,7 @@ public sealed class Cpc464Machine : IMachine
     public IMemoryBus Memory => Bus;
     public Cpc464Bus Bus { get; }
     public Z80Cpu Cpu => _cpu;
+    public Cpc464Cassette Cassette => Bus.Cassette;
     public int PixelWidth => Bus.GateArray.Width;
     public int PixelHeight => Bus.GateArray.Height;
     public void Reset() { Bus.Reset(); _cpu.Reset(); Bus.GateArray.RenderFrame(); }

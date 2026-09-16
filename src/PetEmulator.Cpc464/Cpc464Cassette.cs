@@ -25,6 +25,7 @@ public sealed class Cpc464Cassette
     private bool _recording;
 
     public bool MotorOn { get; private set; }
+    public bool HasTape => _pulsePlayback ? _pulseTicks.Count > 0 : _tape.Length > 0;
     public bool AtEndOfTape => _pulsePlayback ? _pulseIndex >= _pulseTicks.Count : _byteIndex >= _tape.Length;
     public bool Signal { get; private set; }
 
@@ -74,6 +75,19 @@ public sealed class Cpc464Cassette
     {
         MotorOn = enabled;
         if (!enabled && _recording) { FlushPulse(); _recording = false; }
+    }
+
+    public void PressPlay() => SetMotor(true);
+
+    public void Stop() => SetMotor(false);
+
+    public void Eject()
+    {
+        SetMotor(false);
+        _tape = [];
+        _pulseTicks = [];
+        _pulsePlayback = false;
+        Rewind();
     }
 
     public bool ReadSignal() => !MotorOn || AtEndOfTape ? true : Signal;

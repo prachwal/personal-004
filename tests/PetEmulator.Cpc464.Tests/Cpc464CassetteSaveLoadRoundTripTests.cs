@@ -13,6 +13,22 @@ namespace PetEmulator.Cpc464.Tests;
 /// round trip is correct, independent of that still-open question.</summary>
 public sealed class Cpc464CassetteSaveLoadRoundTripTests
 {
+    [Test]
+    public void TransportControlsStartStopAndEjectTheMountedTape()
+    {
+        var cassette = new Cpc464Cassette();
+        cassette.LoadPulses([10, 20]);
+
+        Assert.That(cassette.HasTape, Is.True);
+        cassette.PressPlay();
+        Assert.That(cassette.MotorOn, Is.True);
+        cassette.Stop();
+        Assert.That(cassette.MotorOn, Is.False);
+        cassette.Eject();
+        Assert.That(cassette.HasTape, Is.False);
+        Assert.That(cassette.MotorOn, Is.False);
+    }
+
     private const ushort ControlPort = 0xF700;
     private const ushort PortCPort = 0xF600;
     private const ushort PortBPort = 0xF500;

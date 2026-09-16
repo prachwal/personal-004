@@ -9,6 +9,22 @@ namespace PetEmulator.Desktop.Tests;
 public sealed class MainWindowViewModelTests
 {
     [Test]
+    public void MachineViewModels_DeclareMediaAndAudioCapabilitiesExplicitly()
+    {
+        typeof(PetMachineViewModel).Should().Implement<ITapeViewModel>();
+        typeof(Vic20MachineViewModel).Should().Implement<IDatasetteViewModel>();
+        typeof(KayproMachineViewModel).Should().Implement<IDiskDriveViewModel>();
+        typeof(Trs80MachineViewModel).Should().Implement<ITapeViewModel>();
+        typeof(Cpc464MachineViewModel).Should().Implement<IDatasetteViewModel>();
+
+        typeof(PetMachineViewModel).Should().Implement<IMachineViewModel>();
+        typeof(Vic20MachineViewModel).Should().Implement<IMachineViewModel>();
+        typeof(KayproMachineViewModel).Should().Implement<IMachineViewModel>();
+        typeof(Trs80MachineViewModel).Should().Implement<IMachineViewModel>();
+        typeof(Cpc464MachineViewModel).Should().Implement<IMachineViewModel>();
+    }
+
+    [Test]
     public void ModuleChoices_ExposeOneVic20Entry()
     {
         using var viewModel = new MainWindowViewModel(new StubFilePickerService());

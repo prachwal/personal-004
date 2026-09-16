@@ -181,13 +181,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     public void LoadTape(string path)
     {
-        switch (CurrentModule)
-        {
-            case PetMachineViewModel pet: pet.LoadTape(path); break;
-            case Vic20MachineViewModel vic20: vic20.LoadTape(path); break;
-            case Trs80MachineViewModel trs80: trs80.LoadTape(path); break;
-            case Cpc464MachineViewModel cpc464: cpc464.LoadTape(path); break;
-        }
+        if (CurrentModule is ITapeViewModel tape)
+            tape.LoadTape(path);
     }
 
     /// <inheritdoc cref="LoadTape"/>
@@ -208,13 +203,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     public void LoadDisk(string path)
     {
-        switch (CurrentModule)
-        {
-            case PetMachineViewModel pet: pet.LoadDisk(path); break;
-            case Vic20MachineViewModel vic20: vic20.LoadDisk(path); break;
-            case KayproMachineViewModel kaypro: kaypro.LoadDisk(path); break;
-            case Trs80MachineViewModel trs80: trs80.LoadDisk(path); break;
-        }
+        if (CurrentModule is IDiskDriveViewModel disk)
+            disk.LoadDisk(path);
     }
 
     /// <summary>Creates a fresh, formatted, writable D64 at <paramref name="path"/> and mounts it,
@@ -222,11 +212,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// </summary>
     public void NewDisk(string path)
     {
-        switch (CurrentModule)
-        {
-            case PetMachineViewModel pet: pet.NewDisk(path); break;
-            case Vic20MachineViewModel vic20: vic20.NewDisk(path); break;
-        }
+        if (CurrentModule is INewDiskViewModel disk)
+            disk.NewDisk(path);
     }
 
     [RelayCommand]
@@ -251,8 +238,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void NewTape()
     {
-        if (CurrentModule is Vic20MachineViewModel vic20)
-            vic20.NewTape();
+        if (CurrentModule is INewTapeViewModel tape)
+            tape.NewTape();
     }
 
     public void HandleKey(Key key, HostKeyEventKind kind)
