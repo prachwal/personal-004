@@ -2,6 +2,7 @@ using PetEmulator.Chips;
 using PetEmulator.Core;
 using PetEmulator.CpuZ80.Bus;
 using PetEmulator.CpuZ80.Interrupts;
+using PetEmulator.Cpc;
 
 namespace PetEmulator.Cpc464;
 
@@ -15,18 +16,32 @@ public sealed class Cpc464Bus : IBus, IMemoryBus
         if (rom.Length != RomSize) throw new ArgumentException("CPC464 ROM must be exactly 32 KB.", nameof(rom));
         _rom = rom.ToArray();
         Crtc = new MT6545("CPC CRTC", 0xBC00);
-        GateArray = new Cpc464GateArray(Crtc, ReadRam);
+        GateArray = new CpcGateArray(Crtc, ReadRam);
         Ay = new Ay38910();
         Keyboard = new Cpc464Keyboard();
         Cassette = new Cpc464Cassette();
         InterruptLines = new InterruptLines();
     }
     public MT6545 Crtc { get; }
-    public Cpc464GateArray GateArray { get; }
+    public CpcGateArray GateArray { get; }
     public Ay38910 Ay { get; }
     public Cpc464Keyboard Keyboard { get; }
     public Cpc464Cassette Cassette { get; }
     public InterruptLines InterruptLines { get; }
+
+    public Cpc464MemorySnapshot CaptureMemoryState() => new() { Ram = _ram.ToArray() };
+    public void RestoreMemoryState(Cpc464MemorySnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.Ram.Length != _ram.Length) throw new ArgumentException("CPC464 RAM snapshot has an invalid size.", nameof(state));
+        state.Ram.AsSpan().CopyTo(_ram);
+    }
+
+    public Cpc464PortsSnapshot CapturePortsState() => new() { PortA = _portA, PortB = _portB, PortC = _portC, PpiControl = _ppiControl };
+    public void RestorePortsState(Cpc464PortsSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state); _portA = state.PortA; _portB = state.PortB; _portC = state.PortC; _ppiControl = state.PpiControl;
+    }
     private byte _portA, _portB, _portC, _ppiControl = 0x9B;
     private bool PortAInput => (_ppiControl & 0x10) != 0;
     private bool PortBInput => (_ppiControl & 2) != 0;
@@ -61,11 +76,6 @@ public sealed class Cpc464Bus : IBus, IMemoryBus
         }
     }
     public byte AcknowledgeInterrupt() { GateArray.AcknowledgeInterrupt(); return 0xFF; }
-    public void Tick(int cycles)
-    {
-        for (var i = 0; i < cycles / 4; i++) { GateArray.Tick(); Cassette.Tick(); }
-        InterruptLines.SetInt(GateArray.InterruptPending);
-    }
     public void Reset() { Array.Clear(_ram); _portA = _portB = _portC = 0; _ppiControl = 0x9B; GateArray.Reset(); Crtc.Reset(); Ay.Reset(); Keyboard.Reset(); Cassette.Reset(); InterruptLines.Clear(); }
     private void WriteControl(byte value) { if ((value & 0x80) != 0) { _ppiControl = value; return; } var bit = (value >> 1) & 7; if ((value & 1) != 0) _portC |= (byte)(1 << bit); else _portC &= (byte)~(1 << bit); ApplyCassetteControl(); ApplyPsg(); }
     private void WritePortC(byte value) { var writable = (byte)((PortCUpperInput ? 0 : 0xF0) | (PortCLowerInput ? 0 : 0x0F)); _portC = (byte)((_portC & ~writable) | (value & writable)); ApplyCassetteControl(); ApplyPsg(); }

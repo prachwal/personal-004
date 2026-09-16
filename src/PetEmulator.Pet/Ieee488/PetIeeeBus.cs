@@ -48,6 +48,8 @@ public sealed class PetIeeeBus
     /// starts.</summary>
     public bool EOI { get; private set; }
 
+    public bool IsIdle => _state == BusState.Idle;
+
     public byte GetCurrentDio() => _hasCachedInput ? _cachedInput : (byte)0xFF;
 
     /// <summary>Attaches a device, replacing whatever was already at the same

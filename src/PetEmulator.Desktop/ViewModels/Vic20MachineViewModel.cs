@@ -23,7 +23,7 @@ namespace PetEmulator.Desktop.ViewModels;
 /// excludes the datasette and primary disk drive (both have dedicated widgets), while any other
 /// attached device is exposed through the generic status bar like PET's.
 /// </summary>
-public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel, IDiskDriveViewModel, ICartridgeViewModel
+public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel, IDiskDriveViewModel, ICartridgeViewModel, INewDiskViewModel, INewTapeViewModel
 {
     // Same budget as PetMachineViewModel - see that class's identical constant for why.
     private const ulong InstructionsPerTick = 20_000;
@@ -101,6 +101,8 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     }
 
     public int PixelWidth => _display.PixelWidth;
+
+    public IAudioOutput AudioOutput => _audioOutput;
 
     public Vic20ProgramProfileSelectorViewModel ProgramProfileSelector { get; }
 

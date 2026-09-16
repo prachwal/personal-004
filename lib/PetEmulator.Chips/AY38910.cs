@@ -99,6 +99,19 @@ public sealed class Ay38910 : IAudioSource
     public int EnvelopeLevel => _envStep;
     public uint NoiseShift => _noiseShift;
 
+    public Ay38910Snapshot CaptureState() => new()
+    {
+        Registers = Registers.ToArray(), Selected = Selected, TonePhase = _tonePhase.ToArray(), NoisePhase = _noisePhase,
+        NoiseShift = _noiseShift, EnvPhase = _envPhase, EnvStep = _envStep, EnvRising = _envRising, EnvDone = _envDone
+    };
+
+    public void RestoreState(Ay38910Snapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state); state.Registers.AsSpan().CopyTo(Registers); Selected = state.Selected;
+        state.TonePhase.AsSpan().CopyTo(_tonePhase); _noisePhase = state.NoisePhase; _noiseShift = state.NoiseShift;
+        _envPhase = state.EnvPhase; _envStep = state.EnvStep; _envRising = state.EnvRising; _envDone = state.EnvDone;
+    }
+
     private bool Hold => (Registers[13] & 1) != 0;
     private bool Alternate => (Registers[13] & 2) != 0;
     private bool Attack => (Registers[13] & 4) != 0;

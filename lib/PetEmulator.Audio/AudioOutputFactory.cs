@@ -9,6 +9,8 @@ namespace PetEmulator.Audio;
 /// </summary>
 public static class AudioOutputFactory
 {
+    public static IAudioOutput CreateNull() => new NullAudioOutput();
+
     /// <summary>Creates the default backend for the current OS. Linux (WSL included - this
     /// repo's only verified host, see docs/desktop/audio-wsl-backend.md) gets <see cref="PulseAudioSink"/>.
     /// No other platform has a backend implemented yet - <see cref="PulseAudioSink"/> itself never

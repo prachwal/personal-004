@@ -142,4 +142,55 @@ public sealed class KayproMachineTests
         Assert.That(sector[0], Is.EqualTo(0x5A));
         Assert.That(image.TryReadSector(40, 1, sector), Is.False);
     }
+
+    [Test]
+    public void Snapshot_RoundTripsOnANewMachineWithVideoPioSioAndFdcState()
+    {
+        var rom = Enumerable.Repeat((byte)0xA5, 0x800).ToArray();
+        var diskBytes = new byte[KayproDiskImage.ImageSize];
+        var source = new KayproMachine();
+        source.LoadMonitorRom(rom);
+        source.InsertDisk(0, new KayproDiskImage(diskBytes));
+        source.Memory.Write(0x4000, 0xD6);
+        source.Memory.Write(KayproBus.VideoBase, (byte)'K');
+        source.Bus.WritePort(KayproBus.SystemPort, 0x45);
+        source.Bus.Fdc.Track = 7;
+        source.Bus.Fdc.Sector = 3;
+        source.Bus.FdcWiring.BeginWait();
+        source.FeedKeyboardByte((byte)'Q');
+        source.Bus.Tick(100);
+        var snapshot = source.CaptureState();
+
+        var restored = new KayproMachine();
+        restored.LoadMonitorRom(rom);
+        restored.InsertDisk(0, new KayproDiskImage(diskBytes));
+        restored.Memory.Write(0x4000, 0x11);
+        restored.Memory.Write(KayproBus.VideoBase, (byte)'X');
+        restored.RestoreState(snapshot);
+
+        Assert.That(restored.Memory.Read(0x4000), Is.EqualTo(0xD6));
+        Assert.That(restored.Video.GetText()[0], Is.EqualTo('K'));
+        Assert.That(restored.Bus.Fdc.Track, Is.EqualTo(7));
+        Assert.That(restored.Bus.Fdc.Sector, Is.EqualTo(3));
+        Assert.That(restored.Bus.FdcWiring.SystemPortValue, Is.EqualTo(0x45));
+        Assert.That(restored.Bus.FdcWiring.SelectedDrive, Is.EqualTo(0));
+        Assert.That(restored.Bus.FdcWiring.WaitAsserted, Is.True);
+    }
+
+    [Test]
+    public void Snapshot_RoundTripsWithTheSameMountedDiskImage()
+    {
+        var diskBytes = Enumerable.Repeat((byte)0x3C, KayproDiskImage.ImageSize).ToArray();
+        var source = new KayproMachine();
+        source.InsertDisk(1, new KayproDiskImage(diskBytes));
+        source.Bus.Fdc.Track = 12;
+        var snapshot = source.CaptureState();
+
+        var restored = new KayproMachine();
+        restored.InsertDisk(1, new KayproDiskImage(diskBytes));
+        restored.RestoreState(snapshot);
+
+        Assert.That(restored.Bus.Fdc.Track, Is.EqualTo(12));
+        Assert.That(restored.Bus.FdcNmiPulseCount, Is.EqualTo(0));
+    }
 }

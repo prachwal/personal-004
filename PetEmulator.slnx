@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/lib/">
+    <Project Path="lib/PetEmulator.CpcFdc/PetEmulator.CpcFdc.csproj" />
     <Project Path="lib/PetEmulator.Core/PetEmulator.Core.csproj" />
     <Project Path="lib/PetEmulator.Vic20.Cartridge.Abstractions/PetEmulator.Vic20.Cartridge.Abstractions.csproj" />
     <Project Path="lib/PetEmulator.Cpu6502/PetEmulator.Cpu6502.csproj" />
@@ -14,11 +15,13 @@
     <Project Path="lib/PetEmulator.Audio/PetEmulator.Audio.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/PetEmulator.Cpc/PetEmulator.Cpc.csproj" />
     <Project Path="src/PetEmulator.Pet/PetEmulator.Pet.csproj" />
     <Project Path="src/PetEmulator.Vic20/PetEmulator.Vic20.csproj" />
     <Project Path="src/PetEmulator.Kaypro/PetEmulator.Kaypro.csproj" />
     <Project Path="src/PetEmulator.Trs80/PetEmulator.Trs80.csproj" />
     <Project Path="src/PetEmulator.Cpc464/PetEmulator.Cpc464.csproj" />
+    <Project Path="src/PetEmulator.Cpc6128/PetEmulator.Cpc6128.csproj" />
     <Project Path="src/PetEmulator.Desktop/PetEmulator.Desktop.csproj" />
     <Project Path="src/PetEmulator.Cli/PetEmulator.Cli.csproj" />
   </Folder>
@@ -49,6 +52,8 @@
     <Project Path="tests/PetEmulator.Audio.Tests/PetEmulator.Audio.Tests.csproj" />
     <Project Path="tests/PetEmulator.Desktop.Tests/PetEmulator.Desktop.Tests.csproj" />
     <Project Path="tests/PetEmulator.Cpc464.Tests/PetEmulator.Cpc464.Tests.csproj" />
+    <Project Path="tests/PetEmulator.Cpc6128.Tests/PetEmulator.Cpc6128.Tests.csproj" />
+    <Project Path="tests/PetEmulator.CpcFdc.Tests/PetEmulator.CpcFdc.Tests.csproj" />
     <Project Path="tests/PetEmulator.TestSupport/PetEmulator.TestSupport.csproj" />
   </Folder>
   <Folder Name="/tools/">

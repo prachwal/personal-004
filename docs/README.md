@@ -14,6 +14,7 @@
 - [Narzędzia debugowania](pet/debug-tools.md) — wspólne dla maszyn implementujących kontrakty Core.
 - [Checklisty migracji CPU](plans/2026-09-12-6502-core-migration-checklist.md) — status rodzin 6502, 6800/6809 i Z80.
 - [Implementacja Kaypro II](kaypro/README.md) — maszyna Z80, FD1793, pamięć, SIO, video i status migracji.
+- [CPC6128 — status implementacji](plans/2026-09-16-cpc6128-status.md), [architektura współdzielona CPC](plans/2026-09-16-cpc-architecture.md) i [otwarte punkty](plans/2026-09-16-open-items.md).
 
 Ten katalog jest indeksem kodu i artefaktow z poprzednich projektow emulatorow. Nie kopiuje kodu, ROM-ow ani fontow. Sciezki wskazuja oryginalne lokalizacje do pozniejszego porownania.
 

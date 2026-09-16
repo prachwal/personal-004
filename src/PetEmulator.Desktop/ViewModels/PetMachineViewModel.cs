@@ -2,6 +2,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PetEmulator.Audio;
 using PetEmulator.Desktop.Input;
 using PetEmulator.Core;
 using PetEmulator.Core.Keyboard;
@@ -20,7 +21,7 @@ namespace PetEmulator.Desktop.ViewModels;
 /// than mutating this one in place, so <see cref="MainWindowViewModel.CurrentModule"/> swaps
 /// wholesale and any stale event subscription dies with the old instance.
 /// </summary>
-public sealed partial class PetMachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel, IDiskDriveViewModel
+public sealed partial class PetMachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel, IDiskDriveViewModel, INewDiskViewModel
 {
     // ponytail: fixed per-tick instruction budget, no adaptive pacing to a wall-clock cycle
     // rate. Good enough for a display GUI; revisit if playback speed needs to match real hardware.
@@ -35,6 +36,7 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
     private readonly PetRasterDisplay _display;
     private readonly IPetKeyboardMap _keyboardMap;
     private readonly PetProfile _profile;
+    private readonly IAudioOutput _audioOutput;
     private DateTime _diskActivityUntilUtc = DateTime.MinValue;
 
     [ObservableProperty]
@@ -91,6 +93,7 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
             Path.Combine(romsRoot, profile.RomDirectory, profile.CharacterRomPath));
 
         _machine = new PetMachine(profile, romsRoot);
+        _audioOutput = AudioOutputFactory.CreateNull();
         _display = new PetRasterDisplay(profile, _machine.Memory, font);
         FrameBuffer = new uint[_display.PixelWidth * _display.PixelHeight];
 
@@ -113,6 +116,8 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
     }
 
     public int PixelWidth => _display.PixelWidth;
+
+    public IAudioOutput AudioOutput => _audioOutput;
 
     public int PixelHeight => _display.PixelHeight;
 
@@ -200,5 +205,5 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
         FrameReady?.Invoke(this, EventArgs.Empty);
     }
 
-    public void Dispose() { }
+    public void Dispose() => _audioOutput.Dispose();
 }

@@ -1,5 +1,7 @@
 using Avalonia.Input;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using PetEmulator.Audio;
 using PetEmulator.Core;
 using PetEmulator.Desktop.Input;
@@ -8,11 +10,15 @@ using PetEmulator.Pet.Keyboard;
 
 namespace PetEmulator.Desktop.ViewModels;
 
-public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineViewModel
+public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel
 {
     private const ulong InstructionsPerTick = 20_000;
     private readonly Cpc464Machine _machine;
     private readonly IAudioOutput _audioOutput;
+    [ObservableProperty] private bool _tapeLoaded;
+    [ObservableProperty] private bool _tapePlaying;
+
+    public IBrush TapeIconBrush => !TapeLoaded ? Brushes.Gray : TapePlaying ? Brushes.LimeGreen : Brushes.LightGray;
     [ObservableProperty] private string _statusText = "Amstrad CPC464  Z80  PC=0x0000";
     public Cpc464MachineViewModel(string romsRoot)
     {
@@ -26,6 +32,7 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
     }
     public string WindowTitle => "Amstrad CPC464";
     public int PixelWidth => 320;
+    public IAudioOutput AudioOutput => _audioOutput;
     public int PixelHeight => 200;
     public (int Width, int Height) PixelAspect => (1, 1);
     public uint[] FrameBuffer { get; }
@@ -34,12 +41,37 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
     public event EventHandler? FrameReady;
     public event EventHandler? GeometryChanged;
     public void Tick() { _machine.Run(InstructionsPerTick); Render(); StatusText = $"Amstrad CPC464  Z80  PC=0x{_machine.Cpu.Registers.PC:X4}  Cycles={_machine.CycleCount}"; FrameReady?.Invoke(this, EventArgs.Empty); }
-    public void Reset() { _machine.Reset(); Render(); FrameReady?.Invoke(this, EventArgs.Empty); }
+    public void Reset()
+    {
+        _machine.Reset();
+        TapeLoaded = _machine.Cassette.HasTape;
+        TapePlaying = false;
+        Render();
+        FrameReady?.Invoke(this, EventArgs.Empty);
+    }
     public void LoadTape(string path)
     {
         var cdt = Cpc464CdtImage.Parse(File.ReadAllBytes(path));
         _machine.Bus.Cassette.LoadPulses(cdt.PulseTicks);
+        TapeLoaded = true;
+        TapePlaying = false;
     }
+
+    [RelayCommand]
+    private void PlayTape()
+    {
+        if (!_machine.Cassette.HasTape)
+            return;
+
+        _machine.Bus.Cassette.PressPlay();
+        TapePlaying = true;
+    }
+
+    [RelayCommand]
+    private void StopTape() { _machine.Bus.Cassette.Stop(); TapePlaying = false; }
+
+    [RelayCommand]
+    private void EjectTape() { _machine.Bus.Cassette.Eject(); TapeLoaded = false; TapePlaying = false; }
     public void Dispose() => _audioOutput.Dispose();
     public void HandleKey(Key key, HostKeyEventKind kind) { if (TryMap(key, out var row, out var column)) _machine.Bus.Keyboard.SetKey(row, column, kind == HostKeyEventKind.Press); }
     private void Render()
@@ -48,7 +80,7 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
         gateArray.RenderFrame();
         var pixels = gateArray.Pixels;
         for (var i = 0; i < FrameBuffer.Length; i++)
-            FrameBuffer[i] = Cpc464GateArray.HardwareColors[gateArray.GetInkColorIndex(pixels[i])];
+            FrameBuffer[i] = PetEmulator.Cpc.CpcGateArray.HardwareColors[gateArray.GetInkColorIndex(pixels[i])];
     }
     /// <summary>Real Amstrad CPC 10x8 keyboard matrix positions - NOT a linear A-Z formula (the
     /// physical PCB scan lines interleave letters, digits and punctuation with no alphabetic

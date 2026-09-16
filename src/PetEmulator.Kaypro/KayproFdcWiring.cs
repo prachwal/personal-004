@@ -69,6 +69,25 @@ public sealed class KayproFdcWiring
             WaitAsserted = false;
     }
 
+    public KayproFdcSnapshot CaptureState() => new()
+    {
+        Controller = Controller.CaptureState(), SystemPortValue = SystemPortValue,
+        SelectedDrive = SelectedDrive, WaitAsserted = WaitAsserted,
+        WaitWatchdogRemaining = _waitWatchdogRemaining
+    };
+
+    public void RestoreState(KayproFdcSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.WaitWatchdogRemaining < 0)
+            throw new ArgumentException("Invalid Kaypro FDC watchdog state.", nameof(state));
+        SystemPortValue = state.SystemPortValue;
+        SelectedDrive = state.SelectedDrive;
+        WaitAsserted = state.WaitAsserted;
+        _waitWatchdogRemaining = state.WaitWatchdogRemaining;
+        Controller.RestoreState(state.Controller);
+    }
+
     public void Reset()
     {
         Controller.Reset();

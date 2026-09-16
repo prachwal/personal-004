@@ -171,6 +171,29 @@ public sealed class MOS6560 : IMemoryMappedDevice, IAudioSource
         LightPenX = LightPenY = PaddleX = PaddleY = 0;
     }
 
+    public MOS6560Snapshot CaptureState() => new()
+    {
+        Standard = _standard, SampleRate = SampleRate,
+        Registers = _registers.ToArray(), RasterCounter = _rasterCounter, LineCycles = _lineCycles,
+        AudioPhases = _audioPhases.ToArray(), NoiseLfsr = _noiseLfsr,
+        LightPenX = LightPenX, LightPenY = LightPenY, PaddleX = PaddleX, PaddleY = PaddleY
+    };
+
+    public void RestoreState(MOS6560Snapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.Standard != _standard)
+            throw new InvalidDataException($"MOS6560 standard mismatch: snapshot is {state.Standard}, machine is {_standard}.");
+        if (state.Registers.Length != RegisterCount || state.AudioPhases.Length != 4)
+            throw new ArgumentException("Invalid MOS6560 snapshot dimensions.", nameof(state));
+        state.Registers.CopyTo(_registers, 0);
+        state.AudioPhases.CopyTo(_audioPhases, 0);
+        _rasterCounter = state.RasterCounter; _lineCycles = state.LineCycles; _noiseLfsr = state.NoiseLfsr;
+        SampleRate = state.SampleRate;
+        LightPenX = state.LightPenX; LightPenY = state.LightPenY;
+        PaddleX = state.PaddleX; PaddleY = state.PaddleY;
+    }
+
     public int Render(Span<AudioFrame> destination)
     {
         var dt = 1.0 / SampleRate;

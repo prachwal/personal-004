@@ -1,4 +1,5 @@
 using Avalonia.Input;
+using PetEmulator.Audio;
 using PetEmulator.Core;
 using PetEmulator.Pet.Keyboard;
 using PetEmulator.Desktop.Views.Controls;
@@ -24,6 +25,10 @@ namespace PetEmulator.Desktop.ViewModels;
 /// </summary>
 public interface IMachineViewModel : IShellModule
 {
+    /// <summary>Host audio endpoint owned by this machine module. Machines without a modeled
+    /// sound source expose a <see cref="NullAudioOutput"/>.</summary>
+    IAudioOutput AudioOutput { get; }
+
     int PixelWidth { get; }
 
     int PixelHeight { get; }

@@ -8,7 +8,7 @@ using PetEmulator.Trs80.Display;
 
 namespace PetEmulator.Trs80;
 
-public sealed class Trs80Machine : IMachine
+public sealed class Trs80Machine : IMachine, IMachineStateStore<Trs80Snapshot>
 {
     public const int TStatesPerSecond = 1_774_000;
     public Trs80Machine(ReadOnlySpan<byte> rom, Jv1DiskImage? disk = null, byte[]? tape = null, IGlyphFont? font = null, IBusCycleObserver? cycleObserver = null)
@@ -76,4 +76,26 @@ public sealed class Trs80Machine : IMachine
     public void Reset() { Bus.Reset(); InterruptLines.Clear(); Cpu.Reset(); }
     public void StepInstruction() { var before = Cpu.CycleCount; Cpu.StepInstruction(); var elapsed = checked((int)(Cpu.CycleCount - before)); Bus.Tick(elapsed); Video.Tick(elapsed); }
     public void Run(ulong instructionCount) { for (ulong i = 0; i < instructionCount; i++) StepInstruction(); }
+
+    public Trs80Snapshot CaptureState() => new()
+    {
+        Cpu = Cpu.CaptureSnapshot(), Memory = Bus.CaptureState(), Keyboard = Keyboard.CaptureState(),
+        Fdc = Fdc?.CaptureState(), Cassette = Cassette?.CaptureState()
+    };
+
+    public void RestoreState(Trs80Snapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.Version != 1)
+            throw new InvalidDataException($"Unsupported TRS-80 snapshot version {state.Version}.");
+        if ((state.Fdc is null) != (Fdc is null))
+            throw new InvalidDataException("TRS-80 snapshot FDC configuration does not match the machine.");
+        if ((state.Cassette is null) != (Cassette is null))
+            throw new InvalidDataException("TRS-80 snapshot cassette configuration does not match the machine.");
+        Bus.RestoreState(state.Memory);
+        Cpu.RestoreSnapshot(state.Cpu);
+        Keyboard.RestoreState(state.Keyboard);
+        if (state.Fdc is not null) Fdc!.RestoreState(state.Fdc);
+        if (state.Cassette is not null) Cassette!.RestoreState(state.Cassette);
+    }
 }

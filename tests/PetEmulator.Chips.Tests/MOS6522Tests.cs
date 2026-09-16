@@ -28,6 +28,33 @@ public sealed class MOS6522Tests
     }
 
     [Test]
+    public void Snapshot_RestoresTimerPortsAndInterruptState()
+    {
+        var source = new MOS6522 { PortAInput = 0x12, PortBInput = 0x34 };
+        source.Write(MOS6522.Ddra, 0xF0);
+        source.Write(MOS6522.Ddrb, 0x0F);
+        source.Write(MOS6522.Ora, 0xA5);
+        source.Write(MOS6522.Orb, 0x5A);
+        source.Write(MOS6522.T1LatchLow, 0x07);
+        source.Write(MOS6522.T1CounterHigh, 0x00);
+        source.Write(MOS6522.InterruptEnable, MOS6522.Timer1Interrupt);
+        source.Update();
+        var snapshot = source.CaptureState();
+
+        var target = new MOS6522();
+        target.RestoreState(snapshot);
+
+        target.ORA.Should().Be(source.ORA);
+        target.ORB.Should().Be(source.ORB);
+        target.DDRA.Should().Be(source.DDRA);
+        target.DDRB.Should().Be(source.DDRB);
+        target.Timer1Counter.Should().Be(source.Timer1Counter);
+        target.PortAInput.Should().Be(0x12);
+        target.PortBInput.Should().Be(0x34);
+        target.IRQ.Should().Be(source.IRQ);
+    }
+
+    [Test]
     public void All_sixteen_register_offsets_are_mapped()
     {
         var via = new MOS6522();

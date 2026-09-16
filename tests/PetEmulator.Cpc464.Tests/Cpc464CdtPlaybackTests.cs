@@ -45,7 +45,7 @@ public sealed class Cpc464CdtPlaybackTests
         var widths = new List<int>();
         for (long position = 0; position <= tapeTicks + pollTicks && !machine.Bus.Cassette.AtEndOfTape; position += pollTicks)
         {
-            machine.Bus.Tick(pollTicks * 4);
+            machine.Tick(pollTicks * 4);
             elapsed += pollTicks;
             var current = (machine.Bus.ReadPort(PortBPort) & 0x80) != 0;
             if (current == previous) continue;

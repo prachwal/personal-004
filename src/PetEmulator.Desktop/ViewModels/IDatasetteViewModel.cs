@@ -3,7 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace PetEmulator.Desktop.ViewModels;
 
-public interface IDatasetteViewModel
+public interface IDatasetteViewModel : ITapeViewModel
 {
     IBrush TapeIconBrush { get; }
 

@@ -45,4 +45,20 @@ public sealed class PetUserPort
     public byte Direction { get; internal set; }
 
     public bool HandshakeOutput { get; internal set; }
+
+    public PetUserPortSnapshot CaptureState() => new()
+    {
+        Input = Input, HandshakeInput = HandshakeInput, Output = Output,
+        Direction = Direction, HandshakeOutput = HandshakeOutput
+    };
+
+    public void RestoreState(PetUserPortSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        Input = state.Input;
+        HandshakeInput = state.HandshakeInput;
+        Output = state.Output;
+        Direction = state.Direction;
+        HandshakeOutput = state.HandshakeOutput;
+    }
 }

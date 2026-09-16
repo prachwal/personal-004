@@ -1,7 +1,7 @@
 # Repository Instructions
 
 - The repository targets .NET 10 with `PetEmulator.slnx`; shared settings are in `Directory.Build.props` and package versions in `Directory.Packages.props`.
-- The solution contains the 6502 CPU, PET, VIC-20, CLI, Desktop, Screenshot, and test projects. Inspect the relevant project before choosing a command, then prefer `dotnet build PetEmulator.slnx --no-restore` and targeted `dotnet test` runs.
+- The solution contains the 6502 CPU, PET, VIC-20, CLI, Desktop, Screenshot, and test projects. Inspect the relevant project before choosing a command, then prefer `dotnet build PetEmulator.slnx --no-restore` and targeted `dotnet test` runs. Long-running real-firmware tests are marked `BinaryBoot` and must stay opt-in; for the default solution run use `dotnet test PetEmulator.slnx --filter "TestCategory!=BinaryBoot"`, and run firmware tests explicitly with `--filter "TestCategory=BinaryBoot"`.
 - CLI entrypoint: `dotnet run --project src/PetEmulator.Cli -- apps` lists predefined applications; `dotnet run --project src/PetEmulator.Cli -- run status` runs one. CLI settings come from `src/PetEmulator.Cli/appsettings.json` and can be overridden with `--config`, `--profile`, `--roms`, `--steps`, and `--log-level`.
 
 ## Project conventions

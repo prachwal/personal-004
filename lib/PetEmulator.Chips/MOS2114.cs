@@ -34,6 +34,16 @@ public sealed class MOS2114 : IMemoryMappedDevice
 
     public void Reset() => Array.Clear(_data);
 
+    public MOS2114Snapshot CaptureState() => new() { Data = _data.ToArray() };
+
+    public void RestoreState(MOS2114Snapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.Data.Length != _data.Length)
+            throw new ArgumentException($"Expected {_data.Length} bytes of color RAM.", nameof(state));
+        state.Data.CopyTo(_data, 0);
+    }
+
     public void Tick(ulong cycles) { }
 
     private int GetOffset(ushort address)

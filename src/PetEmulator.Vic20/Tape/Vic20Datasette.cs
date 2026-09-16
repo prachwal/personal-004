@@ -1,4 +1,5 @@
 using PetEmulator.Chips;
+using PetEmulator.Vic20;
 
 namespace PetEmulator.Vic20.Tape;
 
@@ -144,6 +145,25 @@ public sealed class Vic20Datasette
     }
 
     public void Reset() => Rewind();
+
+    public Vic20DatasetteSnapshot CaptureState() => new()
+    {
+        PulseCycles = _pulseCycles.ToArray(), PulseIndex = _pulseIndex,
+        CyclesUntilNextEdge = _cyclesUntilNextEdge, PlayPressed = PlayPressed, TapeName = TapeName
+    };
+
+    public void RestoreState(Vic20DatasetteSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.PulseIndex < 0 || state.PulseIndex > state.PulseCycles.Length || state.CyclesUntilNextEdge < 0)
+            throw new ArgumentException("Invalid VIC-20 datasette position.", nameof(state));
+        _pulseCycles = state.PulseCycles.ToArray();
+        _pulseIndex = state.PulseIndex;
+        _cyclesUntilNextEdge = state.CyclesUntilNextEdge;
+        TapeName = state.TapeName;
+        PlayPressed = state.PlayPressed;
+        _lines.SetPlaySense(PlayPressed);
+    }
 
     /// <summary>Advances the tape by one CPU cycle: plays back the loaded tape's pulses onto VIA2
     /// CA1. No-op if the motor is off, PLAY isn't pressed, no tape is loaded, or the loaded tape

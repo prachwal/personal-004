@@ -1,10 +1,10 @@
 using PetEmulator.Chips;
 
-namespace PetEmulator.Cpc464;
+namespace PetEmulator.Cpc;
 
 public enum CpcDisplayMode : byte { Mode0, Mode1, Mode2 }
 
-public sealed class Cpc464GateArray
+public sealed class CpcGateArray
 {
     private readonly MT6545 _crtc;
     private readonly Func<ushort, byte> _readRam;
@@ -14,7 +14,7 @@ public sealed class Cpc464GateArray
     private bool _previousHSync;
     private int _hsyncCount;
 
-    public Cpc464GateArray(MT6545 crtc, Func<ushort, byte> readRam)
+    public CpcGateArray(MT6545 crtc, Func<ushort, byte> readRam)
     {
         _crtc = crtc;
         _readRam = readRam;
@@ -24,11 +24,30 @@ public sealed class Cpc464GateArray
     public CpcDisplayMode Mode { get; private set; }
     public bool LowerRomEnabled { get; private set; }
     public bool UpperRomEnabled { get; private set; }
+    public byte RamConfiguration { get; private set; }
     public bool InterruptPending { get; private set; }
     public byte[] Pixels { get; private set; } = [];
     public int Width { get; private set; }
     public int Height { get; private set; }
     public byte GetInk(byte index) => _inks[index & 0x0F];
+
+    public CpcGateArraySnapshot CaptureState() => new()
+    {
+        Mode = Mode, LowerRomEnabled = LowerRomEnabled, UpperRomEnabled = UpperRomEnabled,
+        RamConfiguration = RamConfiguration, InterruptPending = InterruptPending, Inks = _inks.ToArray(),
+        SelectedPen = _selectedPen, RequestedMode = _requestedMode, PreviousHSync = _previousHSync,
+        HsyncCount = _hsyncCount, Pixels = Pixels.ToArray(), Width = Width, Height = Height
+    };
+
+    public void RestoreState(CpcGateArraySnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        state.Inks.AsSpan().CopyTo(_inks); Mode = state.Mode; LowerRomEnabled = state.LowerRomEnabled;
+        UpperRomEnabled = state.UpperRomEnabled; RamConfiguration = state.RamConfiguration;
+        InterruptPending = state.InterruptPending; _selectedPen = state.SelectedPen;
+        _requestedMode = state.RequestedMode; _previousHSync = state.PreviousHSync; _hsyncCount = state.HsyncCount;
+        Pixels = state.Pixels.ToArray(); Width = state.Width; Height = state.Height;
+    }
 
     public void Reset()
     {
@@ -36,6 +55,7 @@ public sealed class Cpc464GateArray
         _selectedPen = 0;
         _requestedMode = Mode = CpcDisplayMode.Mode1;
         LowerRomEnabled = UpperRomEnabled = true;
+        RamConfiguration = 0;
         InterruptPending = false;
         _previousHSync = false;
         _hsyncCount = 0;
@@ -55,6 +75,9 @@ public sealed class Cpc464GateArray
                 LowerRomEnabled = (value & 4) == 0;
                 UpperRomEnabled = (value & 8) == 0;
                 if ((value & 0x10) != 0) _hsyncCount = 0;
+                break;
+            case 3:
+                RamConfiguration = (byte)(value & 0x07);
                 break;
         }
     }

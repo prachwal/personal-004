@@ -1,6 +1,7 @@
 using Avalonia.Input;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using PetEmulator.Audio;
 using PetEmulator.Chips;
 using PetEmulator.Core;
 using PetEmulator.Desktop.Input;
@@ -15,6 +16,7 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
     private const ulong InstructionsPerTick = 20_000;
     private static readonly TimeSpan DiskActivityLinger = TimeSpan.FromMilliseconds(200);
     private readonly KayproMachine _machine;
+    private readonly IAudioOutput _audioOutput;
     private DateTime _diskActivityUntilUtc = DateTime.MinValue;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DiskIconBrush))]
@@ -44,6 +46,7 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
         var kayproRoot = Path.Combine(romsRoot, "kaypro");
         _machine = new KayproMachine();
+        _audioOutput = AudioOutputFactory.CreateNull();
         _machine.Bus.FdcWiring.ActivityChanged += OnFdcActivityChanged;
         _machine.LoadMonitorRom(File.ReadAllBytes(Path.Combine(kayproRoot, "kaypro-81-149c.bin")));
         Font = KayproFont.Load(Path.Combine(kayproRoot, "kaypro-81-146.bin"));
@@ -62,6 +65,7 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
     public KayproFont Font { get; }
     public IBrush DiskIconBrush => !DiskLoaded ? Brushes.Gray : DiskBusy ? Brushes.Red : Brushes.LimeGreen;
     public int PixelWidth => KayproVideo.PixelWidth;
+    public IAudioOutput AudioOutput => _audioOutput;
     public int PixelHeight => KayproVideo.PixelHeight;
     // The 640x240 Kaypro raster uses a 2:1 vertical pixel correction to
     // reproduce the 4:3 CRT geometry of the 80x24, 8x10 character display.
@@ -108,7 +112,11 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
         FrameReady?.Invoke(this, EventArgs.Empty);
     }
 
-    public void Dispose() => _machine.Bus.FdcWiring.ActivityChanged -= OnFdcActivityChanged;
+    public void Dispose()
+    {
+        _machine.Bus.FdcWiring.ActivityChanged -= OnFdcActivityChanged;
+        _audioOutput.Dispose();
+    }
 
     private void Render() => _machine.Video.Render(FrameBuffer, Font);
 

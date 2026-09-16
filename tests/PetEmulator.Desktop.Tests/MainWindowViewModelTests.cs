@@ -9,6 +9,25 @@ namespace PetEmulator.Desktop.Tests;
 public sealed class MainWindowViewModelTests
 {
     [Test]
+    public void MachineViewModels_DeclareMediaAndAudioCapabilitiesExplicitly()
+    {
+        typeof(PetMachineViewModel).Should().Implement<ITapeViewModel>();
+        typeof(Vic20MachineViewModel).Should().Implement<IDatasetteViewModel>();
+        typeof(KayproMachineViewModel).Should().Implement<IDiskDriveViewModel>();
+        typeof(Trs80MachineViewModel).Should().Implement<ITapeViewModel>();
+        typeof(Cpc464MachineViewModel).Should().Implement<IDatasetteViewModel>();
+        typeof(Cpc6128MachineViewModel).Should().Implement<IDatasetteViewModel>();
+        typeof(Cpc6128MachineViewModel).Should().Implement<IDiskDriveViewModel>();
+
+        typeof(PetMachineViewModel).Should().Implement<IMachineViewModel>();
+        typeof(Vic20MachineViewModel).Should().Implement<IMachineViewModel>();
+        typeof(KayproMachineViewModel).Should().Implement<IMachineViewModel>();
+        typeof(Trs80MachineViewModel).Should().Implement<IMachineViewModel>();
+        typeof(Cpc464MachineViewModel).Should().Implement<IMachineViewModel>();
+        typeof(Cpc6128MachineViewModel).Should().Implement<IMachineViewModel>();
+    }
+
+    [Test]
     public void ModuleChoices_ExposeOneVic20Entry()
     {
         using var viewModel = new MainWindowViewModel(new StubFilePickerService());
@@ -25,7 +44,7 @@ public sealed class MainWindowViewModelTests
         using var viewModel = new MainWindowViewModel(new StubFilePickerService());
 
         viewModel.ModuleChoices.Select(choice => choice.Label).Should().Equal(
-            "PET 20xx", "CBM 30xx", "CBM 40xx", "CBM 80xx", "SuperPET", "VIC-20", "Kaypro II", "TRS-80 Model I", "Amstrad CPC464");
+            "PET 20xx", "CBM 30xx", "CBM 40xx", "CBM 80xx", "SuperPET", "VIC-20", "Kaypro II", "TRS-80 Model I", "Amstrad CPC464", "Amstrad CPC6128");
         viewModel.ModuleChoices[0].Children!.Select(choice => choice.Label).Should().Equal(
             PetProfileCatalog.Pet2001_8.Name,
             PetProfileCatalog.Pet2001_32.Name);

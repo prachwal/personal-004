@@ -123,6 +123,39 @@ public class FD1791
 
     public byte DecodeDataBus(byte busValue) =>
         DataBusMode == Fd179xDataBusMode.Inverted ? (byte)~busValue : busValue;
+
+    public FD1791Snapshot CaptureState() => new()
+    {
+        DriveSelect = _driveSelect, DriveSelectWritten = _driveSelectWritten, Track = _track,
+        Sector = _sector, Data = _data, Status = _status, PendingCommand = _pendingCommand,
+        PendingTStates = _pendingTStates, ReadSearchTStates = _readSearchTStates,
+        Transfer = _transfer?.ToArray(), TransferIndex = _transferIndex, WriteTransfer = _writeTransfer,
+        DataRequestPending = _dataRequestPending, RecordType = _recordType,
+        DataDeadlineTStates = _dataDeadlineTStates, AddressMarkIndex = _addressMarkIndex,
+        TStateCounter = _tStateCounter, TypeICommand = _typeICommand,
+        LastStepDirection = _lastStepDirection, IntrqAsserted = IntrqAsserted,
+        DoubleDensityEnabled = DoubleDensityEnabled, InterruptSequence = InterruptSequence,
+        MultipleRecordEnabled = MultipleRecordEnabled, Side = Side
+    };
+
+    public void RestoreState(FD1791Snapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.TransferIndex < 0 || (state.Transfer is not null && state.TransferIndex > state.Transfer.Length))
+            throw new ArgumentException("Invalid FD1791 transfer position.", nameof(state));
+        _driveSelect = state.DriveSelect;
+        _driveSelectWritten = state.DriveSelectWritten;
+        _track = state.Track; _sector = state.Sector; _data = state.Data; _status = state.Status;
+        _pendingCommand = state.PendingCommand; _pendingTStates = state.PendingTStates;
+        _readSearchTStates = state.ReadSearchTStates; _transfer = state.Transfer?.ToArray();
+        _transferIndex = state.TransferIndex; _writeTransfer = state.WriteTransfer;
+        _dataRequestPending = state.DataRequestPending; _recordType = state.RecordType;
+        _dataDeadlineTStates = state.DataDeadlineTStates; _addressMarkIndex = state.AddressMarkIndex;
+        _tStateCounter = state.TStateCounter; _typeICommand = state.TypeICommand;
+        _lastStepDirection = state.LastStepDirection; IntrqAsserted = state.IntrqAsserted;
+        DoubleDensityEnabled = state.DoubleDensityEnabled; InterruptSequence = state.InterruptSequence;
+        MultipleRecordEnabled = state.MultipleRecordEnabled; Side = state.Side;
+    }
     public byte Track { get => _track; set => _track = value; }
     public byte Sector { get => _sector; set => _sector = value; }
     public byte Data => _data;

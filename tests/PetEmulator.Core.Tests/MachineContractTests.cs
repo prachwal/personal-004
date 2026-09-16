@@ -1,6 +1,13 @@
+using System.Collections;
 using FluentAssertions;
 using NUnit.Framework;
+using PetEmulator.Cpc464;
+using PetEmulator.Cpc6128;
 using PetEmulator.Core;
+using PetEmulator.Kaypro;
+using PetEmulator.Pet;
+using PetEmulator.Trs80;
+using PetEmulator.Vic20;
 
 namespace PetEmulator.Core.Tests;
 
@@ -20,6 +27,73 @@ public sealed class MachineContractTests
         machine.CycleCount.Should().Be(3);
     }
 
+    [TestCaseSource(nameof(RealMachines))]
+    public void Contract_is_implemented_by_every_real_machine(Func<IMachine> factory)
+    {
+        var machine = factory();
+
+        machine.Name.Should().NotBeNullOrWhiteSpace();
+        machine.IsReady.Should().BeTrue();
+        machine.Processor.Should().NotBeNull();
+        machine.Memory.Should().NotBeNull();
+
+        machine.Reset();
+        machine.CycleCount.Should().Be(0);
+        machine.StepInstruction();
+        machine.CycleCount.Should().BeGreaterThan(0);
+    }
+
+    [TestCaseSource(nameof(RealMachines))]
+    public void Contract_exposes_a_machine_state_store_for_every_real_machine(Func<IMachine> factory)
+    {
+        var machine = factory();
+
+        machine.GetType().GetInterfaces()
+            .Should().Contain(contract => contract.IsGenericType
+                && contract.GetGenericTypeDefinition() == typeof(IMachineStateStore<>));
+    }
+
+    private static IEnumerable RealMachines
+    {
+        get
+        {
+            var root = FindRepositoryRoot();
+            yield return new TestCaseData((Func<IMachine>)(() =>
+                new PetMachine(PetProfileCatalog.Pet2001_8, Path.Combine(root, "roms", "pet"))))
+                .SetName("PET 2001-8 implements IMachine");
+            yield return new TestCaseData((Func<IMachine>)(() =>
+                new Vic20Machine(Path.Combine(root, "roms", "vic20"))))
+                .SetName("VIC-20 implements IMachine");
+            yield return new TestCaseData((Func<IMachine>)(() => CreateKaypro(root)))
+                .SetName("Kaypro II implements IMachine");
+            yield return new TestCaseData((Func<IMachine>)(() =>
+                new Trs80Machine(File.ReadAllBytes(Path.Combine(root, "roms", "trs80", "model1-level2-v1.4.bin")))))
+                .SetName("TRS-80 Model I implements IMachine");
+            yield return new TestCaseData((Func<IMachine>)(() =>
+                new Cpc464Machine(File.ReadAllBytes(Path.Combine(root, "roms", "cpc464", "cpc464.rom")))))
+                .SetName("CPC464 implements IMachine");
+            yield return new TestCaseData((Func<IMachine>)(() =>
+                new Cpc6128Machine(File.ReadAllBytes(Path.Combine(root, "roms", "cpc6128", "cpc6128.rom")))))
+                .SetName("CPC6128 implements IMachine");
+        }
+    }
+
+    private static KayproMachine CreateKaypro(string root)
+    {
+        var machine = new KayproMachine();
+        machine.LoadMonitorRom(File.ReadAllBytes(Path.Combine(root, "roms", "kaypro", "kaypro-81-149c.bin")));
+        return machine;
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "PetEmulator.slnx")))
+            directory = directory.Parent;
+
+        return directory?.FullName ?? throw new DirectoryNotFoundException("PetEmulator.slnx was not found.");
+    }
+
     [Test]
     public void Shared_clock_is_monotonic_and_resettable()
     {
@@ -31,6 +105,20 @@ public sealed class MachineContractTests
         clock.CycleCount.Should().Be(11);
         clock.Reset();
         clock.CycleCount.Should().Be(0);
+    }
+
+    [Test]
+    public void Machine_clock_ticks_devices_at_configured_ratio_and_restores_remainder()
+    {
+        var ticks = 0;
+        var clock = new MachineClock(4, () => ticks++);
+
+        clock.Tick(10);
+
+        ticks.Should().Be(2);
+        clock.DeviceCycleRemainder.Should().Be(2);
+        clock.Restore(1);
+        clock.DeviceCycleRemainder.Should().Be(1);
     }
 
     [Test]

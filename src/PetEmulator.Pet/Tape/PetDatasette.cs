@@ -111,6 +111,26 @@ public sealed class PetDatasette
 
     public void Reset() => Rewind();
 
+    public PetDatasetteSnapshot CaptureState() => new()
+    {
+        PulseCycles = _pulseCycles.ToArray(), PulseIndex = _pulseIndex,
+        CyclesUntilNextEdge = _cyclesUntilNextEdge, PlayPressed = PlayPressed,
+        LastMotorOn = _lastMotorOn, TapeName = TapeName
+    };
+
+    public void RestoreState(PetDatasetteSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.PulseIndex < 0 || state.PulseIndex > state.PulseCycles.Length || state.CyclesUntilNextEdge < 0)
+            throw new ArgumentException("Invalid PET datasette position.", nameof(state));
+        _pulseCycles = state.PulseCycles.ToArray();
+        _pulseIndex = state.PulseIndex;
+        _cyclesUntilNextEdge = state.CyclesUntilNextEdge;
+        PlayPressed = state.PlayPressed;
+        _lastMotorOn = state.LastMotorOn;
+        TapeName = state.TapeName;
+    }
+
     /// <summary>Advances the tape by one CPU cycle. No-op if the motor is off, PLAY isn't pressed,
     /// no tape is loaded, or the loaded tape has already played to the end.</summary>
     public void Tick()

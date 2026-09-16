@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>PetEmulator.Cpc6128</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../lib/PetEmulator.Core/PetEmulator.Core.csproj" />
+    <ProjectReference Include="../../lib/PetEmulator.Chips/PetEmulator.Chips.csproj" />
+    <ProjectReference Include="../../lib/PetEmulator.CpuZ80/PetEmulator.CpuZ80.csproj" />
+    <ProjectReference Include="../../lib/PetEmulator.CpcFdc/PetEmulator.CpcFdc.csproj" />
+    <ProjectReference Include="../PetEmulator.Cpc/PetEmulator.Cpc.csproj" />
+  </ItemGroup>
+</Project>

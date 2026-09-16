@@ -1,5 +1,6 @@
 using FluentAssertions;
 using NUnit.Framework;
+using PetEmulator.Chips;
 using PetEmulator.Trs80;
 using PetEmulator.Trs80.Display;
 
@@ -152,5 +153,65 @@ public sealed class Trs80MachineTests
 
         machine.Cassette.Should().NotBeNull();
         machine.Memory.Read(0x4000).Should().Be(0x5A);
+    }
+
+    [Test]
+    public void Snapshot_RoundTripsOnANewMachineWithCassetteAndKeyboardState()
+    {
+        var rom = new byte[Trs80MemoryMap.RomEnd];
+        rom[0] = 0x00;
+        var source = new Trs80Machine(rom, tape: [0x80, 0x01]);
+        source.Memory.Write(0x4000, 0xA5);
+        source.Keyboard.SetKeyDown(Trs80Key.A, true);
+        source.Cassette!.Write(Trs80MemoryMap.CassettePort, 0x04);
+        source.Cassette.Tick(1);
+        source.StepInstruction();
+        var snapshot = source.CaptureState();
+
+        var restored = new Trs80Machine(rom, tape: [0x80, 0x01]);
+        restored.Memory.Write(0x4000, 0x11);
+        restored.RestoreState(snapshot);
+
+        restored.Memory.Read(0x4000).Should().Be(0xA5);
+        restored.Keyboard.Read(0x3801).Should().Be(0x02);
+        restored.Cassette.Should().NotBeNull();
+        restored.Cassette!.MotorOn.Should().BeTrue();
+        restored.Cassette.Read(Trs80MemoryMap.CassettePort).Should().Be(0x80);
+        restored.Cpu.InstructionCount.Should().Be(source.Cpu.InstructionCount);
+    }
+
+    [Test]
+    public void Snapshot_RoundTripsFdcStateOnANewMachineWithTheSameMountedDisk()
+    {
+        var rom = new byte[Trs80MemoryMap.RomEnd];
+        var diskBytes = new byte[Jv1DiskImage.SectorSizeBytes * Jv1DiskImage.SectorsPerTrack];
+        var source = new Trs80Machine(rom, Jv1DiskImage.Load(diskBytes));
+        source.Memory.Write(0x4000, 0xD6);
+        source.Fdc!.Controller.Track = 3;
+        source.Fdc.Controller.Sector = 7;
+        source.Fdc.Controller.DriveSelect = 2;
+        var snapshot = source.CaptureState();
+
+        var restored = new Trs80Machine(rom, Jv1DiskImage.Load(diskBytes));
+        restored.RestoreState(snapshot);
+
+        restored.Fdc.Should().NotBeNull();
+        restored.Fdc!.SelectedDrive.Should().Be(0);
+        restored.Fdc.Controller.Track.Should().Be(3);
+        restored.Fdc.Controller.Sector.Should().Be(7);
+        restored.Memory.Read(0x4000).Should().Be(0xD6);
+    }
+
+    [Test]
+    public void Snapshot_RejectsDifferentOptionalDeviceTopology()
+    {
+        var rom = new byte[Trs80MemoryMap.RomEnd];
+        var source = new Trs80Machine(rom, tape: [0x80]);
+        var snapshot = source.CaptureState();
+        var restored = new Trs80Machine(rom);
+
+        var act = () => restored.RestoreState(snapshot);
+
+        act.Should().Throw<InvalidDataException>().Which.Message.Should().Contain("cassette configuration");
     }
 }

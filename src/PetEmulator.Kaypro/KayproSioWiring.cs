@@ -38,5 +38,8 @@ public class KayproSioWiring
 
     public void NotifyReti() => _chip.NotifyReti();
 
+    public Z80SioState CaptureState() => _chip.CaptureState();
+    public void RestoreState(Z80SioState state) => _chip.RestoreState(state);
+
     public void Reset() => _chip.Reset();
 }

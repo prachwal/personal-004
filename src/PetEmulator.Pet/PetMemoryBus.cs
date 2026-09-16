@@ -158,6 +158,26 @@ public sealed class PetMemoryBus : IMemoryBus
 
     public byte ExpansionControl => _expansionControl;
 
+    public PetMemorySnapshot CaptureState() => new()
+    {
+        Ram = _ram.ToArray(),
+        ExpansionRam = _expansionRam?.ToArray(),
+        ExpansionControl = _expansionControl
+    };
+
+    public void RestoreState(PetMemorySnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.Ram.Length != _ram.Length)
+            throw new ArgumentException($"Expected {_ram.Length} bytes of PET RAM.", nameof(state));
+        if ((_expansionRam is null) != (state.ExpansionRam is null)
+            || (_expansionRam is not null && state.ExpansionRam!.Length != _expansionRam.Length))
+            throw new ArgumentException("PET memory expansion does not match the snapshot.", nameof(state));
+        state.Ram.CopyTo(_ram, 0);
+        state.ExpansionRam?.CopyTo(_expansionRam!, 0);
+        _expansionControl = state.ExpansionControl;
+    }
+
     private bool TryReadExpansion(ushort address, out byte value)
     {
         value = OpenBus;

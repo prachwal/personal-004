@@ -14,6 +14,16 @@ public sealed class KayproVideo
 
     private readonly byte[] _memory = new byte[MemorySize];
 
+    public KayproVideoSnapshot CaptureState() => new() { Memory = _memory.ToArray() };
+
+    public void RestoreState(KayproVideoSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.Memory.Length != _memory.Length)
+            throw new ArgumentException("Invalid Kaypro video memory size.", nameof(state));
+        state.Memory.CopyTo(_memory, 0);
+    }
+
     public byte Read(ushort offset) => offset < MemorySize ? _memory[offset] : (byte)0xFF;
 
     public void Write(ushort offset, byte value)

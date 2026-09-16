@@ -77,6 +77,13 @@ internal static class CliCommandFactory
         cpc464Debug.Arguments.Add(cpc464Script);
         cpc464Debug.SetAction((parseResult, _) => Task.FromResult(RunCpc464DebugScript(parseResult.GetValue(cpc464Script))));
 
+        var cpc6128Script = new Argument<string?>("script") { Description = "Path to an Amstrad CPC6128 debugger script.", Arity = ArgumentArity.ZeroOrOne };
+        var cpc6128Debug = new Command("cpc6128-debug",
+            "Run a scripted Cpc6128DebuggerSession: roms/tape/disk/key/status, plus trace/watch/watch-range/" +
+            "unwatch/break-cycle/break-instruction-count/dump.");
+        cpc6128Debug.Arguments.Add(cpc6128Script);
+        cpc6128Debug.SetAction((parseResult, _) => Task.FromResult(RunCpc6128DebugScript(parseResult.GetValue(cpc6128Script))));
+
         var d64Path = new Argument<string>("path") { Description = "Path to a .d64 disk image." };
         var d64Dir = new Command("d64-dir", "List a .d64 disk image's directory (name/type/size/lock), no machine needed.");
         d64Dir.Arguments.Add(d64Path);
@@ -93,6 +100,7 @@ internal static class CliCommandFactory
         root.Subcommands.Add(vic20Debug);
         root.Subcommands.Add(trs80Debug);
         root.Subcommands.Add(cpc464Debug);
+        root.Subcommands.Add(cpc6128Debug);
         root.Subcommands.Add(d64Dir);
         root.Subcommands.Add(trs80Dir);
         root.SetAction(async (parseResult, cancellationToken) =>
@@ -179,6 +187,23 @@ internal static class CliCommandFactory
     {
         using var reader = scriptPath is not null ? new StreamReader(scriptPath) : new StreamReader(Console.OpenStandardInput());
         var session = new Cpc464DebuggerSession();
+        var hadError = false;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0 || trimmed.StartsWith('#')) continue;
+            var output = session.Execute(trimmed);
+            if (output.Length > 0) Console.Write(output.EndsWith('\n') ? output : output + Environment.NewLine);
+            if (output.StartsWith("error:", StringComparison.Ordinal)) hadError = true;
+        }
+        return hadError ? 1 : 0;
+    }
+
+    private static int RunCpc6128DebugScript(string? scriptPath)
+    {
+        using var reader = scriptPath is not null ? new StreamReader(scriptPath) : new StreamReader(Console.OpenStandardInput());
+        var session = new Cpc6128DebuggerSession();
         var hadError = false;
         string? line;
         while ((line = reader.ReadLine()) is not null)

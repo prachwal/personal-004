@@ -20,15 +20,33 @@ not an `if`/`else` in code-behind).
    room, nothing renders it yet.
 
 Plus `WindowTitle`/`StatusText`/`Tick()`/`HandleKey()`/`Reset()`/`FrameReady`/`GeometryChanged`/
-`Dispose()`.
+`Dispose()` and `AudioOutput`. Every desktop machine exposes an audio sink; machines without a
+modeled physical audio path use `NullAudioOutput`.
+
+## Media capabilities
+
+`MainWindowViewModel` routes media operations through capability interfaces, never through concrete
+machine ViewModel types:
+
+- `ITapeViewModel` - accepts a tape image. TRS-80 implements this minimal capability because its
+  ordinary cassette player has no shared PLAY/STOP/EJECT transport UI.
+- `IDatasetteViewModel` - `ITapeViewModel` plus PLAY/STOP/EJECT state and commands. PET, VIC-20,
+  CPC464 and CPC6128 implement this full datasette UI; CPC machines expose the same controls over
+  their cassette pulse player.
+- `IDiskDriveViewModel` - shared load/status surface only. PET/VIC-20, Kaypro and TRS-80 retain
+  their machine-specific disk image formats and FDC operations.
+- `INewDiskViewModel` and `INewTapeViewModel` - opt-in creation commands for machines that support
+  creating those media types.
 
 ## Implementations
 
-- `PetMachineViewModel` - one instance per PET profile (was the old, sole `MainWindowViewModel`).
-- `Vic20MachineViewModel` - new; wraps `Vic20Machine` + the new `Vic20RasterDisplay`
+- `PetMachineViewModel` - one instance per PET profile.
+- `Vic20MachineViewModel` - wraps `Vic20Machine` + the new `Vic20RasterDisplay`
   (`PetEmulator.Vic20.Display`, ported from cpu-vibe-001's `Vic20Video.RenderChar` - fixed
   176x184 canvas since VIC-20 resolution is chip-register-driven and unknown until the KERNAL
   configures it during boot, unlike PET's profile-fixed geometry).
+- `Cpc464MachineViewModel` and `Cpc6128MachineViewModel` - expose the CPC screen, cassette and
+  audio capabilities; CPC6128 additionally exposes its I8272 disk drive capability.
 
 Switching machine (`MainWindowViewModel.SwitchMachineCommand`) disposes the old instance and
 replaces `CurrentMachine` wholesale - never mutates an existing instance in place.
@@ -44,10 +62,8 @@ was at construction.
 
 `MainWindow.axaml` is now a thin shell: menu + one `ContentControl` bound to `CurrentMachine`.
 
-## What's out of scope
+## Contract coverage
 
-Tape/disk menu actions are PET-only (`MainWindowViewModel.LoadTape`/`LoadDisk` no-op when
-`CurrentMachine` isn't a `PetMachineViewModel`) - VIC-20 has no tape/disk device in v1. No
-automated Desktop/UI test project exists (none did before this change either) - verified via a
-clean build and a crash-free headless launch (`xvfb-run`), plus the pre-existing thorough
-`PetEmulator.Vic20.Tests`/`PetEmulator.Pet.Tests` coverage of everything each ViewModel wraps.
+`tests/PetEmulator.Core.Tests/MachineContractTests.cs` exercises `IMachine` against all five real
+machine compositions (PET, VIC-20, Kaypro II, TRS-80 Model I and CPC464), while retaining the
+small `TestMachine` fixture for CPU-agnostic lifecycle semantics.

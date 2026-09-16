@@ -1,6 +1,7 @@
 using Avalonia.Input;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using PetEmulator.Audio;
 using PetEmulator.Core;
 using PetEmulator.Desktop.Input;
 using PetEmulator.Trs80;
@@ -8,11 +9,12 @@ using PetEmulator.Pet.Keyboard;
 
 namespace PetEmulator.Desktop.ViewModels;
 
-public sealed partial class Trs80MachineViewModel : ObservableObject, IMachineViewModel, IDiskDriveViewModel
+public sealed partial class Trs80MachineViewModel : ObservableObject, IMachineViewModel, IDiskDriveViewModel, ITapeViewModel
 {
     private const ulong InstructionsPerTick = 20_000;
     private readonly string _romsRoot;
     private Trs80Machine _machine;
+    private readonly IAudioOutput _audioOutput;
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(DiskIconBrush))] private bool _diskLoaded;
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(DiskIconBrush))] private bool _diskBusy;
     [ObservableProperty] private string _statusText = "TRS-80 Model I  Z80  PC=0x0000  Cycles=0";
@@ -20,12 +22,14 @@ public sealed partial class Trs80MachineViewModel : ObservableObject, IMachineVi
     {
         _romsRoot = romsRoot;
         _machine = CreateMachine();
+        _audioOutput = AudioOutputFactory.CreateNull();
         FrameBuffer = new uint[PixelWidth * PixelHeight];
         Reset();
         GeometryChanged?.Invoke(this, EventArgs.Empty);
     }
     public string WindowTitle => "TRS-80 Model I";
     public int PixelWidth => PetEmulator.Trs80.Display.Trs80RasterDisplay.PixelWidth;
+    public IAudioOutput AudioOutput => _audioOutput;
     public int PixelHeight => PetEmulator.Trs80.Display.Trs80RasterDisplay.PixelHeight;
     public (int Width, int Height) PixelAspect => (1, 1);
     public uint[] FrameBuffer { get; }
@@ -36,7 +40,7 @@ public sealed partial class Trs80MachineViewModel : ObservableObject, IMachineVi
     public event EventHandler? GeometryChanged;
     public void Tick() { _machine.Run(InstructionsPerTick); _machine.Video.Render(FrameBuffer); var r = ((IDebuggableProcessor)_machine.Processor).GetRegisters(); StatusText = $"TRS-80 Model I  Z80  PC=0x{r["PC"]:X4} SP=0x{r["SP"]:X4} Cycles={_machine.CycleCount}"; FrameReady?.Invoke(this, EventArgs.Empty); }
     public void Reset() { _machine.Reset(); _machine.Video.Render(FrameBuffer); FrameReady?.Invoke(this, EventArgs.Empty); }
-    public void Dispose() { }
+    public void Dispose() => _audioOutput.Dispose();
     public void LoadDisk(string path) { _machine.InsertDisk(Path.GetExtension(path).Equals(".dmk", StringComparison.OrdinalIgnoreCase) ? new Trs80DmkDiskImageAdapter(DmkDiskImage.Load(path)) : new Trs80DiskImageAdapter(Jv1DiskImage.Load(path))); DiskLoaded = true; }
     public void LoadTape(string path) => _machine.LoadTape(File.ReadAllBytes(path));
     public void HandleKey(Key key, HostKeyEventKind kind) { if (TryMap(key, out var trsKey)) _machine.Keyboard.SetKeyDown(trsKey, kind == HostKeyEventKind.Press); }
