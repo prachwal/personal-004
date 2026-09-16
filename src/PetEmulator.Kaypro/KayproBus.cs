@@ -103,6 +103,33 @@ public sealed class KayproBus : IBus, IMemoryBus
         PioInterruptChain.NotifyReti();
     }
 
+    public KayproSnapshot CaptureState() => new()
+    {
+        Ram = _ram.ToArray(), Video = Video.CaptureState(), Fdc = _fdcWiring.CaptureState(),
+        Sio = Sio.CaptureState(), PioG = Pio.PioG.CaptureState(), PioS = Pio.PioS.CaptureState(),
+        PioInterruptChain = PioInterruptChain.CaptureState(), FdcNmiPulseCount = FdcNmiPulseCount,
+        FdcNmiPulseActive = _fdcNmiPulseActive
+    };
+
+    public void RestoreState(KayproSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.Ram.Length != _ram.Length)
+            throw new ArgumentException("Invalid Kaypro RAM size.", nameof(state));
+        state.Ram.CopyTo(_ram, 0);
+        Video.RestoreState(state.Video);
+        _fdcWiring.RestoreState(state.Fdc);
+        Sio.RestoreState(state.Sio);
+        Pio.PioG.RestoreState(state.PioG);
+        Pio.PioS.RestoreState(state.PioS);
+        PioInterruptChain.RestoreState(state.PioInterruptChain);
+        _systemPort = state.Fdc.SystemPortValue;
+        FdcNmiPulseCount = state.FdcNmiPulseCount;
+        _fdcNmiPulseActive = state.FdcNmiPulseActive;
+        InterruptLines.SetInt(Sio.InterruptRequested || PioInterruptChain.InterruptRequested);
+        InterruptLines.SetNmi(_fdcNmiPulseActive);
+    }
+
     public void WritePort(byte port, byte value) => WritePort((ushort)port, value);
 
     public void WritePort(ushort port, byte value)

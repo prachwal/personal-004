@@ -288,14 +288,14 @@ osobnego snapshotu), `KayproSioWiring`/`KayproPioWiring` (**już mają**
 nowego kodu), `InterruptLines`, `FdcNmiPulseCount: ulong` (licznik na
 busie, przechwycić wprost).
 
-- [ ] `KayproVideo.CaptureState()`/`RestoreState()` — jeden `byte[3072]`.
-- [ ] `KayproSnapshot : MachineSnapshot` — `Ram`, `Video`, `Fdc`
+- [x] `KayproVideo.CaptureState()`/`RestoreState()` — jeden `byte[3072]`.
+- [x] `KayproSnapshot : MachineSnapshot` — `Ram`, `Video`, `Fdc`
       (`FD1791`/`FD1793` snapshot z Zadania 3), `Sio`, `Pio`
       (`Z80SioSnapshot`/pio snapshoty, już istniejące typy),
       `FdcNmiPulseCount`.
-- [ ] `KayproMachine`/`KayproBus` — `CaptureState()`/`RestoreState()`,
+- [x] `KayproMachine`/`KayproBus` — `CaptureState()`/`RestoreState()`,
       `IMachineStateStore<KayproSnapshot>`.
-- [ ] Test w `tests/PetEmulator.Kaypro.Tests/` — round-trip na nowej
+- [x] Test w `tests/PetEmulator.Kaypro.Tests/` — round-trip na nowej
       instancji + z zamontowanym dyskiem.
 
 **Weryfikacja:**

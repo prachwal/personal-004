@@ -5,7 +5,7 @@ using PetEmulator.CpuZ80.Cpu;
 namespace PetEmulator.Kaypro;
 
 /// <summary>Kaypro II machine composition using the shared Z80, Core and FD1793 contracts.</summary>
-public sealed class KayproMachine : IMachine
+public sealed class KayproMachine : IMachine, IMachineStateStore<KayproSnapshot>
 {
     public KayproMachine(IBusCycleObserver? cycleObserver = null)
     {
@@ -49,5 +49,21 @@ public sealed class KayproMachine : IMachine
     {
         for (ulong index = 0; index < instructionCount; index++)
             StepInstruction();
+    }
+
+    public KayproSnapshot CaptureState()
+    {
+        var state = Bus.CaptureState();
+        state.Cpu = Cpu.CaptureSnapshot();
+        return state;
+    }
+
+    public void RestoreState(KayproSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.Version != 1)
+            throw new InvalidDataException($"Unsupported Kaypro snapshot version {state.Version}.");
+        Bus.RestoreState(state);
+        Cpu.RestoreSnapshot(state.Cpu);
     }
 }
