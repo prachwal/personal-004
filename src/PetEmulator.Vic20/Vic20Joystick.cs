@@ -59,6 +59,19 @@ public sealed class Vic20Joystick : IJoystickSource, IJoystickInputSink
         StateChanged?.Invoke();
     }
 
+    public Vic20JoystickSnapshot CaptureState() => new()
+    {
+        Up = _up, Down = _down, Left = _left, Right = _right, Fire = _fire
+    };
+
+    public void RestoreState(Vic20JoystickSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        _up = state.Up; _down = state.Down; _left = state.Left;
+        _right = state.Right; _fire = state.Fire;
+        StateChanged?.Invoke();
+    }
+
     /// <summary>Returns the active-low direction/fire bits for VIA1 Port A (PA2-PA5).</summary>
     internal byte Via1PortAInput
     {

@@ -46,6 +46,31 @@ public sealed class MOS6560Tests
     }
 
     [Test]
+    public void Snapshot_RestoresRegistersRasterAudioAndControlInputs()
+    {
+        var source = new MOS6560(baseAddress: 0x9000, standard: MOS6560Standard.Pal)
+        {
+            SampleRate = 48_000
+        };
+        source.Write(0x9002, 0x16);
+        source.Write(0x9003, 0x2F);
+        source.StrobeLightPen(0x12, 0x34);
+        source.SetPaddlePosition(0x56, 0x78);
+        source.Tick(100);
+        var snapshot = source.CaptureState();
+
+        var target = new MOS6560(baseAddress: 0x9000, standard: MOS6560Standard.Pal);
+        target.RestoreState(snapshot);
+
+        target.SampleRate.Should().Be(48_000);
+        target.Columns.Should().Be(source.Columns);
+        target.Rows.Should().Be(source.Rows);
+        target.Raster.Should().Be(source.Raster);
+        target.Read(0x9006).Should().Be(0x12);
+        target.Read(0x9008).Should().Be(0x56);
+    }
+
+    [Test]
     public void Tick_AdvancesRasterOncePerCyclesPerLine_AndWrapsAtTotalScanlines()
     {
         var vic = new MOS6560(baseAddress: 0x9000);

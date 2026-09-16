@@ -99,22 +99,22 @@ urządzenia rozszerzenia). `CaptureState()` na maszynie z zamontowanym
 kartridżem musi to udokumentować jawnie (komentarz + test), nie ciche
 gubienie stanu — patrz test niżej.
 
-- [ ] `MOS6522.CaptureState()`/`RestoreState()` w
+- [x] `MOS6522.CaptureState()`/`RestoreState()` w
       `lib/PetEmulator.Chips/MOS6522.cs` — impact analysis przed edycją,
       chip współdzielony (VIC-20 VIA1+VIA2, PET VIA w Zadaniu 2).
-- [ ] `MOS6560.CaptureState()`/`RestoreState()` — rejestry, raster
+- [x] `MOS6560.CaptureState()`/`RestoreState()` — rejestry, raster
       counter, fazy audio, LFSR szumu.
-- [ ] `MOS2114.CaptureState()`/`RestoreState()` — trywialne.
-- [ ] `Vic20MemoryBus.CaptureState()`/`RestoreState()` — zero-page +
+- [x] `MOS2114.CaptureState()`/`RestoreState()` — trywialne.
+- [x] `Vic20MemoryBus.CaptureState()`/`RestoreState()` — zero-page +
       built-in RAM.
-- [ ] `Vic20KeyboardMatrix`/`Vic20Joystick`/`Vic20UserPort`/
+- [x] `Vic20KeyboardMatrix`/`Vic20Joystick`/`Vic20UserPort`/
       `Vic20Datasette.CaptureState()`/`RestoreState()`.
-- [ ] `Vic20Snapshot : MachineSnapshot` — bez pola na kartridże/expansions
+- [x] `Vic20Snapshot : MachineSnapshot` — bez pola na kartridże/expansions
       w v1; XML doc na klasie wprost mówi że stan kartridża nie jest
       objęty.
-- [ ] `Vic20Machine.CaptureState()`/`RestoreState()`,
+- [x] `Vic20Machine.CaptureState()`/`RestoreState()`,
       `IMachineStateStore<Vic20Snapshot>`.
-- [ ] Test: round-trip na nowej instancji, wariant z zamontowanym dyskiem
+- [x] Test: round-trip na nowej instancji, wariant z zamontowanym dyskiem
       IEC, **i** test na maszynie z zamontowanym kartridżem, który jawnie
       asercjuje udokumentowane ograniczenie (np. `CaptureState` rzuca albo
       restore nie odtwarza cartridge — wybierz jedno zachowanie i przetestuj

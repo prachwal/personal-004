@@ -287,6 +287,40 @@ public sealed class MOS6522 : IMemoryMappedDevice
         PortAInput = PortBInput = 0;
     }
 
+    public MOS6522Snapshot CaptureState() => new()
+    {
+        Orb = _orb, Ora = _ora, Ddrb = _ddrb, Ddra = _ddra,
+        T1Counter = _t1Counter, T1Latch = _t1Latch, T2Counter = _t2Counter, T2Latch = _t2Latch,
+        ShiftRegister = _shiftRegister, Acr = _acr, Pcr = _pcr, Ifr = _ifr, Ier = _ier,
+        LatchedPortA = _latchedPortA, LatchedPortB = _latchedPortB,
+        Ca1 = _ca1, Ca2 = _ca2, Cb1 = _cb1, Cb2 = _cb2,
+        PreviousCa1 = _previousCa1, PreviousCa2 = _previousCa2,
+        PreviousCb1 = _previousCb1, PreviousCb2 = _previousCb2,
+        T1Running = _t1Running, T2Running = _t2Running,
+        T1OneShotArmed = _t1OneShotArmed, T2OneShotArmed = _t2OneShotArmed,
+        T1Pb7 = _t1Pb7, ShiftCount = _shiftCount, Ca2Output = _ca2Output,
+        Cb2Output = CB2Output, Irq = IRQ, PortAInput = PortAInput, PortBInput = PortBInput
+    };
+
+    public void RestoreState(MOS6522Snapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        _orb = state.Orb; _ora = state.Ora; _ddrb = state.Ddrb; _ddra = state.Ddra;
+        _t1Counter = state.T1Counter; _t1Latch = state.T1Latch;
+        _t2Counter = state.T2Counter; _t2Latch = state.T2Latch;
+        _shiftRegister = state.ShiftRegister; _acr = state.Acr; _pcr = state.Pcr;
+        _ifr = state.Ifr; _ier = state.Ier;
+        _latchedPortA = state.LatchedPortA; _latchedPortB = state.LatchedPortB;
+        _ca1 = state.Ca1; _ca2 = state.Ca2; _cb1 = state.Cb1; _cb2 = state.Cb2;
+        _previousCa1 = state.PreviousCa1; _previousCa2 = state.PreviousCa2;
+        _previousCb1 = state.PreviousCb1; _previousCb2 = state.PreviousCb2;
+        _t1Running = state.T1Running; _t2Running = state.T2Running;
+        _t1OneShotArmed = state.T1OneShotArmed; _t2OneShotArmed = state.T2OneShotArmed;
+        _t1Pb7 = state.T1Pb7; _shiftCount = state.ShiftCount;
+        _ca2Output = state.Ca2Output; CB2Output = state.Cb2Output; IRQ = state.Irq;
+        PortAInput = state.PortAInput; PortBInput = state.PortBInput;
+    }
+
     /// <summary>Advances the VIA by <paramref name="cycles"/> PHI2 cycles.</summary>
     public void Tick(ulong cycles)
     {

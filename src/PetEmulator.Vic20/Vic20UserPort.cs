@@ -55,4 +55,14 @@ public sealed class Vic20UserPort
             DirectionChanged?.Invoke();
         }
     }
+
+    public Vic20UserPortSnapshot CaptureState() => new() { Input = Input, Output = Output, Direction = Direction };
+
+    public void RestoreState(Vic20UserPortSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        Input = state.Input;
+        Output = state.Output;
+        Direction = state.Direction;
+    }
 }

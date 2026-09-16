@@ -275,6 +275,85 @@ public sealed class Vic20MachineTests
         reached.Should().BeTrue();
     }
 
+    [Test]
+    public void Snapshot_RestoresMachineStateOnANewInstance()
+    {
+        var source = CreateMachine();
+        source.Memory.Write(0x0080, 0x42);
+        source.Memory.Write(0x1500, 0x99);
+        source.Vic.Write(0x9002, 0x16);
+        source.Vic.Write(0x9003, 0x2F);
+        source.Vic.StrobeLightPen(0x12, 0x34);
+        source.Vic.SetPaddlePosition(0x56, 0x78);
+        source.Via1.Write(0x9112, 0xF0);
+        source.Via1.Write(0x9110, 0x5A);
+        source.Keyboard.Press(2, 0);
+        source.Via2.Write(0x9120, unchecked((byte)~(1 << 2)));
+        source.Joystick.Set(Vic20JoystickInput.Up, true);
+        source.UserPort.Input = 0xA5;
+        source.Datasette.LoadTape([3, 5, 7], "TEST");
+        source.Datasette.PressPlay();
+        source.Run(20);
+        var snapshot = source.CaptureState();
+
+        var target = CreateMachine();
+        target.Memory.Write(0x0080, 0x00);
+        target.RestoreState(snapshot);
+
+        target.Processor.CycleCount.Should().Be(source.Processor.CycleCount);
+        target.Memory.Read(0x0080).Should().Be(0x42);
+        target.Memory.Read(0x1500).Should().Be(0x99);
+        target.Vic.Columns.Should().Be(22);
+        target.Vic.Rows.Should().Be(23);
+        target.Vic.Read(0x9006).Should().Be(0x12);
+        target.Vic.Read(0x9008).Should().Be(0x56);
+        target.Via1.ORB.Should().Be(0x5A);
+        target.Via1.DDRB.Should().Be(0xF0);
+        target.Via2.Read(0x9121).Should().Be(unchecked((byte)~1));
+        target.Joystick.Up.Should().BeTrue();
+        target.UserPort.Input.Should().Be(0xA5);
+        target.UserPort.Output.Should().Be(0x50);
+        target.UserPort.Direction.Should().Be(0xF0);
+        target.Datasette.TapeName.Should().Be("TEST");
+        target.Datasette.PlayPressed.Should().BeTrue();
+    }
+
+    [Test]
+    public void Snapshot_WithMountedDiskRestoresStateOnANewMachineWithTheSameMedia()
+    {
+        var diskPath = TemporaryDiskPath();
+        try
+        {
+            File.WriteAllBytes(diskPath, D64Image.CreateFormatted("VIC20", "00"));
+            var source = CreateMachine();
+            source.MountDisk(diskPath);
+            source.Memory.Write(0x0080, 0xA7);
+            var snapshot = source.CaptureState();
+
+            var target = CreateMachine();
+            target.MountDisk(diskPath);
+            target.RestoreState(snapshot);
+
+            target.HasDisk().Should().BeTrue();
+            target.Memory.Read(0x0080).Should().Be(0xA7);
+        }
+        finally
+        {
+            File.Delete(diskPath);
+        }
+    }
+
+    [Test]
+    public void Snapshot_WithMountedCartridgeIsRejectedExplicitly()
+    {
+        var machine = new Vic20Machine(RomLocator.Directory("kernal.bin"), cartridge: new Vic20Cartridge([0x42]));
+
+        var act = machine.CaptureState;
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*expansion devices*");
+    }
+
     private static Vic20Machine CreateMachine() => new(RomLocator.Directory("kernal.bin"));
 
     private static string TemporaryDiskPath() => Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.d64");

@@ -25,7 +25,7 @@ public sealed record Vic20MountedCartridge(string Path, Vic20Cartridge Cartridge
 /// <see cref="CaptureSaveIfDispatched"/>'s doc comment and docs/vic20/tape.md's "Write (SAVE)"
 /// section for the full story (a real, labeled KERNAL disassembly, not a guess).
 /// </summary>
-public sealed class Vic20Machine : IMachine
+public sealed class Vic20Machine : IMachine, IMachineStateStore<Vic20Snapshot>
 {
     private readonly Vic20MemoryBus _memoryBus;
     private readonly Cpu6502Classic _cpu;
@@ -267,6 +267,52 @@ public sealed class Vic20Machine : IMachine
     public IProcessor Processor => _cpu;
 
     public IMemoryBus Memory => _memoryBus;
+
+    public Vic20Snapshot CaptureState()
+    {
+        if (_memoryBus.ExpansionDevices.Count != 0)
+            throw new InvalidOperationException("VIC-20 snapshots do not support mounted expansion devices in v1.");
+
+        return new Vic20Snapshot
+        {
+            Cpu = _cpu.CaptureSnapshot(),
+            Memory = _memoryBus.CaptureState(),
+            Vic = _vic.CaptureState(),
+            Via1 = _via1.CaptureState(),
+            Via2 = _via2.CaptureState(),
+            ColorRam = _colorRam.CaptureState(),
+            Keyboard = _keyboard.CaptureState(),
+            Joystick = _joystick.CaptureState(),
+            UserPort = _userPort.CaptureState(),
+            Datasette = _datasette.CaptureState(),
+            DiskActivityPending = _diskActivityPending,
+            LastIrqVector = _lastIrqVector
+        };
+    }
+
+    public void RestoreState(Vic20Snapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.Version != 1)
+            throw new InvalidDataException($"Unsupported VIC-20 snapshot version {state.Version}.");
+        if (_memoryBus.ExpansionDevices.Count != 0)
+            throw new InvalidOperationException("VIC-20 snapshots do not support mounted expansion devices in v1.");
+
+        _memoryBus.RestoreState(state.Memory);
+        _cpu.RestoreSnapshot(state.Cpu);
+        _vic.RestoreState(state.Vic);
+        _via1.RestoreState(state.Via1);
+        _via2.RestoreState(state.Via2);
+        _colorRam.RestoreState(state.ColorRam);
+        _keyboard.RestoreState(state.Keyboard);
+        _joystick.RestoreState(state.Joystick);
+        _userPort.RestoreState(state.UserPort);
+        _datasette.RestoreState(state.Datasette);
+        _diskActivityPending = state.DiskActivityPending;
+        _lastIrqVector = state.LastIrqVector;
+        SyncUserPortState();
+        SyncGamePortInputs();
+    }
 
     public void Reset()
     {

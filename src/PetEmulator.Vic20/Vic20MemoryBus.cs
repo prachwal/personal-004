@@ -167,6 +167,21 @@ public sealed class Vic20MemoryBus : IMemoryBus
         Array.Clear(_builtinRam);
     }
 
+    public Vic20MemorySnapshot CaptureState() => new()
+    {
+        ZeroPageRam = _zeroPageRam.ToArray(),
+        BuiltinRam = _builtinRam.ToArray()
+    };
+
+    public void RestoreState(Vic20MemorySnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.ZeroPageRam.Length != _zeroPageRam.Length || state.BuiltinRam.Length != _builtinRam.Length)
+            throw new ArgumentException("Invalid VIC-20 memory snapshot dimensions.", nameof(state));
+        state.ZeroPageRam.CopyTo(_zeroPageRam, 0);
+        state.BuiltinRam.CopyTo(_builtinRam, 0);
+    }
+
     private static byte[] Find(IReadOnlyList<Vic20RomImage> roms, ushort address)
     {
         foreach (var rom in roms)

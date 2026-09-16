@@ -1,3 +1,5 @@
+using PetEmulator.Vic20;
+
 namespace PetEmulator.Vic20.Keyboard;
 
 /// <summary>The VIC-20's 8x8 keyboard matrix - row-selected through VIA2 port B (active-low: a 0
@@ -29,6 +31,21 @@ public sealed class Vic20KeyboardMatrix
     {
         Array.Clear(_pressedColumns);
         _rowMask = 0xFF;
+    }
+
+    public Vic20KeyboardSnapshot CaptureState() => new()
+    {
+        PressedColumns = _pressedColumns.ToArray(),
+        RowMask = _rowMask
+    };
+
+    public void RestoreState(Vic20KeyboardSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.PressedColumns.Length != RowCount)
+            throw new ArgumentException($"Expected {RowCount} keyboard rows.", nameof(state));
+        state.PressedColumns.CopyTo(_pressedColumns, 0);
+        _rowMask = state.RowMask;
     }
 
     /// <summary>Latches VIA2 port B's written output (<c>ORB &amp; DDRB</c>), active-low per real
