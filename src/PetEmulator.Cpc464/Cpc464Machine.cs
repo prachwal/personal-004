@@ -31,7 +31,7 @@ public sealed class Cpc464Machine : IMachine, IMachineStateStore<Cpc464Snapshot>
 
     public Cpc464Snapshot CaptureState() => new()
     {
-        Cpu = _cpu.CaptureSnapshot(), CycleCount = CycleCount, Memory = Bus.CaptureMemoryState(), Ports = Bus.CapturePortsState(),
+        Cpu = _cpu.CaptureSnapshot(), Memory = Bus.CaptureMemoryState(), Ports = Bus.CapturePortsState(),
         DeviceCycleRemainder = _clock.DeviceCycleRemainder,
         GateArray = Bus.GateArray.CaptureState(), Crtc = Bus.Crtc.CaptureState(), Ay = Bus.Ay.CaptureState(),
         Keyboard = Bus.Keyboard.CaptureState(), Cassette = Bus.Cassette.CaptureState()

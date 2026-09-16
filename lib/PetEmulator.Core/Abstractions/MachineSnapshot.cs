@@ -7,5 +7,4 @@ public abstract class MachineSnapshot : IMachineSnapshot
 
     public CpuDebugSnapshot Cpu { get; set; } = null!;
 
-    public ulong CycleCount { get; set; }
 }

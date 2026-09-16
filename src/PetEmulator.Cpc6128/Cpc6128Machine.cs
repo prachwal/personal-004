@@ -55,7 +55,7 @@ public sealed class Cpc6128Machine : IMachine, IMachineStateStore<Cpc6128Snapsho
 
     public Cpc6128Snapshot CaptureState() => new()
     {
-        Cpu = _cpu.CaptureSnapshot(), CycleCount = CycleCount, Memory = new() { PhysicalRam = _bus.CapturePhysicalRam(), UpperRomNumber = _bus.UpperRomNumber },
+        Cpu = _cpu.CaptureSnapshot(), Memory = new() { PhysicalRam = _bus.CapturePhysicalRam(), UpperRomNumber = _bus.UpperRomNumber },
         FrameCount = FrameCount, DeviceCycleRemainder = _clock.DeviceCycleRemainder, FrameCycles = _frameCycles,
         GateArray = GateArray.CaptureState(), Crtc = Crtc.CaptureState(), Ay = Ay.CaptureState(), Keyboard = Keyboard.CaptureState(),
         Cassette = Cassette.CaptureState(), Ports = Ports.CaptureState(), Fdc = _fdc.CaptureState()
