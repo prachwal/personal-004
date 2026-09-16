@@ -1,0 +1,93 @@
+using PetEmulator.Chips;
+using PetEmulator.Core;
+using PetEmulator.CpuZ80.Cpu;
+using PetEmulator.Cpc464;
+
+namespace PetEmulator.Cpc6128;
+
+/// <summary>Initial CPC6128 machine composition: Z80, 128 KB RAM, CPC I/O, video, AY and cassette.</summary>
+public sealed class Cpc6128Machine : IMachine
+{
+    private readonly Z80Cpu _cpu;
+    private readonly Cpc6128MemoryBus _bus;
+    private readonly Cpc6128Ports _ports;
+    private int _deviceCycleRemainder;
+    private ulong _frameCycles;
+
+    public Cpc6128Machine(ReadOnlySpan<byte> rom)
+    {
+        Cpc464GateArray? gateArray = null;
+        Crtc = new MT6545("CPC6128 CRTC", 0xBC00);
+        _bus = new Cpc6128MemoryBus(rom, () => gateArray!.LowerRomEnabled,
+            () => gateArray!.UpperRomEnabled, () => gateArray!.RamConfiguration);
+        gateArray = new Cpc464GateArray(Crtc, _bus.ReadVideoRam);
+        GateArray = gateArray;
+        Ay = new Ay38910();
+        Keyboard = new Cpc464Keyboard();
+        Cassette = new Cpc464Cassette();
+        InterruptLines = new PetEmulator.CpuZ80.Interrupts.InterruptLines();
+        _ports = new Cpc6128Ports(GateArray, Crtc, Ay, Keyboard, Cassette, _bus);
+        _bus.AttachPorts(_ports);
+        _cpu = new Z80Cpu(_bus, InterruptLines);
+        Reset();
+    }
+
+    public string Name => "Amstrad CPC6128";
+    public bool IsReady => true;
+    public ulong CycleCount => _cpu.CycleCount;
+    public IProcessor Processor => _cpu;
+    public IMemoryBus Memory => _bus;
+    public Cpc6128MemoryBus Bus => _bus;
+    public Cpc6128Ports Ports => _ports;
+    public Cpc464GateArray GateArray { get; }
+    public MT6545 Crtc { get; }
+    public Ay38910 Ay { get; }
+    public Cpc464Keyboard Keyboard { get; }
+    public Cpc464Cassette Cassette { get; }
+    public PetEmulator.CpuZ80.Interrupts.InterruptLines InterruptLines { get; }
+    public ulong FrameCount { get; private set; }
+
+    public void LoadExpansionRom(byte number, ReadOnlySpan<byte> rom) => _bus.LoadUpperRom(number, rom);
+
+    public void Reset()
+    {
+        _bus.Reset();
+        _cpu.Reset();
+        GateArray.Reset();
+        Crtc.Reset();
+        Ay.Reset();
+        Keyboard.Reset();
+        Cassette.Reset();
+        _ports.Reset();
+        InterruptLines.SetInt(false);
+        _deviceCycleRemainder = 0;
+        _frameCycles = FrameCount = 0;
+    }
+
+    public void StepInstruction()
+    {
+        var before = _cpu.CycleCount;
+        _cpu.StepInstruction();
+        var cycles = checked((int)(_cpu.CycleCount - before));
+        InterruptLines.SetInt(GateArray.InterruptPending);
+        _deviceCycleRemainder += cycles;
+        while (_deviceCycleRemainder >= 4)
+        {
+            _deviceCycleRemainder -= 4;
+            GateArray.Tick();
+            Cassette.Tick();
+        }
+        _frameCycles += (uint)cycles;
+        if (_frameCycles >= 80_000)
+        {
+            _frameCycles -= 80_000;
+            FrameCount++;
+            GateArray.RenderFrame();
+        }
+    }
+
+    public void Run(ulong instructionCount)
+    {
+        for (var index = 0UL; index < instructionCount; index++) StepInstruction();
+    }
+}

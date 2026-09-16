@@ -24,6 +24,7 @@ public sealed class Cpc464GateArray
     public CpcDisplayMode Mode { get; private set; }
     public bool LowerRomEnabled { get; private set; }
     public bool UpperRomEnabled { get; private set; }
+    public byte RamConfiguration { get; private set; }
     public bool InterruptPending { get; private set; }
     public byte[] Pixels { get; private set; } = [];
     public int Width { get; private set; }
@@ -36,6 +37,7 @@ public sealed class Cpc464GateArray
         _selectedPen = 0;
         _requestedMode = Mode = CpcDisplayMode.Mode1;
         LowerRomEnabled = UpperRomEnabled = true;
+        RamConfiguration = 0;
         InterruptPending = false;
         _previousHSync = false;
         _hsyncCount = 0;
@@ -55,6 +57,9 @@ public sealed class Cpc464GateArray
                 LowerRomEnabled = (value & 4) == 0;
                 UpperRomEnabled = (value & 8) == 0;
                 if ((value & 0x10) != 0) _hsyncCount = 0;
+                break;
+            case 3:
+                RamConfiguration = (byte)(value & 0x07);
                 break;
         }
     }
