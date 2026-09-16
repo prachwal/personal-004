@@ -1,6 +1,7 @@
 # Plan integracji Amstrad CPC6128
 
-Status: analiza zakończona, implementacja jeszcze nierozpoczęta.
+Status: M1-M5 oraz pierwszy pionowy zakres M7 zaimplementowane; M0 fixture ROM,
+M6 realny firmware, M8 snapshot/debug i M9 pełna regresja pozostają do wykonania.
 
 ## Źródła wcześniejszych implementacji
 
