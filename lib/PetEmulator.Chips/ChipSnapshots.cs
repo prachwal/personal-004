@@ -73,3 +73,23 @@ public sealed class MOS2114Snapshot
 {
     public byte[] Data { get; set; } = [];
 }
+
+public sealed class MT6520Snapshot
+{
+    public byte Ddra { get; set; }
+    public byte Ddrb { get; set; }
+    public byte Ora { get; set; }
+    public byte Orb { get; set; }
+    public byte Cra { get; set; }
+    public byte Crb { get; set; }
+    public bool Ca1 { get; set; }
+    public bool Ca2 { get; set; }
+    public bool Cb1 { get; set; }
+    public bool Cb2 { get; set; }
+    public bool Ca1Flag { get; set; }
+    public bool Ca2Flag { get; set; }
+    public bool Cb1Flag { get; set; }
+    public bool Cb2Flag { get; set; }
+    public byte Ca2PulseCyclesRemaining { get; set; }
+    public byte Cb2PulseCyclesRemaining { get; set; }
+}

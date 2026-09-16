@@ -420,6 +420,95 @@ public sealed class PetMachineTests
         machine.SelectedProcessor.Should().Be(SuperPetProcessor.Mos6502);
     }
 
+    [TestCaseSource(nameof(SnapshotProfiles))]
+    public void Snapshot_RoundTripsOnANewMachine_ForDiscreteAndCrtcProfiles(PetProfile profile)
+    {
+        var source = CreateMachine(profile);
+        source.Memory.Write(0x0100, 0xA5);
+        source.Memory.Write((ushort)(PetMemoryBus.Pia1Base + 1), 0x04);
+        source.Memory.Write((ushort)(PetMemoryBus.Pia1Base + 3), 0x04);
+        source.Memory.Write(PetMemoryBus.Pia1Base, 0x04);
+        source.Keyboard.Press(4, 0);
+        source.Datasette.LoadTape([3, 5, 7], "first.tap");
+        source.Datasette.PressPlay();
+        source.Datasette2.LoadTape([11, 13], "second.tap");
+        source.Datasette2.PressPlay();
+        source.UserPort.Input = 0x3C;
+        source.UserPort.HandshakeInput = false;
+        source.StepInstruction();
+        if (source.Crtc is not null)
+        {
+            source.Memory.Write(PetMemoryBus.CrtcBase, 14);
+            source.Memory.Write((ushort)(PetMemoryBus.CrtcBase + 1), 0x12);
+        }
+
+        var snapshot = source.CaptureState();
+        var restored = CreateMachine(profile);
+        restored.Memory.Write(0x0100, 0x11);
+        restored.Keyboard.Press(1, 1);
+
+        restored.RestoreState(snapshot);
+
+        restored.Memory.Read(0x0100).Should().Be(0xA5);
+        restored.Keyboard.ReadColumns(4).Should().Be(0xFE);
+        restored.Keyboard.ReadColumns(1).Should().Be(0xFF);
+        restored.Datasette.HasTape.Should().BeTrue();
+        restored.Datasette.PlayPressed.Should().BeTrue();
+        restored.Datasette.TapeName.Should().Be("first.tap");
+        restored.Datasette2.HasTape.Should().BeTrue();
+        restored.Datasette2.PlayPressed.Should().BeTrue();
+        restored.Datasette2.TapeName.Should().Be("second.tap");
+        restored.UserPort.Input.Should().Be(0x3C);
+        restored.UserPort.HandshakeInput.Should().BeFalse();
+        restored.Processor.InstructionCount.Should().Be(snapshot.Cpu.InstructionCount);
+        (restored.Crtc is not null).Should().Be(profile.RequiresCrtc);
+        if (profile.RequiresCrtc)
+            restored.Crtc!.CursorAddress.Should().Be(0x1200);
+    }
+
+    [Test]
+    public void Snapshot_AllowsAnIdleMountedDiskWhenTheTargetUsesTheSameMedia()
+    {
+        var diskPath = Path.Combine(RomLocator.Directory("test-disks", "games-1.d64"), "games-1.d64");
+        var source = CreateMachine(PetProfileCatalog.Pet2001_32);
+        source.MountDisk(diskPath);
+        source.Memory.Write(0x0100, 0xD6);
+
+        var snapshot = source.CaptureState();
+        var restored = CreateMachine(PetProfileCatalog.Pet2001_32);
+        restored.MountDisk(diskPath);
+        restored.RestoreState(snapshot);
+
+        restored.HasDisk().Should().BeTrue();
+        restored.Memory.Read(0x0100).Should().Be(0xD6);
+        restored.IeeeByteTransferCount.Should().Be(0);
+    }
+
+    [Test]
+    public void Snapshot_RejectsAMismatchedProfileBeforeChangingMachineState()
+    {
+        var source = CreateMachine(PetProfileCatalog.Pet2001_8);
+        source.Memory.Write(0x0100, 0xA8);
+        var snapshot = source.CaptureState();
+        var target = CreateMachine(PetProfileCatalog.Pet2001_32);
+        target.Memory.Write(0x0100, 0x5A);
+
+        var act = () => target.RestoreState(snapshot);
+
+        act.Should().Throw<InvalidDataException>().Which.Message.Should().Contain("profile mismatch");
+        target.Memory.Read(0x0100).Should().Be(0x5A);
+    }
+
+    [Test]
+    public void Snapshot_RejectsSuperPetUntilItsSecondProcessorAndBoardAreRepresented()
+    {
+        var machine = CreateMachine(PetProfileCatalog.SuperPet6502);
+
+        var act = () => machine.CaptureState();
+
+        act.Should().Throw<NotSupportedException>().Which.Message.Should().Contain("SuperPET");
+    }
+
     [Test]
     public void Reset_ZeroesRamAndRestartsCpuAtResetVector()
     {
@@ -798,4 +887,7 @@ public sealed class PetMachineTests
     }
 
     private static IEnumerable<PetProfile> AllProfiles() => PetProfileCatalog.All;
+
+    private static IEnumerable<PetProfile> SnapshotProfiles() =>
+        [PetProfileCatalog.Pet2001_8, PetProfileCatalog.Cbm4032];
 }

@@ -186,6 +186,27 @@ public sealed class MT6520 : IMemoryMappedDevice
         _ca2PulseCyclesRemaining = _cb2PulseCyclesRemaining = 0;
     }
 
+    public MT6520Snapshot CaptureState() => new()
+    {
+        Ddra = _ddra, Ddrb = _ddrb, Ora = _ora, Orb = _orb, Cra = _cra, Crb = _crb,
+        Ca1 = _ca1, Ca2 = _ca2, Cb1 = _cb1, Cb2 = _cb2,
+        Ca1Flag = _ca1Flag, Ca2Flag = _ca2Flag, Cb1Flag = _cb1Flag, Cb2Flag = _cb2Flag,
+        Ca2PulseCyclesRemaining = _ca2PulseCyclesRemaining,
+        Cb2PulseCyclesRemaining = _cb2PulseCyclesRemaining
+    };
+
+    public void RestoreState(MT6520Snapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        _ddra = state.Ddra; _ddrb = state.Ddrb; _ora = state.Ora; _orb = state.Orb;
+        _cra = (byte)(state.Cra & WritableControlBits); _crb = (byte)(state.Crb & WritableControlBits);
+        _ca1 = state.Ca1; _ca2 = state.Ca2; _cb1 = state.Cb1; _cb2 = state.Cb2;
+        _ca1Flag = state.Ca1Flag; _ca2Flag = state.Ca2Flag;
+        _cb1Flag = state.Cb1Flag; _cb2Flag = state.Cb2Flag;
+        _ca2PulseCyclesRemaining = state.Ca2PulseCyclesRemaining;
+        _cb2PulseCyclesRemaining = state.Cb2PulseCyclesRemaining;
+    }
+
     /// <summary>Auto-restores CA2/CB2 after a "pulse" output (CRA/CRB bit4=0, bit3=1): the line
     /// goes low for exactly one PHI2 cycle after the triggering Port A read / Port B write, then
     /// comes back high on its own - unlike "handshake" mode (bit3=0), which instead waits for the

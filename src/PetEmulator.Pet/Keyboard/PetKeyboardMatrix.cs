@@ -18,6 +18,16 @@ public sealed class PetKeyboardMatrix
 
     public void Reset() => Array.Clear(_pressedColumns);
 
+    public PetKeyboardSnapshot CaptureState() => new() { PressedColumns = _pressedColumns.ToArray() };
+
+    public void RestoreState(PetKeyboardSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.PressedColumns.Length != RowCount)
+            throw new ArgumentException($"Expected {RowCount} PET keyboard rows.", nameof(state));
+        state.PressedColumns.CopyTo(_pressedColumns, 0);
+    }
+
     private void SetKey(int row, int column, bool pressed)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(row);

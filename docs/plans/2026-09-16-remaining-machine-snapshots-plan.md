@@ -175,35 +175,35 @@ cichej utraty stanu) mają **najwcześniej** ujawnić, czy
 `MachineSnapshot`/`IMachineStateStore<T>` w obecnym kształcie to udźwignie
 — stąd PET zaraz po VIC-20, nie na końcu.
 
-- [ ] `MT6520.CaptureState()`/`RestoreState()` w `lib/PetEmulator.Chips/` —
+- [x] `MT6520.CaptureState()`/`RestoreState()` w `lib/PetEmulator.Chips/` —
       nowy chip, nie reużywalny z niczego wcześniejszego.
-- [ ] `PetMemoryBus.CaptureState()`/`RestoreState()` — `_ram`,
+- [x] `PetMemoryBus.CaptureState()`/`RestoreState()` — `_ram`,
       `_expansionRam`, `_expansionControl` (tylko gdy profil je ma).
-- [ ] `PetKeyboardMatrix`/`PetDatasette`/`PetDatasette2`/`PetUserPort.
+- [x] `PetKeyboardMatrix`/`PetDatasette`/`PetDatasette2`/`PetUserPort.
       CaptureState()`/`RestoreState()`.
-- [ ] `PetSnapshot : MachineSnapshot` — pola dla `_pia1,_pia2` (MT6520),
+- [x] `PetSnapshot : MachineSnapshot` — pola dla `_pia1,_pia2` (MT6520),
       `_via` (reużyty MOS6522), `_crtc` (nullable, reużyty MT6545),
       pamięć, klawiatura, datasety, user port, luźne pola maszyny
       (`_keyboardSelectedRow` itd.). Bez pól SuperPET w v1.
-- [ ] `PetMachine.RestoreState(PetSnapshot)` **waliduje, że bieżąca
+- [x] `PetMachine.RestoreState(PetSnapshot)` **waliduje, że bieżąca
       maszyna została zbudowana z tym samym `PetProfile`** (i, jeśli
       dotyczy, tym samym `ExpansionRomManifest`) zanim cokolwiek przywróci
       — rzuca czytelny wyjątek inaczej. Wzór: testy CPC6128 zawsze budują
       maszynę docelową z tym samym `Cpc6128MemoryBus.RomSize` przed
       `RestoreState`.
-- [ ] Jeśli `RestoreState` kiedykolwiek zmienia `_activeProcessor` (poza
+- [x] Jeśli `RestoreState` kiedykolwiek zmienia `_activeProcessor` (poza
       zakresem v1 bez SuperPET, ale zostaw komentarz na przyszłość) — musi
       ponownie wywołać `ApplyBusObserver()`, inaczej obserwator busa
       wskazuje starego aktywnego procesora (dokładnie błąd, przed którym
       ostrzega istniejący komentarz `BusObserver` w `PetMachine.cs`
       ~linia 163-176).
-- [ ] `IMachineStateStore<PetSnapshot>` na `PetMachine`.
-- [ ] Test w `tests/PetEmulator.Pet.Tests/` — round-trip na nowej
+- [x] `IMachineStateStore<PetSnapshot>` na `PetMachine`.
+- [x] Test w `tests/PetEmulator.Pet.Tests/` — round-trip na nowej
       instancji dla co najmniej dwóch profili (jeden bez CRTC, jeden z
       CRTC — `profile.RequiresCrtc`), wariant z zamontowanym napędem IEC
       w stanie bezczynnym, test że restore na maszynie z **innym**
       profilem rzuca zamiast cicho psuć stan.
-- [ ] **Kontrola po tym zadaniu:** jeśli powyższe wymusiło zmianę kształtu
+- [x] **Kontrola po tym zadaniu:** jeśli powyższe wymusiło zmianę kształtu
       `MachineSnapshot`/`IMachineStateStore<T>` w Core — to jest
       dokładnie ten moment, żeby to zrobić; TRS-80/Kaypro (Zadania 3-4)
       jeszcze nie istnieją, więc nic nie trzeba przerabiać wstecz.

@@ -52,4 +52,17 @@ public sealed class PetDatasette2
     public void Stop() => PlayPressed = false;
 
     public void Reset() => PlayPressed = false;
+
+    public PetDatasette2Snapshot CaptureState() => new()
+    {
+        PulseCycles = _pulseCycles.ToArray(), PlayPressed = PlayPressed, TapeName = TapeName
+    };
+
+    public void RestoreState(PetDatasette2Snapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        _pulseCycles = state.PulseCycles.ToArray();
+        PlayPressed = state.PlayPressed;
+        TapeName = state.TapeName;
+    }
 }

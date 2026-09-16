@@ -18,7 +18,7 @@ namespace PetEmulator.Pet;
 /// its address-decoded bus (<see cref="PetMemoryBus"/>), and the PIA/VIA/CRTC chips and
 /// tape/IEEE-488 bindings that hang off it, per <paramref name="profile"/>.
 /// </summary>
-public sealed class PetMachine : IMachine
+public sealed class PetMachine : IMachine, IMachineStateStore<PetSnapshot>
 {
     private readonly PetProfile _profile;
     private readonly PetMemoryBus _memoryBus;
@@ -288,6 +288,62 @@ public sealed class PetMachine : IMachine
 
     public IMemoryBus Memory => _activeMemory;
 
+    public PetSnapshot CaptureState()
+    {
+        EnsureSnapshotSupported();
+        if (!_ieeeBus.IsIdle)
+            throw new InvalidOperationException("PET snapshots require an idle IEEE-488 bus.");
+
+        return new PetSnapshot
+        {
+            Cpu = _cpu.CaptureSnapshot(),
+            ProfileId = _profile.Id,
+            ExpansionRomManifestFingerprint = ExpansionManifestFingerprint(_profile),
+            Memory = _memoryBus.CaptureState(),
+            Pia1 = _pia1.CaptureState(),
+            Pia2 = _pia2.CaptureState(),
+            Via = _via.CaptureState(),
+            Crtc = _crtc?.CaptureState(),
+            Keyboard = Keyboard.CaptureState(),
+            Datasette = _datasette.CaptureState(),
+            Datasette2 = _datasette2.CaptureState(),
+            UserPort = UserPort.CaptureState(),
+            KeyboardSelectedRow = _keyboardSelectedRow,
+            DiskActivityPending = _diskActivityPending,
+            IeeeByteCount = _ieeeByteCount,
+            Pia1Cb1Phase = _pia1Cb1Phase
+        };
+    }
+
+    public void RestoreState(PetSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        EnsureSnapshotSupported();
+        if (state.Version != 1)
+            throw new InvalidDataException($"Unsupported PET snapshot version {state.Version}.");
+        if (!string.Equals(state.ProfileId, _profile.Id, StringComparison.Ordinal)
+            || !string.Equals(state.ExpansionRomManifestFingerprint, ExpansionManifestFingerprint(_profile), StringComparison.Ordinal))
+            throw new InvalidDataException($"PET snapshot profile mismatch: snapshot is '{state.ProfileId}', machine is '{_profile.Id}'.");
+        if (state.Crtc is not null && _crtc is null || state.Crtc is null && _crtc is not null)
+            throw new InvalidDataException("PET snapshot CRTC configuration does not match the machine profile.");
+
+        _memoryBus.RestoreState(state.Memory);
+        _cpu.RestoreSnapshot(state.Cpu);
+        _pia1.RestoreState(state.Pia1);
+        _pia2.RestoreState(state.Pia2);
+        _via.RestoreState(state.Via);
+        _crtc?.RestoreState(state.Crtc!);
+        Keyboard.RestoreState(state.Keyboard);
+        _datasette.RestoreState(state.Datasette);
+        _datasette2.RestoreState(state.Datasette2);
+        UserPort.RestoreState(state.UserPort);
+        _keyboardSelectedRow = state.KeyboardSelectedRow;
+        _diskActivityPending = state.DiskActivityPending;
+        _ieeeByteCount = state.IeeeByteCount;
+        _pia1Cb1Phase = state.Pia1Cb1Phase;
+        SyncUserPortState();
+    }
+
     /// <summary>
     /// Resets the Waterloo side, executes a bounded startup trace and returns the reset vector,
     /// firmware ranges and per-instruction CPU progress. The machine is left after the captured
@@ -453,6 +509,18 @@ public sealed class PetMachine : IMachine
         UserPort.Direction = _via.DDRA;
         UserPort.HandshakeOutput = _via.CA2Output;
     }
+
+    private void EnsureSnapshotSupported()
+    {
+        if (_superPet6809Cpu is not null || _superPet6809Memory is not null)
+            throw new NotSupportedException("SuperPET snapshots are not implemented in version 1.");
+    }
+
+    private static string ExpansionManifestFingerprint(PetProfile profile) =>
+        profile.ExpansionRomManifest is null
+            ? string.Empty
+            : string.Join("|", profile.ExpansionRomManifest.Select(requirement =>
+                $"{requirement.Path}:{requirement.Address:X4}:{requirement.Length:X}"));
 
     // RunUntil/RunUntilOrStalled moved to PetEmulator.Core.MachineExtensions (pure IMachine
     // extension methods, unchanged call syntax) once VIC-20 needed the identical logic - see
