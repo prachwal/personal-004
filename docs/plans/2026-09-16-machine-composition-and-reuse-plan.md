@@ -269,3 +269,12 @@ Testy wspólne uruchamiać przez fixture/capability matrix, a testy specyficzne 
 - migracja wszystkich maszyn naraz zwiększy promień regresji.
 
 Dlatego pierwszym celem wdrożenia powinny pozostać kontrakty i macierz testów, a nie masowa konwersja klas maszyn.
+
+## Wynik Fazy 0 — 2026-09-16
+
+- Wspólny `CpcMachineClock` został wdrożony i jest używany przez CPC464 oraz CPC6128.
+- `IMachineSnapshot` i `IMachineStateStore<TSnapshot>` zostały dodane jako cienkie kontrakty nad istniejącymi snapshotami.
+- `CpcMachineBase<TSnapshot>` nie został wprowadzony. Po ujednoliceniu zegara nadal pozostają różnice należące do maszyny: CPC6128 ma FDC i licznik ramek, a CPC464 nie ma tych elementów.
+- Decyzja: współdzielić zegar, urządzenia CPC i snapshot bazowy, ale pozostawić `Cpc464Machine` i `Cpc6128Machine` jako niezależne kompozycje.
+- Boot CPC464 przechodzi izolowany test w około 6 sekund; test Sieve/save/load przekracza 90 sekund bez wyniku i wymaga osobnego usprawnienia scenariusza testowego. Nie traktować go jako zaliczonego.
+- Faza 1 dla PET/VIC-20/TRS-80/Kaypro pozostaje odłożona do osobnej decyzji.
