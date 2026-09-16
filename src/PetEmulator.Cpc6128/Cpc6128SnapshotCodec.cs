@@ -1,4 +1,5 @@
 using System.Text.Json;
+using PetEmulator.Cpc;
 
 namespace PetEmulator.Cpc6128;
 
@@ -9,7 +10,7 @@ public static class Cpc6128SnapshotCodec
     public static byte[] Encode(Cpc6128Snapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
-        return JsonSerializer.SerializeToUtf8Bytes(snapshot, Options);
+        return JsonSerializer.SerializeToUtf8Bytes(snapshot, snapshot.GetType(), Options);
     }
 
     public static Cpc6128Snapshot Decode(ReadOnlySpan<byte> data)

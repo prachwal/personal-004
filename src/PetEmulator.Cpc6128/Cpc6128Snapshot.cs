@@ -1,24 +1,11 @@
-using PetEmulator.Chips;
-using PetEmulator.Core;
 using PetEmulator.Cpc;
 using PetEmulator.CpcFdc;
 
 namespace PetEmulator.Cpc6128;
 
-public sealed class Cpc6128Snapshot
+public sealed class Cpc6128Snapshot : CpcMachineSnapshot
 {
-    public int Version { get; set; } = 1;
-    public CpuDebugSnapshot Cpu { get; set; } = null!;
-    public byte[] PhysicalRam { get; set; } = [];
-    public byte UpperRomNumber { get; set; }
-    public ulong FrameCount { get; set; }
-    public int DeviceCycleRemainder { get; set; }
-    public ulong FrameCycles { get; set; }
-    public CpcGateArraySnapshot GateArray { get; set; } = null!;
-    public MT6545Snapshot Crtc { get; set; } = null!;
-    public Ay38910Snapshot Ay { get; set; } = null!;
-    public CpcKeyboardSnapshot Keyboard { get; set; } = null!;
-    public CpcCassetteSnapshot Cassette { get; set; } = null!;
+    public Cpc6128MemorySnapshot Memory { get; set; } = null!;
     public Cpc6128PortsSnapshot Ports { get; set; } = null!;
     public I8272Snapshot Fdc { get; set; } = null!;
 }

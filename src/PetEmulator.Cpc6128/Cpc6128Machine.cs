@@ -54,7 +54,7 @@ public sealed class Cpc6128Machine : IMachine
 
     public Cpc6128Snapshot CaptureState() => new()
     {
-        Cpu = _cpu.CaptureSnapshot(), PhysicalRam = _bus.CapturePhysicalRam(), UpperRomNumber = _bus.UpperRomNumber,
+        Cpu = _cpu.CaptureSnapshot(), Memory = new() { PhysicalRam = _bus.CapturePhysicalRam(), UpperRomNumber = _bus.UpperRomNumber },
         FrameCount = FrameCount, DeviceCycleRemainder = _deviceCycleRemainder, FrameCycles = _frameCycles,
         GateArray = GateArray.CaptureState(), Crtc = Crtc.CaptureState(), Ay = Ay.CaptureState(), Keyboard = Keyboard.CaptureState(),
         Cassette = Cassette.CaptureState(), Ports = Ports.CaptureState(), Fdc = _fdc.CaptureState()
@@ -64,7 +64,7 @@ public sealed class Cpc6128Machine : IMachine
     {
         ArgumentNullException.ThrowIfNull(state);
         if (state.Version != 1) throw new InvalidDataException($"Unsupported CPC6128 snapshot version {state.Version}.");
-        _bus.RestorePhysicalRam(state.PhysicalRam); _bus.SelectUpperRom(state.UpperRomNumber); _cpu.RestoreSnapshot(state.Cpu);
+        _bus.RestorePhysicalRam(state.Memory.PhysicalRam); _bus.SelectUpperRom(state.Memory.UpperRomNumber); _cpu.RestoreSnapshot(state.Cpu);
         GateArray.RestoreState(state.GateArray); Crtc.RestoreState(state.Crtc); Ay.RestoreState(state.Ay); Keyboard.RestoreState(state.Keyboard);
         Cassette.RestoreState(state.Cassette); Ports.RestoreState(state.Ports); _fdc.RestoreState(state.Fdc);
         _deviceCycleRemainder = state.DeviceCycleRemainder; _frameCycles = state.FrameCycles; FrameCount = state.FrameCount;

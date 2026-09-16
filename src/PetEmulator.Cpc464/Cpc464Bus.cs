@@ -28,6 +28,20 @@ public sealed class Cpc464Bus : IBus, IMemoryBus
     public Cpc464Keyboard Keyboard { get; }
     public Cpc464Cassette Cassette { get; }
     public InterruptLines InterruptLines { get; }
+
+    public Cpc464MemorySnapshot CaptureMemoryState() => new() { Ram = _ram.ToArray() };
+    public void RestoreMemoryState(Cpc464MemorySnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.Ram.Length != _ram.Length) throw new ArgumentException("CPC464 RAM snapshot has an invalid size.", nameof(state));
+        state.Ram.AsSpan().CopyTo(_ram);
+    }
+
+    public Cpc464PortsSnapshot CapturePortsState() => new() { PortA = _portA, PortB = _portB, PortC = _portC, PpiControl = _ppiControl };
+    public void RestorePortsState(Cpc464PortsSnapshot state)
+    {
+        ArgumentNullException.ThrowIfNull(state); _portA = state.PortA; _portB = state.PortB; _portC = state.PortC; _ppiControl = state.PpiControl;
+    }
     private byte _portA, _portB, _portC, _ppiControl = 0x9B;
     private bool PortAInput => (_ppiControl & 0x10) != 0;
     private bool PortBInput => (_ppiControl & 2) != 0;

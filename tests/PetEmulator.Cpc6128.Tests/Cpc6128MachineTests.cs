@@ -59,6 +59,25 @@ public sealed class Cpc6128MachineTests
     }
 
     [Test]
+    public void PpiPortsRouteKeyboardAndCassetteSignals()
+    {
+        var machine = new Cpc6128Machine(new byte[Cpc6128MemoryBus.RomSize]);
+        machine.Ports.Write(0xF700, 0x82); // Port A/C output, Port B input
+        machine.Keyboard.SetKey(3, 4, true);
+
+        machine.Ports.Write(0xF400, 14); // PSG register 14 selects the keyboard while Port A outputs
+        machine.Ports.Write(0xF600, 0x43); // keyboard row 3, PSG read mode
+        machine.Ports.Write(0xF700, 0x92); // switch Port A to input for the PSG read
+        machine.Ports.Read(0xF400).Should().Be(0xEF);
+
+        machine.Ports.Write(0xF700, 0x82);
+        machine.Ports.Write(0xF600, 0x10); // cassette motor on
+        machine.Cassette.MotorOn.Should().BeTrue();
+        machine.Ports.Write(0xF600, 0x00);
+        machine.Cassette.MotorOn.Should().BeFalse();
+    }
+
+    [Test]
     public void Standard_dsk_is_loaded_and_exposed_through_8272_ports()
     {
         var machine = new Cpc6128Machine(new byte[Cpc6128MemoryBus.RomSize]);
@@ -115,7 +134,7 @@ public sealed class Cpc6128MachineTests
         var encoded = Cpc6128SnapshotCodec.Encode(machine.CaptureState());
         var restored = Cpc6128SnapshotCodec.Decode(encoded);
         restored.Version.Should().Be(1);
-        restored.PhysicalRam.Should().HaveCount(Cpc6128MemoryBus.PhysicalRamSize);
+        restored.Memory.PhysicalRam.Should().HaveCount(Cpc6128MemoryBus.PhysicalRamSize);
         restored.Cpu.Registers["SP"].Should().Be(0xFFFF);
     }
 
