@@ -39,6 +39,7 @@ public sealed class Cpc6128Machine : IMachine
     public bool IsReady => true;
     public ulong CycleCount => _cpu.CycleCount;
     public IProcessor Processor => _cpu;
+    public Z80Cpu Cpu => _cpu;
     public IMemoryBus Memory => _bus;
     public Cpc6128MemoryBus Bus => _bus;
     public Cpc6128Ports Ports => _ports;
