@@ -30,9 +30,9 @@ machine ViewModel types:
 
 - `ITapeViewModel` - accepts a tape image. TRS-80 implements this minimal capability because its
   ordinary cassette player has no shared PLAY/STOP/EJECT transport UI.
-- `IDatasetteViewModel` - `ITapeViewModel` plus PLAY/STOP/EJECT state and commands. PET, VIC-20
-  and CPC464 implement this full datasette UI; CPC464 exposes the same controls over its cassette
-  pulse player.
+- `IDatasetteViewModel` - `ITapeViewModel` plus PLAY/STOP/EJECT state and commands. PET, VIC-20,
+  CPC464 and CPC6128 implement this full datasette UI; CPC machines expose the same controls over
+  their cassette pulse player.
 - `IDiskDriveViewModel` - shared load/status surface only. PET/VIC-20, Kaypro and TRS-80 retain
   their machine-specific disk image formats and FDC operations.
 - `INewDiskViewModel` and `INewTapeViewModel` - opt-in creation commands for machines that support
@@ -45,6 +45,8 @@ machine ViewModel types:
   (`PetEmulator.Vic20.Display`, ported from cpu-vibe-001's `Vic20Video.RenderChar` - fixed
   176x184 canvas since VIC-20 resolution is chip-register-driven and unknown until the KERNAL
   configures it during boot, unlike PET's profile-fixed geometry).
+- `Cpc464MachineViewModel` and `Cpc6128MachineViewModel` - expose the CPC screen, cassette and
+  audio capabilities; CPC6128 additionally exposes its I8272 disk drive capability.
 
 Switching machine (`MainWindowViewModel.SwitchMachineCommand`) disposes the old instance and
 replaces `CurrentMachine` wholesale - never mutates an existing instance in place.

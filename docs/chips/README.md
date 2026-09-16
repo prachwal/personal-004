@@ -16,6 +16,7 @@ Ten katalog zawiera pełne checklisty i informacje per układ, wydzielone z doku
 - [FD1793](FD1793.md) — wariant FD1791 z prawdziwą magistralą DAL.
 - [Z80SIO](Z80SIO.md) — niezależny układ szeregowy Zilog Z8440, checklista implementacji.
 - [Z80PIO](Z80PIO.md) — niezależny układ równoległy Zilog Z8420, checklista implementacji.
+- [I8272](I8272.md) — kontroler dyskietek CPC6128 i kontrakt snapshotu.
 
 ## Wspólne kryteria
 
