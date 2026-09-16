@@ -102,8 +102,9 @@ public sealed class Cpc6128Machine : IMachine, IMachineStateStore<Cpc6128Snapsho
         var before = _cpu.CycleCount;
         _cpu.StepInstruction();
         var cycles = checked((int)(_cpu.CycleCount - before));
-        InterruptLines.SetInt(GateArray.InterruptPending);
+        // Devices advance first; the CPU samples the Gate Array IRQ output afterwards.
         _clock.Tick(cycles);
+        InterruptLines.SetInt(GateArray.InterruptPending);
         _fdc.Tick(cycles);
         _frameCycles += (uint)cycles;
         if (_frameCycles >= 80_000)

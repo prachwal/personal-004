@@ -79,6 +79,31 @@ public sealed class Cpc6128MachineTests
     }
 
     [Test]
+    public void InterruptLineSamplesGateArrayAfterDeviceTick()
+    {
+        var machine = new Cpc6128Machine(new byte[Cpc6128MemoryBus.RomSize]);
+        WriteCrtc(machine, 0, 63); // horizontal total
+        WriteCrtc(machine, 1, 40); // horizontal displayed
+        WriteCrtc(machine, 2, 46); // horizontal sync position
+        WriteCrtc(machine, 3, 8);  // horizontal sync width
+        WriteCrtc(machine, 4, 38); // vertical total
+        WriteCrtc(machine, 6, 25); // vertical displayed
+        WriteCrtc(machine, 7, 30); // vertical sync position
+        WriteCrtc(machine, 9, 7);  // maximum raster address
+
+        var sawGateArrayInterrupt = false;
+        for (var instruction = 0; instruction < 200_000; instruction++)
+        {
+            machine.StepInstruction();
+            sawGateArrayInterrupt |= machine.GateArray.InterruptPending;
+            machine.InterruptLines.IntAsserted.Should().Be(machine.GateArray.InterruptPending);
+            if (sawGateArrayInterrupt) break;
+        }
+
+        sawGateArrayInterrupt.Should().BeTrue();
+    }
+
+    [Test]
     public void Standard_dsk_is_loaded_and_exposed_through_8272_ports()
     {
         var machine = new Cpc6128Machine(new byte[Cpc6128MemoryBus.RomSize]);
@@ -155,5 +180,11 @@ public sealed class Cpc6128MachineTests
         dsk[0x11B] = 2;
         dsk.AsSpan(0x200).Fill(fill);
         return dsk;
+    }
+
+    private static void WriteCrtc(Cpc6128Machine machine, byte register, byte value)
+    {
+        machine.Ports.Write(0xBC00, register);
+        machine.Ports.Write(0xBD00, value);
     }
 }
