@@ -41,7 +41,7 @@ public sealed class MainWindowViewModelTests
         using var viewModel = new MainWindowViewModel(new StubFilePickerService());
 
         viewModel.ModuleChoices.Select(choice => choice.Label).Should().Equal(
-            "PET 20xx", "CBM 30xx", "CBM 40xx", "CBM 80xx", "SuperPET", "VIC-20", "Kaypro II", "TRS-80 Model I", "Amstrad CPC464", "Amstrad CPC6128");
+            "PET 20xx", "CBM 30xx", "CBM 40xx", "CBM 80xx", "SuperPET", "VIC-20", "Kaypro II", "TRS-80 Model I", "Amstrad CPC464");
         viewModel.ModuleChoices[0].Children!.Select(choice => choice.Label).Should().Equal(
             PetProfileCatalog.Pet2001_8.Name,
             PetProfileCatalog.Pet2001_32.Name);

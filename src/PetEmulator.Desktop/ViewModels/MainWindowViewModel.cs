@@ -63,7 +63,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
               new ModuleMenuEntry("Kaypro II", () => new KayproMachineViewModel(_romsRoot)),
               new ModuleMenuEntry("TRS-80 Model I", () => new Trs80MachineViewModel(_romsRoot)),
               new ModuleMenuEntry("Amstrad CPC464", () => new Cpc464MachineViewModel(_romsRoot)),
-              new ModuleMenuEntry("Amstrad CPC6128", () => new Cpc6128MachineViewModel(_romsRoot)),
          ];
 
         ToolChoices =

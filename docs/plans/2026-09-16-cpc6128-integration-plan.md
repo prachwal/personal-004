@@ -3,6 +3,11 @@
 Status: M1-M5 oraz pierwszy pionowy zakres M7 zaimplementowane; M0 fixture ROM,
 M6 realny firmware, M8 snapshot/debug i M9 pełna regresja pozostają do wykonania.
 
+Known issue: CPC6128 pozostaje ukryty w menu do czasu M0. Wcześniejsze
+podłączenie menu powodowało `FileNotFoundException`, ponieważ konstruktor
+`Cpc6128MachineViewModel` wymaga `roms/cpc6128/cpc6128.rom`, którego jeszcze
+nie ma w repozytorium.
+
 ## Źródła wcześniejszych implementacji
 
 ### `personal-002` — źródło referencyjne
