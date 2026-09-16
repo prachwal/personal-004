@@ -86,12 +86,14 @@ public sealed class Cpc6128MachineTests
         machine.Ports.Write(0xF700, 0x80);
         machine.Keyboard.SetKey(3, 4, true);
         machine.Cassette.LoadTape([1, 2, 3]);
+        machine.LoadDisk(0, DskDiskImage.Load(CreateDsk(0x5A)));
         machine.StepInstruction();
         var snapshot = machine.CaptureState();
 
         machine.Bus.WriteMemory(0x4000, 0x11);
         machine.Ports.Write(0xDF00, 2);
         machine.Keyboard.SetKey(3, 4, false);
+        machine.LoadDisk(0, DskDiskImage.Load(CreateDsk(0x11)));
         machine.StepInstruction();
         machine.RestoreState(snapshot);
 
@@ -100,6 +102,9 @@ public sealed class Cpc6128MachineTests
         machine.Keyboard.ReadRow(3).Should().Be((byte)0xEF);
         machine.Cpu.Registers.PC.Should().Be((ushort)snapshot.Cpu.Registers["PC"]);
         machine.CycleCount.Should().Be(snapshot.Cpu.CycleCount);
+        var sector = new byte[512];
+        ((DskFloppyDrive)machine.Fdc.Drive0!).Image.TryRead(0, 0, 1, 2, sector).Should().BeTrue();
+        sector.Should().OnlyContain(value => value == 0x5A);
     }
 
     [Test]
