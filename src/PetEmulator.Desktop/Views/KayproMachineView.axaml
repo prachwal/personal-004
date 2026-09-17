@@ -24,8 +24,8 @@
             <controls:EmulatorKeyboardView x:Name="OnScreenKeyboard" Height="260" />
         </Border>
 
-        <Border BorderBrush="{DynamicResource ScreenFrameBorderBrush}" BorderThickness="1" Background="{DynamicResource ScreenFrameBackgroundBrush}" Padding="8">
-            <controls:PetScreenControl Name="Screen" Focusable="True" />
-        </Border>
+        <controls:MachineScreenFrame>
+            <controls:EmulatorScreenControl Name="Screen" Focusable="True" />
+        </controls:MachineScreenFrame>
     </DockPanel>
 </UserControl>

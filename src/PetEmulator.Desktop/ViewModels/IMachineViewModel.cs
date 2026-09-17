@@ -16,7 +16,7 @@ namespace PetEmulator.Desktop.ViewModels;
 ///
 /// Three regions per the design brief: the screen (<see cref="FrameBuffer"/>/
 /// <see cref="PixelWidth"/>/<see cref="PixelHeight"/>/<see cref="PixelAspect"/>, rendered by a
-/// shared <see cref="PetScreenControl"/> - already machine-agnostic despite its name, just an
+/// shared <see cref="EmulatorScreenControl"/> - a machine-agnostic ARGB8888 blitter, just an
 /// ARGB8888 blitter), the device icon bar (<see cref="Devices"/>, rendered by a shared
 /// <c>DeviceStatusBar</c> UserControl), and <see cref="Extra"/> - a reserved, deliberately unused
 /// extension point for a third per-machine element (the user picked "empty slot for the future"

@@ -1,5 +1,6 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
              x:Class="PetEmulator.Desktop.App"
              RequestedThemeVariant="Dark">
     <Application.Resources>
@@ -16,5 +17,15 @@
     </Application.Resources>
     <Application.Styles>
         <FluentTheme />
+        <!-- StatusFieldRows subclasses ItemsControl but the theme's default ItemsControl
+             template does not apply to derived types (Template stays null -> no ItemsPresenter
+             -> zero item containers, silently). This gives it the standard presenter. -->
+        <Style Selector="controls|StatusFieldRows">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <ItemsPresenter ItemsPanel="{TemplateBinding ItemsPanel}" />
+                </ControlTemplate>
+            </Setter>
+        </Style>
     </Application.Styles>
 </Application>

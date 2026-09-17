@@ -10,8 +10,7 @@ not an `if`/`else` in code-behind).
 `src/PetEmulator.Desktop/IMachineViewModel.cs`. Three regions per the design brief:
 
 1. **Screen** - `FrameBuffer`/`PixelWidth`/`PixelHeight`/`PixelAspect`, rendered by
-   `PetScreenControl` (the name predates VIC-20; it's just an ARGB8888 blitter, already
-   machine-agnostic - not renamed to keep the diff focused).
+   `EmulatorScreenControl` (a machine-agnostic ARGB8888 blitter shared by every machine view).
 2. **Device icon bar** - `Devices` (`IReadOnlyList<PetEmulator.Core.IDeviceStatus>`, moved from
    `PetEmulator.Pet.Devices.IPetDeviceStatus` once VIC-20 needed the same shared shape - always
    empty for VIC-20 v1, no devices modeled yet).

@@ -34,10 +34,9 @@
                                     </StackPanel>
                                     <ContentControl Grid.Row="2" Content="{Binding Visual}">
                                         <ContentControl.DataTemplates>
-                                            <DataTemplate DataType="chipTests:CrtcPreviewViewModel">
-                                                <controls:ChipVisualControl />
-                                            </DataTemplate>
-                                            <DataTemplate DataType="chipTests:VicPreviewViewModel">
+                                            <!-- Both raster previews share IChipVisualViewModel and the
+                                                 same visual - one template, not one per chip. -->
+                                            <DataTemplate DataType="chipTests:IChipVisualViewModel">
                                                 <controls:ChipVisualControl />
                                             </DataTemplate>
                                             <DataTemplate DataType="chipTests:ColorRamPreviewViewModel">

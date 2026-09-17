@@ -136,7 +136,7 @@ internal static class Program
 
         // viewModel (and its DispatcherTimer) was already disposed above, before anything
         // Avalonia-routed ran - safe to pump the dispatcher now to flush the one pending
-        // layout/render pass PetScreenControl.InvalidateVisual() actually needs.
+        // layout/render pass EmulatorScreenControl.InvalidateVisual() actually needs.
         Dispatcher.UIThread.RunJobs();
 
         using var frame = window.CaptureRenderedFrame() ?? throw new InvalidOperationException("Headless capture returned no frame.");

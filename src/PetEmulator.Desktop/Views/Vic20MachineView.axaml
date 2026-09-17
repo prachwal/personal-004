@@ -41,9 +41,9 @@
         <controls:MachineHeaderBar DockPanel.Dock="Top" />
 
         <Grid ColumnDefinitions="*,Auto">
-            <Border BorderBrush="{DynamicResource ScreenFrameBorderBrush}" BorderThickness="1" Background="{DynamicResource ScreenFrameBackgroundBrush}" Padding="8">
-                <controls:PetScreenControl Name="Screen" Grid.Column="0" Focusable="True" />
-            </Border>
+            <controls:MachineScreenFrame>
+                <controls:EmulatorScreenControl Name="Screen" Focusable="True" />
+            </controls:MachineScreenFrame>
             <controls:Vic20JoystickControl Grid.Column="1"
                                            DataContext="{Binding}"
                                            Margin="8,0,12,0" />

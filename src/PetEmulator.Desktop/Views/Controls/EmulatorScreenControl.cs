@@ -8,11 +8,11 @@ using Avalonia.Platform;
 namespace PetEmulator.Desktop.Views.Controls;
 
 /// <summary>
-/// Displays a PET frame buffer with genuine two-pass scaling: nearest-neighbor up to an integer
+/// Displays any machine's frame buffer with genuine two-pass scaling: nearest-neighbor up to an integer
 /// prescale factor (crisp pixels), then a high-quality blit of that prescaled bitmap into the
 /// final aspect-preserving, letterboxed destination rect (smooths only the small residual scale).
 /// </summary>
-public sealed class PetScreenControl : Control
+public sealed class EmulatorScreenControl : Control
 {
     private WriteableBitmap? _source;
     private int _nativeWidth;

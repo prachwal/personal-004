@@ -1,24 +1,11 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
              x:Class="PetEmulator.Desktop.Views.OpcodeStepperView"
              x:DataType="viewModels:OpcodeStepperViewModel">
     <Grid Margin="24" RowDefinitions="Auto,Auto,*" RowSpacing="12">
-        <ItemsControl ItemsSource="{Binding StatusFields}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal" Spacing="16" />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="viewModels:StatusField">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <TextBlock Text="{Binding Name}" FontSize="20" Opacity="0.6" />
-                        <TextBlock Text="{Binding Value}" FontSize="20" FontFamily="monospace" />
-                    </StackPanel>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <controls:StatusFieldRows ItemsSource="{Binding StatusFields}" Direction="Horizontal" FieldFontSize="20" />
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
             <ComboBox ItemsSource="{Binding Variants}" SelectedItem="{Binding SelectedVariant}" Width="220">
                 <ComboBox.ItemTemplate><DataTemplate x:DataType="viewModels:CpuVariantEntry"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
