@@ -12,8 +12,8 @@ namespace PetEmulator.KeyboardShot;
 /// Renders one on-screen keyboard layout off-screen (Avalonia.Headless + Skia - no X display
 /// needed) and saves it to a PNG, for visual comparison against real hardware photos.
 ///
-/// Usage: dotnet run --project tools/PetEmulator.KeyboardShot -- [--layout kaypro] [--out path.png]
-/// Layouts: kaypro (Kaypro II - the only EmulatorKeyboardLayout factory today).
+/// Usage: dotnet run --project tools/PetEmulator.KeyboardShot -- [--layout kaypro|cpc464] [--out path.png]
+/// Layouts: kaypro (Kaypro II), cpc464 (Amstrad CPC464) - each must have an EmulatorKeyboardLayout factory.
 /// </summary>
 internal static class Program
 {
@@ -25,7 +25,8 @@ internal static class Program
         var layout = layoutName.ToLowerInvariant() switch
         {
             "kaypro" => KayproKeyboardLayoutFactory.Build(),
-            _ => throw new ArgumentException($"Unknown keyboard layout '--layout {layoutName}'. Known: kaypro."),
+            "cpc464" => CpcKeyboardLayoutFactory.Build(),
+            _ => throw new ArgumentException($"Unknown keyboard layout '--layout {layoutName}'. Known: kaypro, cpc464."),
         };
         Console.WriteLine($"Layout '{layout.Id}': {layout.Keys.Count} keys, design size {layout.DesignSize}.");
 

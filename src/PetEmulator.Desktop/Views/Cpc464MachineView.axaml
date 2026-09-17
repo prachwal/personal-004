@@ -13,6 +13,11 @@
       </StackPanel>
     </Border>
     <controls:MachineHeaderBar DockPanel.Dock="Top" />
+    <Border DockPanel.Dock="Top" IsVisible="{Binding KeyboardToggle.IsVisible}"
+            Background="#F0101010" BorderBrush="#FF444444" BorderThickness="0,0,0,1"
+            Padding="12">
+        <controls:EmulatorKeyboardView x:Name="OnScreenKeyboard" Height="260" />
+    </Border>
     <controls:MachineScreenFrame><controls:EmulatorScreenControl Name="Screen" Focusable="True" /></controls:MachineScreenFrame>
   </DockPanel>
 </UserControl>

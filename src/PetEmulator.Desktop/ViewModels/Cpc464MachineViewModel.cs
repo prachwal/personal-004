@@ -7,6 +7,7 @@ using PetEmulator.Core;
 using PetEmulator.Desktop.Input;
 using Microsoft.Extensions.Logging;
 using PetEmulator.Core.Logging;
+using PetEmulator.Desktop.Views.Controls;
 using PetEmulator.Cpc464;
 using PetEmulator.Pet.Keyboard;
 
@@ -53,7 +54,7 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
     public string WindowTitle => "Amstrad CPC464";
     public string MachineSummary => $"Amstrad CPC464 | {PixelWidth}×{PixelHeight} | Z80 | Gate Array";
 
-    public KeyboardToggleViewModel? KeyboardToggle => null;
+    public KeyboardToggleViewModel? KeyboardToggle { get; } = new();
 
     public bool IsStatusEnabled { get; set; } = true;
     public int PixelWidth => 320;
@@ -137,6 +138,32 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
         {
             _log.LogWarning(ex, "Audio output dispose failed.");
         }
+    }
+
+    /// <summary>On-screen keyboard entry point (see <see cref="CpcKeyboardLayoutFactory"/>):
+    /// presses/releases a matrix cell directly, holding Shift (2,5) around shifted keys -
+    /// exactly like the firmware tests' own PressKey helper. Unknown-signal placeholders
+    /// (f0-f4, no documented cell) are silently ignored.</summary>
+    public void SendMatrixKey(byte row, byte column, bool pressed, bool withShift)
+    {
+        if (withShift)
+            _machine.Bus.Keyboard.SetKey(2, 5, true);
+        _machine.Bus.Keyboard.SetKey(row, column, pressed);
+        if (!pressed && withShift)
+            _machine.Bus.Keyboard.SetKey(2, 5, false);
+    }
+
+    public void SendKeyboardSignal(string signal, bool pressed)
+    {
+        if (signal.Equals(CpcKeyboardLayoutFactory.UnknownSignal, StringComparison.Ordinal))
+            return;
+        if (!CpcKeyboardLayoutFactory.TryParseSignal(signal, out var row, out var column, out var shift))
+        {
+            _log.LogWarning("Ignoring unknown keyboard signal '{Signal}'.", signal);
+            return;
+        }
+
+        SendMatrixKey(row, column, pressed, shift);
     }
     public void HandleKey(Key key, HostKeyEventKind kind) { if (TryMap(key, out var row, out var column)) _machine.Bus.Keyboard.SetKey(row, column, kind == HostKeyEventKind.Press); }
     private void Render()
