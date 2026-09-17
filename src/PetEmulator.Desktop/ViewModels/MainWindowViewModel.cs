@@ -266,7 +266,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            ShellLog.LogWarning( $"Disposing {old.GetType().Name} failed.", ex);
+            ShellLog.LogWarning(ex, "Disposing {Module} failed.", old.GetType().Name);
         }
     }
 
