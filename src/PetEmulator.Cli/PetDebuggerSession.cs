@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using System.Globalization;
 using System.Text;
 using PetEmulator.Core;
@@ -32,6 +34,7 @@ namespace PetEmulator.Cli;
 /// </remarks>
 public sealed class PetDebuggerSession
 {
+    private static readonly ILogger Log = EmulatorLogging.CreateLogger("CLI");
     private string? _profileId;
     private string? _romsRoot;
     private IPetKeyboardMap _keymap = new Pet2001GraphicsKeyboardMap();
@@ -76,6 +79,7 @@ public sealed class PetDebuggerSession
         }
         catch (Exception ex)
         {
+            Log.LogError(ex, "debug '{Command}' failed.", commandLine);
             return $"error: {ex.Message}";
         }
     }

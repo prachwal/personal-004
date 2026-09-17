@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace PetEmulator.Cpc464;
 
 /// <summary>Parses a CDT/TZX image into alternating cassette pulse widths in microseconds.</summary>
@@ -7,9 +10,25 @@ public sealed record Cpc464CdtImage(IReadOnlyList<int> PulseTicks)
     public const int StandardDataPilotPulseCount = 3223;
     public const int StopPauseTicks = 5_000_000;
 
-    public static Cpc464CdtImage Parse(byte[] bytes)
+    public static Cpc464CdtImage Parse(byte[] bytes, ILogger? logger = null)
     {
         ArgumentNullException.ThrowIfNull(bytes);
+        var log = logger ?? NullLogger.Instance;
+        try
+        {
+            var image = ParseCore(bytes);
+            log.LogInformation("Parsed CDT ({Size} B): {Pulses} pulses.", bytes.Length, image.PulseTicks.Count);
+            return image;
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Parsing CDT ({Size} B) failed.", bytes.Length);
+            throw;
+        }
+    }
+
+    private static Cpc464CdtImage ParseCore(byte[] bytes)
+    {
         if (bytes.Length < 10 || !bytes.AsSpan(0, 8).SequenceEqual("ZXTape!\x1A"u8))
             throw new FormatException("A CDT image must start with the ZXTape! signature and contain two version bytes.");
 

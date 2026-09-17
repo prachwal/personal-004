@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace PetEmulator.Cpc;
 
 /// <summary>A cassette supporting CDT pulse streams and the synthetic byte format used by the
@@ -20,13 +23,15 @@ public class CpcCassette
     private bool _pulsePlayback;
 
     private readonly List<(int Ticks, bool Level)> _recorded = [];
+    private readonly ILogger _log;
     private int _recordTicks;
     private bool _recordLevel;
     private bool _recording;
 
+    public CpcCassette(ILogger? logger = null) => _log = logger ?? NullLogger.Instance;
+
     public bool MotorOn { get; private set; }
-    public bool HasTape => _pulsePlayback ? _pulseTicks.Count > 0 : _tape.Length > 0;
-    public bool AtEndOfTape => _pulsePlayback ? _pulseIndex >= _pulseTicks.Count : _byteIndex >= _tape.Length;
+    public bool HasTape => _pulsePlayback ? _pulseTicks.Count > 0 : _tape.Length > 0;    public bool AtEndOfTape => _pulsePlayback ? _pulseIndex >= _pulseTicks.Count : _byteIndex >= _tape.Length;
     public bool Signal { get; private set; }
 
     public void Reset()
@@ -56,6 +61,7 @@ public class CpcCassette
         _pulseTicks = pulseTicks.ToArray();
         _pulsePlayback = true;
         Rewind();
+        _log.LogInformation("Cassette pulses loaded ({Pulses} pulses).", _pulseTicks.Count);
     }
 
     private void Rewind()
@@ -83,6 +89,7 @@ public class CpcCassette
 
     public void Eject()
     {
+        _log.LogInformation("Cassette ejected (hadTape={HadTape}).", HasTape);
         SetMotor(false);
         _tape = [];
         _pulseTicks = [];

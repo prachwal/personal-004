@@ -1,6 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <!-- Debug = Exe so `dotnet run` keeps a console and emulator logs are visible live.
+         Release/publish stays WinExe so double-clicking the shipped app opens no console window. -->
+    <OutputType Condition="'$(Configuration)' == 'Debug'">Exe</OutputType>
+    <OutputType Condition="'$(Configuration)' != 'Debug'">WinExe</OutputType>
     <RootNamespace>PetEmulator.Desktop</RootNamespace>
     <ApplicationIcon />
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
@@ -18,6 +21,8 @@
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <ProjectReference Include="../../lib/PetEmulator.Core/PetEmulator.Core.csproj" />
     <ProjectReference Include="../PetEmulator.Pet/PetEmulator.Pet.csproj" />
     <ProjectReference Include="../PetEmulator.Vic20/PetEmulator.Vic20.csproj" />
     <ProjectReference Include="../PetEmulator.Kaypro/PetEmulator.Kaypro.csproj" />

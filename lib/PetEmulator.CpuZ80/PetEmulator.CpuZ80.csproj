@@ -5,6 +5,5 @@
 
   <ItemGroup>
     <ProjectReference Include="../PetEmulator.Core/PetEmulator.Core.csproj" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 </Project>

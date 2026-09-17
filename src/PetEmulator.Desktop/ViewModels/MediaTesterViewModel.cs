@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using PetEmulator.Desktop.Services;
 using PetEmulator.Desktop.Services.DiskImages;
 using PetEmulator.Pet.CbmDos;
@@ -13,6 +15,7 @@ public sealed partial class MediaTesterViewModel : ObservableObject, IShellModul
     private readonly IFilePickerService _filePicker;
     private readonly IDiskImageProviderRegistry _imageProviders;
     private DiskImageDocument? _image;
+    private static readonly ILogger Log = EmulatorLogging.CreateLogger("MediaTester");
 
 
     [ObservableProperty]
@@ -105,6 +108,7 @@ public sealed partial class MediaTesterViewModel : ObservableObject, IShellModul
         }
         catch (Exception exception)
         {
+            Log.LogError(exception, "Unable to open '{Path}'.", path);
             ClearImage();
             StatusText = $"Unable to open {Path.GetFileName(path)}";
             OperationStatus = exception.Message;
@@ -189,6 +193,7 @@ public sealed partial class MediaTesterViewModel : ObservableObject, IShellModul
 
     public void LoadDisk(string path)
     {
+        Log.LogInformation("Opening disk image '{Path}'.", path);
         _image = null;
         Directory.Clear();
         SectorMap.Clear();
@@ -209,6 +214,8 @@ public sealed partial class MediaTesterViewModel : ObservableObject, IShellModul
         SelectedEntry = Directory.FirstOrDefault(entry => entry.SizeInSectors > 0) ?? Directory.FirstOrDefault();
         if (SelectedEntry is not null)
             PreviewFile(SelectedEntry);
+        Log.LogInformation("Disk image opened '{Path}': {Files} files, {Free}/{Total} blocks free.",
+            path, FileCount, FreeSectors, TotalSectors);
     }
 
     private void ClearImage()

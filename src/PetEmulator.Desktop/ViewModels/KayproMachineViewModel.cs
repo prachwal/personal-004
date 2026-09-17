@@ -5,6 +5,8 @@ using PetEmulator.Audio;
 using PetEmulator.Chips;
 using PetEmulator.Core;
 using PetEmulator.Desktop.Input;
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using PetEmulator.Kaypro;
 using PetEmulator.Pet.Keyboard;
 
@@ -17,6 +19,7 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
     private static readonly TimeSpan DiskActivityLinger = TimeSpan.FromMilliseconds(200);
     private readonly KayproMachine _machine;
     private readonly IAudioOutput _audioOutput;
+    private readonly ILogger _log = EmulatorLogging.CreateLogger("KAYPRO-VM");
     private DateTime _diskActivityUntilUtc = DateTime.MinValue;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DiskIconBrush))]
@@ -45,16 +48,30 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
         var kayproRoot = Path.Combine(romsRoot, "kaypro");
-        _machine = new KayproMachine();
-        _audioOutput = AudioOutputFactory.CreateNull();
-        _machine.Bus.FdcWiring.ActivityChanged += OnFdcActivityChanged;
-        _machine.LoadMonitorRom(File.ReadAllBytes(Path.Combine(kayproRoot, "kaypro-81-149c.bin")));
-        Font = KayproFont.Load(Path.Combine(kayproRoot, "kaypro-81-146.bin"));
-        var diskPath = Path.Combine(kayproRoot, "cpm22-rom149.dsk");
-        if (File.Exists(diskPath))
+        _log.LogInformation("Creating Kaypro II machine from '{Directory}'.", kayproRoot);
+        try
         {
-            _machine.InsertDisk(0, LoadKayproDisk(diskPath));
-            DiskLoaded = true;
+            _machine = new KayproMachine(logger: _log);
+            _audioOutput = AudioOutputFactory.CreateNull();
+            _machine.Bus.FdcWiring.ActivityChanged += OnFdcActivityChanged;
+            _machine.LoadMonitorRom(File.ReadAllBytes(Path.Combine(kayproRoot, "kaypro-81-149c.bin")));
+            Font = KayproFont.Load(Path.Combine(kayproRoot, "kaypro-81-146.bin"));
+            var diskPath = Path.Combine(kayproRoot, "cpm22-rom149.dsk");
+            if (File.Exists(diskPath))
+            {
+                _machine.InsertDisk(0, LoadKayproDisk(diskPath));
+                DiskLoaded = true;
+                _log.LogInformation("Boot disk auto-mounted: '{Path}'.", diskPath);
+            }
+            else
+            {
+                _log.LogInformation("No boot disk at '{Path}'; starting diskless.", diskPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to create Kaypro II machine from '{Directory}'.", kayproRoot);
+            throw;
         }
 
         FrameBuffer = new uint[PixelWidth * PixelHeight];
@@ -77,8 +94,18 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
 
     public void LoadDisk(string path)
     {
-        _machine.InsertDisk(0, LoadKayproDisk(path));
-        DiskLoaded = true;
+        try
+        {
+            _log.LogInformation("Mounting disk '{Path}'.", path);
+            _machine.InsertDisk(0, LoadKayproDisk(path));
+            DiskLoaded = true;
+            _log.LogInformation("Disk mounted: '{Path}'.", path);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to mount disk '{Path}'.", path);
+            throw;
+        }
     }
 
     public void Reset()
@@ -101,8 +128,18 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
 
     public void Tick()
     {
-        _machine.Run(InstructionsPerTick);
-        Render();
+        try
+        {
+            _machine.Run(InstructionsPerTick);
+            Render();
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex,
+                "Tick failed at cycles={Cycles} instructions={Instructions}.",
+                _machine.CycleCount, _machine.Processor.InstructionCount);
+            throw;
+        }
         DiskBusy = DateTime.UtcNow < _diskActivityUntilUtc;
 
         var registers = ((IDebuggableProcessor)_machine.Processor).GetRegisters();

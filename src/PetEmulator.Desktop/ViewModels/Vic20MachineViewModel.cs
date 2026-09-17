@@ -3,6 +3,8 @@ using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PetEmulator.Desktop.Input;
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using PetEmulator.Audio;
 using PetEmulator.Core;
 using PetEmulator.Pet.Keyboard;
@@ -32,6 +34,7 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     private readonly string _romsRoot;
     private readonly Vic20RasterDisplay _display;
     private readonly IAudioOutput _audioOutput;
+    private readonly ILogger _log = EmulatorLogging.CreateLogger("VIC20");
     private readonly Vic20KeyboardMap _keyboardMap = new();
     private static readonly TimeSpan DiskActivityLinger = TimeSpan.FromMilliseconds(200);
     private DateTime _diskActivityUntilUtc = DateTime.MinValue;
@@ -87,11 +90,21 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
 
         _romsRoot = romsRoot;
-        _machine = new Vic20Machine(romsRoot);
+        _log.LogInformation("Creating VIC-20 machine with ROMs directory '{RomsRoot}'.", romsRoot);
+        try
+        {
+            _machine = new Vic20Machine(romsRoot, logger: _log);
+            _log.LogInformation("Vic20Machine created: {Details}.", Vic20MachineDetails());
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to create Vic20Machine from '{RomsRoot}'.", romsRoot);
+            throw;
+        }
+
         ProgramProfileSelector = new Vic20ProgramProfileSelectorViewModel();
         _display = new Vic20RasterDisplay(_machine.Memory, _machine.Vic);
-        _audioOutput = AudioOutputFactory.CreateDefault();
-        _audioOutput.Start(_machine.Vic);
+        _audioOutput = CreateAudioOutput();
         FrameBuffer = new uint[_display.PixelWidth * _display.PixelHeight];
         UpdateCartridgeState();
 
@@ -123,33 +136,89 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
 
     public uint[] FrameBuffer { get; }
 
-    public void Reset() => _machine.Reset();
+    public void Reset()
+    {
+        try
+        {
+            _machine.Reset();
+            _log.LogDebug( "Machine reset.");
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Machine reset failed.");
+            throw;
+        }
+    }
 
     /// <summary>Loads a VICE-style .tap file into the running machine's datasette - see
     /// <see cref="PetMachineViewModel.LoadTape"/>'s identical doc comment.</summary>
     public void LoadTape(string path)
     {
-        var tap = PetTapFile.Parse(File.ReadAllBytes(path));
-        _machine.Datasette.LoadTape(tap.PulseCycles, Path.GetFileName(path));
+        try
+        {
+            _log.LogInformation( $"Loading tape '{path}' ({DescribeFile(path)}).");
+            var tap = PetTapFile.Parse(File.ReadAllBytes(path), _log);
+            _machine.Datasette.LoadTape(tap.PulseCycles, Path.GetFileName(path));
+            _log.LogInformation( $"Tape loaded: '{path}' ({tap.PulseCycles.Count} pulses).");
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, $"Failed to load tape '{path}'.");
+            throw;
+        }
     }
 
-    public void LoadDisk(string path) => _machine.MountDisk(path);
+    public void LoadDisk(string path)
+    {
+        try
+        {
+            _log.LogInformation( $"Mounting disk '{path}' ({DescribeFile(path)}).");
+            _machine.MountDisk(path);
+            _log.LogInformation( $"Disk mounted: '{path}'.");
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, $"Failed to mount disk '{path}'.");
+            throw;
+        }
+    }
 
     public void LoadCartridge(string path)
     {
-        _machine.MountCartridge(path);
-        UpdateCartridgeState();
+        try
+        {
+            _log.LogInformation( $"Mounting cartridge '{path}' ({DescribeFile(path)}).");
+            _machine.MountCartridge(path);
+            UpdateCartridgeState();
+            _log.LogInformation( $"Cartridge mounted: '{path}'.");
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, $"Failed to mount cartridge '{path}'.");
+            throw;
+        }
     }
 
     public void LoadCartridgePlugin(string pluginPath, string imagePath)
     {
-        _machine.MountCartridgePlugin(pluginPath, imagePath);
-        UpdateCartridgeState();
+        try
+        {
+            _log.LogInformation( $"Mounting cartridge plugin '{pluginPath}' with image '{imagePath}' ({DescribeFile(imagePath)}).");
+            _machine.MountCartridgePlugin(pluginPath, imagePath);
+            UpdateCartridgeState();
+            _log.LogInformation( $"Cartridge plugin mounted: '{pluginPath}' + '{imagePath}'.");
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, $"Failed to mount cartridge plugin '{pluginPath}' with image '{imagePath}'.");
+            throw;
+        }
     }
 
     public void LoadProgramProfile(Vic20ProgramProfile profile)
     {
         ArgumentNullException.ThrowIfNull(profile);
+        _log.LogInformation( $"Loading program profile '{profile.Name}' ({profile.Cartridges.Count} cartridges).");
         _machine.EjectCartridge();
 
         if (profile.IsEmpty)
@@ -159,17 +228,26 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
         }
 
         var cartridgeDirectory = Path.Combine(_romsRoot, "cartridges");
-        foreach (var cartridge in profile.Cartridges)
+        try
         {
-            var imagePath = Path.Combine(cartridgeDirectory, cartridge.FileName);
-            if (cartridge.PluginId is { Length: > 0 } pluginId)
-                _machine.MountCartridgePlugin(ResolvePluginPath(pluginId), imagePath);
-            else
-                _machine.MountCartridge(imagePath);
-        }
+            foreach (var cartridge in profile.Cartridges)
+            {
+                var imagePath = Path.Combine(cartridgeDirectory, cartridge.FileName);
+                if (cartridge.PluginId is { Length: > 0 } pluginId)
+                    _machine.MountCartridgePlugin(ResolvePluginPath(pluginId), imagePath);
+                else
+                    _machine.MountCartridge(imagePath);
+            }
 
-        _machine.Reset();
-        UpdateCartridgeState();
+            _machine.Reset();
+            UpdateCartridgeState();
+            _log.LogInformation( $"Program profile '{profile.Name}' loaded and machine reset.");
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, $"Failed to load program profile '{profile.Name}'.");
+            throw;
+        }
     }
 
     [RelayCommand]
@@ -294,9 +372,20 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
 
     public void Tick()
     {
-        _machine.Run(InstructionsPerTick);
-        _display.Tick();
-        _display.Render(FrameBuffer);
+        try
+        {
+            _machine.Run(InstructionsPerTick);
+            _display.Tick();
+            _display.Render(FrameBuffer);
+        }
+        catch (Exception ex)
+        {
+            // The shell timer logs the failure too, but only this frame has the machine
+            // context (cycles/instructions) - keep it, then rethrow for the shell handler.
+            _log.LogError(ex,
+                $"Tick failed at cycles={_machine.Processor.CycleCount} instructions={_machine.Processor.InstructionCount}.");
+            throw;
+        }
 
         var regs = ((IDebuggableProcessor)_machine.Processor).GetRegisters();
         StatusText =
@@ -318,5 +407,55 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
         FrameReady?.Invoke(this, EventArgs.Empty);
     }
 
-    public void Dispose() => _audioOutput.Dispose();
+    public void Dispose()
+    {
+        try
+        {
+            _audioOutput.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Audio output dispose failed.");
+        }
+    }
+
+    /// <summary>Creates the platform audio backend, falling back to silent output when the
+    /// OS has no backend yet (Windows/macOS - see <see cref="AudioOutputFactory"/>). The
+    /// fallback used to be a <c>PlatformNotSupportedException</c> out of this constructor,
+    /// which killed VIC-20 creation on Windows with no error anywhere.</summary>
+    private IAudioOutput CreateAudioOutput()
+    {
+        try
+        {
+            var output = AudioOutputFactory.CreateDefault();
+            output.Start(_machine.Vic);
+            _log.LogInformation( $"Audio backend started: {output.GetType().Name}.");
+            return output;
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex,
+                $"No platform audio backend ({ex.GetType().Name}: {ex.Message}); continuing silent. " +
+                "Implement a backend in AudioOutputFactory.CreateDefault to enable sound.");
+            var silent = AudioOutputFactory.CreateNull();
+            silent.Start(_machine.Vic);
+            return silent;
+        }
+    }
+
+    private string Vic20MachineDetails() =>
+        $"name={_machine.Name} display={_machine.DisplayConfig.VideoStandard} " +
+        $"cartridges={_machine.MountedCartridges.Count}";
+
+    private static string DescribeFile(string path)
+    {
+        try
+        {
+            return File.Exists(path) ? $"{new FileInfo(path).Length} B" : "(file does not exist)";
+        }
+        catch (Exception ex)
+        {
+            return $"(stat failed: {ex.Message})";
+        }
+    }
 }

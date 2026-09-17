@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Reflection;
 using System.Runtime.Loader;
 using PetEmulator.Vic20.Cartridge.Abstractions;
@@ -18,16 +20,28 @@ public static class Vic20CartridgePluginLoader
             .ToArray();
     }
 
-    public static IVic20CartridgePlugin Load(string path)
+    public static IVic20CartridgePlugin Load(string path, ILogger? logger = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        var plugins = LoadAssembly(Path.GetFullPath(path)).ToArray();
-        return plugins.Length switch
+        var log = logger ?? NullLogger.Instance;
+        log.LogInformation("Loading cartridge plugin '{Path}'.", path);
+        try
         {
-            1 => plugins[0],
-            0 => throw new InvalidDataException($"Cartridge plugin '{path}' exports no plugin."),
-            _ => throw new InvalidDataException($"Cartridge plugin '{path}' exports more than one plugin."),
-        };
+            var plugins = LoadAssembly(Path.GetFullPath(path)).ToArray();
+            var plugin = plugins.Length switch
+            {
+                1 => plugins[0],
+                0 => throw new InvalidDataException($"Cartridge plugin '{path}' exports no plugin."),
+                _ => throw new InvalidDataException($"Cartridge plugin '{path}' exports more than one plugin."),
+            };
+            log.LogInformation("Cartridge plugin loaded '{Path}': id='{Id}'.", path, plugin.Descriptor.Id);
+            return plugin;
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Loading cartridge plugin '{Path}' failed.", path);
+            throw;
+        }
     }
 
     private static IEnumerable<IVic20CartridgePlugin> LoadAssembly(string path)

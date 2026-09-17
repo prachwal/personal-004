@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using PetEmulator.Desktop.ViewModels;
 using PetEmulator.Desktop.Views.Controls;
 
@@ -6,6 +8,7 @@ namespace PetEmulator.Desktop.Views;
 
 public partial class KayproMachineView : UserControl
 {
+    private static readonly ILogger Log = EmulatorLogging.CreateLogger("View");
     private KayproMachineViewModel? _wired;
 
     public KayproMachineView()
@@ -31,6 +34,8 @@ public partial class KayproMachineView : UserControl
         _wired.GeometryChanged += OnGeometryChanged;
         SetScreenSize();
         Screen.Focus();
+        Log.LogInformation("KayproMachineView wired to {Title} ({Width}x{Height}).",
+            _wired.WindowTitle, _wired.PixelWidth, _wired.PixelHeight);
 
         var machine = _wired;
         OnScreenKeyboard.Configure(KayproKeyboardLayoutFactory.Build(), (signal, pressed) =>

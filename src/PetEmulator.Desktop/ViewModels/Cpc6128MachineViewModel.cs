@@ -8,6 +8,8 @@ using PetEmulator.Cpc6128;
 using PetEmulator.CpcFdc;
 using PetEmulator.Core;
 using PetEmulator.Desktop.Input;
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using PetEmulator.Pet.Keyboard;
 
 namespace PetEmulator.Desktop.ViewModels;
@@ -17,6 +19,7 @@ public sealed partial class Cpc6128MachineViewModel : ObservableObject, IMachine
     private const ulong InstructionsPerTick = 20_000;
     private readonly Cpc6128Machine _machine;
     private readonly IAudioOutput _audioOutput;
+    private readonly ILogger _log = EmulatorLogging.CreateLogger("CPC6128");
     [ObservableProperty] private bool _tapeLoaded;
     [ObservableProperty] private bool _tapePlaying;
     [ObservableProperty] private bool _diskLoaded;
@@ -25,10 +28,22 @@ public sealed partial class Cpc6128MachineViewModel : ObservableObject, IMachine
 
     public Cpc6128MachineViewModel(string romsRoot)
     {
-        _machine = new Cpc6128Machine(File.ReadAllBytes(Path.Combine(romsRoot, "cpc6128", "cpc6128.rom")));
-        _machine.LoadExpansionRom(7, File.ReadAllBytes(Path.Combine(romsRoot, "cpc6128", "amsdos.rom")));
-        _audioOutput = AudioOutputFactory.CreateDefault();
-        _audioOutput.Start(_machine.Ay);
+        ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
+        var romPath = Path.Combine(romsRoot, "cpc6128", "cpc6128.rom");
+        var expansionPath = Path.Combine(romsRoot, "cpc6128", "amsdos.rom");
+        _log.LogInformation("Creating CPC6128 machine from '{Rom}' + '{Expansion}'.", romPath, expansionPath);
+        try
+        {
+            _machine = new Cpc6128Machine(File.ReadAllBytes(romPath), _log);
+            _machine.LoadExpansionRom(7, File.ReadAllBytes(expansionPath));
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to create Cpc6128Machine from '{Rom}'.", romPath);
+            throw;
+        }
+
+        _audioOutput = CreateAudioOutput();
         FrameBuffer = new uint[320 * 200];
         Reset();
     }
@@ -66,22 +81,52 @@ public sealed partial class Cpc6128MachineViewModel : ObservableObject, IMachine
 
     public void LoadTape(string path)
     {
-        _machine.Cassette.LoadPulses(Cpc464CdtImage.Parse(File.ReadAllBytes(path)).PulseTicks);
-        TapeLoaded = true;
-        TapePlaying = false;
+        try
+        {
+            _log.LogInformation("Loading tape '{Path}'.", path);
+            _machine.Cassette.LoadPulses(Cpc464CdtImage.Parse(File.ReadAllBytes(path), _log).PulseTicks);
+            TapeLoaded = true;
+            TapePlaying = false;
+            _log.LogInformation("Tape loaded: '{Path}'.", path);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to load tape '{Path}'.", path);
+            throw;
+        }
     }
 
     public void LoadDisk(string path)
     {
-        _machine.LoadDisk(0, DskDiskImage.Load(File.ReadAllBytes(path)));
-        DiskLoaded = true;
-        DiskBusy = false;
+        try
+        {
+            _log.LogInformation("Loading disk '{Path}'.", path);
+            _machine.LoadDisk(0, DskDiskImage.Load(File.ReadAllBytes(path)));
+            DiskLoaded = true;
+            DiskBusy = false;
+            _log.LogInformation("Disk loaded: '{Path}'.", path);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to load disk '{Path}'.", path);
+            throw;
+        }
     }
 
     [RelayCommand] private void PlayTape() { if (_machine.Cassette.HasTape) { _machine.Cassette.PressPlay(); TapePlaying = true; } }
     [RelayCommand] private void StopTape() { _machine.Cassette.Stop(); TapePlaying = false; }
     [RelayCommand] private void EjectTape() { _machine.Cassette.Eject(); TapeLoaded = false; TapePlaying = false; }
-    public void Dispose() => _audioOutput.Dispose();
+    public void Dispose()
+    {
+        try
+        {
+            _audioOutput.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Audio output dispose failed.");
+        }
+    }
 
     public void HandleKey(Key key, HostKeyEventKind kind)
     {
@@ -108,4 +153,25 @@ public sealed partial class Cpc6128MachineViewModel : ObservableObject, IMachine
         [Key.D0] = (4, 0), [Key.D1] = (8, 0), [Key.D2] = (8, 1), [Key.D3] = (7, 1), [Key.D4] = (7, 0),
         [Key.D5] = (6, 1), [Key.D6] = (6, 0), [Key.D7] = (5, 1), [Key.D8] = (5, 0), [Key.D9] = (4, 1),
     };
+
+    /// <summary>Platform audio backend with silent fallback - see
+    /// <see cref="Vic20MachineViewModel"/> for why the fallback exists.</summary>
+    private IAudioOutput CreateAudioOutput()
+    {
+        try
+        {
+            var output = AudioOutputFactory.CreateDefault();
+            output.Start(_machine.Ay);
+            _log.LogInformation("Audio backend started: {Backend}.", output.GetType().Name);
+            return output;
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex,
+                "No platform audio backend ({ErrorType}: {Message}); continuing silent.", ex.GetType().Name, ex.Message);
+            var silent = AudioOutputFactory.CreateNull();
+            silent.Start(_machine.Ay);
+            return silent;
+        }
+    }
 }

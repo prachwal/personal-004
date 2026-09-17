@@ -2,6 +2,8 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using PetEmulator.Desktop.Infrastructure;
 using PetEmulator.Desktop.Models;
 using PetEmulator.Desktop.Services;
@@ -27,14 +29,31 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly IFilePickerService _filePicker;
     private readonly string _romsRoot;
     private readonly DispatcherTimer _timer;
+    private int _tickErrorCount;
+
+    private static readonly ILogger ShellLog = EmulatorLogging.CreateLogger("Shell");
+    private static readonly ILogger TapeLog = EmulatorLogging.CreateLogger("Tape");
+    private static readonly ILogger DiskLog = EmulatorLogging.CreateLogger("Disk");
+    private static readonly ILogger VicLog = EmulatorLogging.CreateLogger("VIC20");
+    private static readonly ILogger TickLog = EmulatorLogging.CreateLogger("Tick");
 
     [ObservableProperty]
     private IShellModule _currentModule;
+
+    /// <summary>Last failure detail, also shown in the MainWindow status bar - previously
+    /// machine-switch and media errors only went to <c>Console.Error</c> (invisible in a
+    /// WinExe with no console) or were swallowed by the command dispatcher entirely.</summary>
+    [ObservableProperty]
+    private string _lastError = string.Empty;
+
+    /// <summary>Session log file path, shown in the status bar tooltip.</summary>
+    public string LogFilePath => EmulatorLogging.LogFilePath;
 
     public MainWindowViewModel(IFilePickerService filePicker)
     {
         _filePicker = filePicker;
         _romsRoot = RomsRootLocator.Find();
+        ShellLog.LogInformation("MainWindowViewModel starting with ROMs root {RomsRoot}.", _romsRoot);
 
         SuperPetChoices =
         [
@@ -79,13 +98,37 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             .SelectMany(entry => entry.Children ?? Array.Empty<ModuleMenuEntry>())
             .FirstOrDefault(entry => entry.Create is not null)?.Create
             ?? throw new InvalidOperationException("The first machine menu entry must be selectable.");
-        _currentModule = initialCreate();
+        try
+        {
+            _currentModule = initialCreate();
+            ShellLog.LogInformation( $"Initial module: {_currentModule.GetType().Name} ({_currentModule.WindowTitle}).");
+        }
+        catch (Exception ex)
+        {
+            ReportError(ShellLog, "Failed to create the initial machine module.", ex);
+            throw;
+        }
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
         _timer.Tick += (_, _) =>
         {
-            if (CurrentModule is IMachineViewModel machine)
+            if (CurrentModule is not IMachineViewModel machine)
+                return;
+
+            try
+            {
                 machine.Tick();
+                _tickErrorCount = 0;
+            }
+            catch (Exception ex)
+            {
+                // A throwing render loop used to die silently (or kill the dispatcher with no
+                // trace in a WinExe). Log the first failure in full, then throttle to every
+                // 50th so a permanently broken machine does not flood the log at 50 Hz.
+                _tickErrorCount++;
+                if (_tickErrorCount == 1 || _tickErrorCount % 50 == 0)
+                    ReportError(TickLog, $"Tick failed {_tickErrorCount}x for {machine.GetType().Name}.", ex);
+            }
         };
         _timer.Start();
     }
@@ -123,15 +166,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             {
                 current.EjectAllCartridges();
                 current.ProgramProfileSelector.ErrorMessage = null;
+                VicLog.LogInformation( "Program profile cleared (empty).");
                 return;
             }
 
+            VicLog.LogInformation( $"Loading program profile '{profile.Name}'.");
             current.LoadProgramProfile(profile);
             current.ProgramProfileSelector.ErrorMessage = null;
+            VicLog.LogInformation( $"Program profile '{profile.Name}' loaded.");
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidDataException or IOException or InvalidOperationException)
         {
-            current.ProgramProfileSelector.ErrorMessage = ex.Message;
+            VicLog.LogError(ex, $"Failed to load program profile '{profile.Name}'.");
+            current.ProgramProfileSelector.ErrorMessage = $"{ex.Message} (see {EmulatorLogging.LogFilePath})";
         }
     }
 
@@ -142,8 +189,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void Reset()
     {
-        if (CurrentModule is IMachineViewModel machine)
+        if (CurrentModule is not IMachineViewModel machine)
+            return;
+
+        try
+        {
+            ShellLog.LogDebug( $"Resetting {machine.GetType().Name}.");
             machine.Reset();
+        }
+        catch (Exception ex)
+        {
+            ReportError(ShellLog, $"Reset failed for {machine.GetType().Name}.", ex);
+        }
     }
 
     [RelayCommand]
@@ -156,9 +213,33 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         if (create is null)
             return;
 
+        ShellLog.LogInformation( $"Switching machine to '{entry.Label}'.");
+        IShellModule next;
+        try
+        {
+            next = create();
+            ShellLog.LogInformation( $"Switched to {next.GetType().Name} ({next.WindowTitle}).");
+        }
+        catch (Exception ex)
+        {
+            // Previously this exception vanished inside the RelayCommand dispatch with no
+            // error anywhere - e.g. PlatformNotSupportedException from the missing Windows
+            // audio backend left the old machine on screen and nothing in any log.
+            ReportError(ShellLog, $"Failed to switch machine to '{entry.Label}'.", ex);
+            return;
+        }
+
         var old = CurrentModule;
-        CurrentModule = create();
-        old.Dispose();
+        CurrentModule = next;
+        LastError = string.Empty;
+        try
+        {
+            old.Dispose();
+        }
+        catch (Exception ex)
+        {
+            ShellLog.LogWarning( $"Disposing {old.GetType().Name} failed.", ex);
+        }
     }
 
     /// <summary>Loads a VICE-style .tap file into the current machine's datasette, if it has one -
@@ -176,14 +257,28 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Load tape failed: {ex.Message}");
+            ReportError(TapeLog, "Load tape dialog failed.", ex);
         }
     }
 
     public void LoadTape(string path)
     {
-        if (CurrentModule is ITapeViewModel tape)
+        if (CurrentModule is not ITapeViewModel tape)
+        {
+            TapeLog.LogWarning( $"Current module {CurrentModule.GetType().Name} has no tape device; ignoring '{path}'.");
+            return;
+        }
+
+        try
+        {
+            TapeLog.LogInformation( $"Loading tape '{path}' ({DescribeFile(path)}) into {CurrentModule.GetType().Name}.");
             tape.LoadTape(path);
+            TapeLog.LogInformation( $"Tape loaded: '{path}'.");
+        }
+        catch (Exception ex)
+        {
+            ReportError(TapeLog, $"Failed to load tape '{path}'.", ex);
+        }
     }
 
     /// <inheritdoc cref="LoadTape"/>
@@ -198,14 +293,28 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Load disk failed: {ex.Message}");
+            ReportError(DiskLog, "Load disk dialog failed.", ex);
         }
     }
 
     public void LoadDisk(string path)
     {
-        if (CurrentModule is IDiskDriveViewModel disk)
+        if (CurrentModule is not IDiskDriveViewModel disk)
+        {
+            DiskLog.LogWarning( $"Current module {CurrentModule.GetType().Name} has no disk drive; ignoring '{path}'.");
+            return;
+        }
+
+        try
+        {
+            DiskLog.LogInformation( $"Loading disk '{path}' ({DescribeFile(path)}) into {CurrentModule.GetType().Name}.");
             disk.LoadDisk(path);
+            DiskLog.LogInformation( $"Disk loaded: '{path}'.");
+        }
+        catch (Exception ex)
+        {
+            ReportError(DiskLog, $"Failed to load disk '{path}'.", ex);
+        }
     }
 
     /// <summary>Creates a fresh, formatted, writable D64 at <paramref name="path"/> and mounts it,
@@ -213,8 +322,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// </summary>
     public void NewDisk(string path)
     {
-        if (CurrentModule is INewDiskViewModel disk)
+        if (CurrentModule is not INewDiskViewModel disk)
+        {
+            DiskLog.LogWarning( $"Current module {CurrentModule.GetType().Name} cannot create disks; ignoring '{path}'.");
+            return;
+        }
+
+        try
+        {
+            DiskLog.LogInformation( $"Creating new disk '{path}' in {CurrentModule.GetType().Name}.");
             disk.NewDisk(path);
+            DiskLog.LogInformation( $"New disk created: '{path}'.");
+        }
+        catch (Exception ex)
+        {
+            ReportError(DiskLog, $"Failed to create disk '{path}'.", ex);
+        }
     }
 
     [RelayCommand]
@@ -228,7 +351,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"New disk failed: {ex.Message}");
+            ReportError(DiskLog, "New disk dialog failed.", ex);
         }
     }
 
@@ -239,8 +362,21 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void NewTape()
     {
-        if (CurrentModule is INewTapeViewModel tape)
+        if (CurrentModule is not INewTapeViewModel tape)
+        {
+            TapeLog.LogWarning( $"Current module {CurrentModule.GetType().Name} cannot create tapes.");
+            return;
+        }
+
+        try
+        {
+            TapeLog.LogInformation( $"Creating new blank tape in {CurrentModule.GetType().Name}.");
             tape.NewTape();
+        }
+        catch (Exception ex)
+        {
+            ReportError(TapeLog, "Failed to create a new blank tape.", ex);
+        }
     }
 
     public void HandleKey(Key key, HostKeyEventKind kind)
@@ -252,6 +388,27 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _timer.Stop();
+        ShellLog.LogInformation( $"Disposing {CurrentModule.GetType().Name}.");
         CurrentModule.Dispose();
+    }
+
+    /// <summary>Logs <paramref name="exception"/> in full and surfaces a one-line summary in
+    /// the status bar (<see cref="LastError"/>) - the file log always has the complete chain.</summary>
+    private void ReportError(ILogger log, string message, Exception exception)
+    {
+        log.LogError(exception, "{Message}", message);
+        LastError = $"{message} {exception.GetType().Name}: {exception.Message} (see {EmulatorLogging.LogFilePath})";
+    }
+
+    private static string DescribeFile(string path)
+    {
+        try
+        {
+            return File.Exists(path) ? $"{new FileInfo(path).Length} B" : "(file does not exist)";
+        }
+        catch (Exception ex)
+        {
+            return $"(stat failed: {ex.Message})";
+        }
     }
 }

@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using PetEmulator.Cpu6502.Variants;
 using PetEmulator.Cpu6809;
 using PetEmulator.Core;
@@ -35,6 +37,7 @@ public sealed class PetMachine : IMachine, IMachineStateStore<PetSnapshot>
     private IMemoryBus _activeMemory;
     private readonly PetDatasette _datasette;
     private readonly PetDatasette2 _datasette2;
+    private readonly ILogger _log;
     private readonly PetIeeeBus _ieeeBus;
     private readonly PetIeeeBusBinding _ieeeBusBinding;
     private readonly List<PetIeeeDriveStatus> _mountedDrives = [];
@@ -50,13 +53,15 @@ public sealed class PetMachine : IMachine, IMachineStateStore<PetSnapshot>
     private const int Pia1Cb1PulsePeriodCycles = 16_667; // ~1MHz PET clock / 60Hz
     private int _pia1Cb1Phase;
 
-    public PetMachine(PetProfile profile, string romsRoot, PetKeyboardMatrix? keyboard = null, ISerialTransport? serialTransport = null)
+    public PetMachine(PetProfile profile, string romsRoot, PetKeyboardMatrix? keyboard = null, ISerialTransport? serialTransport = null, ILogger? logger = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
 
         _profile = profile;
-        var roms = PetRomLoader.Load(Path.Combine(romsRoot, profile.RomDirectory), profile.RomManifest);
+        _log = logger ?? NullLogger.Instance;
+        _log.LogInformation("Constructing PetMachine profile='{Profile}' romsRoot='{RomsRoot}'.", profile.Name, romsRoot);
+        var roms = PetRomLoader.Load(Path.Combine(romsRoot, profile.RomDirectory), profile.RomManifest, _log);
 
         _pia1 = new MT6520("PIA1", PetMemoryBus.Pia1Base);
         _pia2 = new MT6520("PIA2", PetMemoryBus.Pia2Base);
@@ -80,13 +85,13 @@ public sealed class PetMachine : IMachine, IMachineStateStore<PetSnapshot>
 
         if (hasSuperPetBoard && profile.ExpansionRomManifest is { Count: > 0 } expansionManifest)
         {
-            var firmware = PetRomLoader.Load(Path.Combine(romsRoot, profile.RomDirectory), expansionManifest);
+            var firmware = PetRomLoader.Load(Path.Combine(romsRoot, profile.RomDirectory), expansionManifest, _log);
             _superPet6809Memory = new SuperPet6809MemoryBus(_memoryBus, firmware, _acia!, profile.AciaBaseAddress!.Value, _superPetProtectionDongle!);
             _superPet6809Cpu = new M6809Cpu(_superPet6809Memory);
             _superPet6809Cpu.Reset();
         }
 
-        _datasette = new PetDatasette(_pia1);
+        _datasette = new PetDatasette(_pia1, _log);
         _datasette2 = new PetDatasette2(_pia1, _via);
         _ieeeBus = new PetIeeeBus();
         // Latches true on any real byte transfer (LISTEN/TALK addressing, filename, or file data -
@@ -137,6 +142,7 @@ public sealed class PetMachine : IMachine, IMachineStateStore<PetSnapshot>
             SelectProcessor(initialProcessor);
 
         Reset();
+        _log.LogInformation("PetMachine '{Profile}' constructed and reset.", profile.Name);
     }
 
     /// <summary>The keyboard matrix PIA1 scans. A caller (e.g. a GUI's key handler, via
@@ -219,12 +225,22 @@ public sealed class PetMachine : IMachine, IMachineStateStore<PetSnapshot>
     public void MountDisk(string path, int deviceNumber = 8)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        var image = D64Image.Load(path);
-        var drive = new PetIeeeDiskDrive(deviceNumber);
-        drive.Engine.AttachImage(image);
-        _ieeeBus.AttachDevice(drive);
-        _mountedDrives.RemoveAll(d => d.Id == $"ieee488:{deviceNumber}");
-        _mountedDrives.Add(new PetIeeeDriveStatus(deviceNumber, Path.GetFileName(path)));
+        _log.LogInformation("MountDisk '{Path}' device={Device}.", path, deviceNumber);
+        try
+        {
+            var image = D64Image.Load(path, _log);
+            var drive = new PetIeeeDiskDrive(deviceNumber);
+            drive.Engine.AttachImage(image);
+            _ieeeBus.AttachDevice(drive);
+            _mountedDrives.RemoveAll(d => d.Id == $"ieee488:{deviceNumber}");
+            _mountedDrives.Add(new PetIeeeDriveStatus(deviceNumber, Path.GetFileName(path)));
+            _log.LogInformation("Disk mounted '{Path}' device={Device} ('{Disk}').", path, deviceNumber, image.DiskName);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "MountDisk '{Path}' device={Device} failed.", path, deviceNumber);
+            throw;
+        }
     }
 
     /// <summary>Creates a genuinely formatted, writable D64 at <paramref name="path"/> (see

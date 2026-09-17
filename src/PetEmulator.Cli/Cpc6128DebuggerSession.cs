@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using PetEmulator.Cpc6128;
 using PetEmulator.Cpc464;
 using PetEmulator.CpcFdc;
@@ -8,6 +10,7 @@ namespace PetEmulator.Cli;
 /// <summary>Headless debugger session for an Amstrad CPC6128.</summary>
 public sealed class Cpc6128DebuggerSession
 {
+    private static readonly ILogger Log = EmulatorLogging.CreateLogger("CLI");
     private string? _romsRoot;
     private Cpc6128Machine? _machine;
     private MachineDebugger? _debugger;
@@ -28,7 +31,7 @@ public sealed class Cpc6128DebuggerSession
                 _ => EnsureDebugger().Execute(commandLine)
             };
         }
-        catch (Exception ex) { return $"error: {ex.Message}"; }
+        catch (Exception ex) { Log.LogError(ex, "cpc6128-debug '{Command}' failed.", commandLine); return $"error: {ex.Message}"; }
     }
 
     private string SetRoms(string path) { _romsRoot = path; _machine = null; _debugger = null; return $"roms set: {Path.GetFullPath(path)}"; }

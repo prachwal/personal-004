@@ -14,7 +14,9 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="System.CommandLine" />
+    <ProjectReference Include="../../lib/PetEmulator.Core/PetEmulator.Core.csproj" />
     <ProjectReference Include="../PetEmulator.Pet/PetEmulator.Pet.csproj" />
     <ProjectReference Include="../../lib/PetEmulator.Debugger/PetEmulator.Debugger.csproj" />
     <ProjectReference Include="../PetEmulator.Vic20/PetEmulator.Vic20.csproj" />

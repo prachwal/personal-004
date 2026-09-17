@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using PetEmulator.Kaypro;
 using PetEmulator.Pet.Fonts;
 using PetEmulator.Vic20;
@@ -18,21 +20,25 @@ public sealed partial class FontViewerViewModel : ObservableObject, IShellModule
 
     public FontViewerViewModel(string romsRoot, IEnumerable<ICharacterRomProvider>? providers = null)
     {
-        var sources = (providers ?? DefaultProviders())
+        ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
+        var log = EmulatorLogging.CreateLogger("FontViewer");
+        log.LogInformation("Discovering character ROMs in '{RomsRoot}'.", romsRoot);
+        var sources = (providers ?? DefaultProviders(log))
             .SelectMany(provider => provider.DiscoverFonts(romsRoot))
             .ToArray();
+        log.LogInformation("Discovered {Count} fonts: {Fonts}.", sources.Length, string.Join(", ", sources.Select(font => font.Name)));
         Fonts = new ObservableCollection<FontSource>(sources);
         SelectedFont = Fonts.FirstOrDefault();
     }
 
     /// <summary>Every machine module that ships a character ROM registers its provider here -
     /// the only place PetEmulator.Desktop needs to touch when a new one is added.</summary>
-    private static IEnumerable<ICharacterRomProvider> DefaultProviders()
+    private static IEnumerable<ICharacterRomProvider> DefaultProviders(ILogger log)
     {
-        yield return new PetCharacterRomProvider();
-        yield return new Vic20CharacterRomProvider();
-        yield return new KayproCharacterRomProvider();
-        yield return new Trs80CharacterRomProvider();
+        yield return new PetCharacterRomProvider(log);
+        yield return new Vic20CharacterRomProvider(log);
+        yield return new KayproCharacterRomProvider(log);
+        yield return new Trs80CharacterRomProvider(log);
     }
 
     public string WindowTitle => "Font / Glyph Viewer";

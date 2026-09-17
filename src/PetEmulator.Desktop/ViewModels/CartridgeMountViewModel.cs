@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using PetEmulator.Desktop.Services;
 
 namespace PetEmulator.Desktop.ViewModels;
@@ -8,6 +10,7 @@ public sealed partial class CartridgeMountViewModel : ObservableObject
 {
     private readonly Vic20MachineViewModel _machine;
     private readonly IFilePickerService _filePicker;
+    private static readonly ILogger Log = EmulatorLogging.CreateLogger("VIC20");
 
     [ObservableProperty]
     private string _cartridgeName;
@@ -82,6 +85,7 @@ public sealed partial class CartridgeMountViewModel : ObservableObject
 
         try
         {
+            Log.LogInformation("Mounting cartridge from dialog: '{Path}'.", SelectedPath);
             _machine.LoadCartridge(SelectedPath);
             SelectedPath = null;
             ErrorMessage = null;
@@ -89,7 +93,8 @@ public sealed partial class CartridgeMountViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidDataException or IOException or InvalidOperationException)
         {
-            ErrorMessage = ex.Message;
+            Log.LogError(ex, "Mounting cartridge from dialog failed: '{Path}'.", SelectedPath);
+            ErrorMessage = $"{ex.Message} (see {EmulatorLogging.LogFilePath})";
         }
     }
 
@@ -102,6 +107,7 @@ public sealed partial class CartridgeMountViewModel : ObservableObject
 
         try
         {
+            Log.LogInformation("Mounting cartridge plugin from dialog: '{Plugin}' + '{Image}'.", SelectedPluginPath, SelectedImagePath);
             _machine.LoadCartridgePlugin(SelectedPluginPath, SelectedImagePath);
             SelectedPluginPath = null;
             SelectedImagePath = null;
@@ -110,7 +116,8 @@ public sealed partial class CartridgeMountViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidDataException or IOException or InvalidOperationException)
         {
-            ErrorMessage = ex.Message;
+            Log.LogError(ex, "Mounting cartridge plugin from dialog failed: '{Plugin}' + '{Image}'.", SelectedPluginPath, SelectedImagePath);
+            ErrorMessage = $"{ex.Message} (see {EmulatorLogging.LogFilePath})";
         }
     }
 

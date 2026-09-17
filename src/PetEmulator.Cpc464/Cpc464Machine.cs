@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using PetEmulator.Core;
 using PetEmulator.CpuZ80.Bus;
 using PetEmulator.CpuZ80.Cpu;
@@ -9,9 +11,12 @@ public sealed class Cpc464Machine : IMachine, IMachineStateStore<Cpc464Snapshot>
 {
     private readonly Z80Cpu _cpu;
     private readonly CpcMachineClock _clock;
-    public Cpc464Machine(ReadOnlySpan<byte> rom)
+    private readonly ILogger _log;
+    public Cpc464Machine(ReadOnlySpan<byte> rom, ILogger? logger = null)
     {
-        Bus = new Cpc464Bus(rom);
+        _log = logger ?? NullLogger.Instance;
+        _log.LogInformation("Constructing Cpc464Machine rom={RomSize} B.", rom.Length);
+        Bus = new Cpc464Bus(rom, _log);
         _cpu = new Z80Cpu(Bus, Bus.InterruptLines);
         _clock = new CpcMachineClock(Bus.GateArray, Bus.Cassette);
         Processor = _cpu;
@@ -45,7 +50,11 @@ public sealed class Cpc464Machine : IMachine, IMachineStateStore<Cpc464Snapshot>
         Bus.Crtc.RestoreState(state.Crtc); Bus.Ay.RestoreState(state.Ay); Bus.Keyboard.RestoreState(state.Keyboard);
         Bus.Cassette.RestoreState(state.Cassette); Bus.RestorePortsState(state.Ports);
     }
-    public void Reset() { Bus.Reset(); _cpu.Reset(); _clock.Restore(0); Bus.GateArray.RenderFrame(); }
+    public void Reset()
+    {
+        _log.LogDebug("Reset.");
+        Bus.Reset(); _cpu.Reset(); _clock.Restore(0); Bus.GateArray.RenderFrame();
+    }
     public void StepInstruction() { var before = _cpu.CycleCount; _cpu.StepInstruction(); Tick(checked((int)(_cpu.CycleCount - before))); }
     public void Tick(int cpuCycles) { _clock.Tick(cpuCycles); Bus.InterruptLines.SetInt(Bus.GateArray.InterruptPending); }
     public void Run(ulong instructionCount) { for (ulong i = 0; i < instructionCount; i++) StepInstruction(); }

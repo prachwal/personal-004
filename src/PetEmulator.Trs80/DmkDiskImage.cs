@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace PetEmulator.Trs80;
 
 /// <summary>Reads TRS-80 DMK disk images (David Keil's format): a 16-byte header followed by,
@@ -36,7 +39,23 @@ public sealed class DmkDiskImage
         SectorsPerSide = sectorsPerSide;
     }
 
-    public static DmkDiskImage Load(string path) => Load(File.ReadAllBytes(path));
+    public static DmkDiskImage Load(string path, ILogger? logger = null)
+    {
+        var log = logger ?? NullLogger.Instance;
+        log.LogInformation("Loading DMK '{Path}'.", path);
+        try
+        {
+            var image = Load(File.ReadAllBytes(path));
+            log.LogInformation("DMK loaded '{Path}' ({Tracks} tracks, {Sides} sides, {Sectors} sectors/side).",
+                path, image.Tracks, image.Sides, image.SectorsPerSide);
+            return image;
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Loading DMK '{Path}' failed.", path);
+            throw;
+        }
+    }
 
     public static DmkDiskImage Load(byte[] data)
     {

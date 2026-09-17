@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace PetEmulator.Pet.Tape;
 
 /// <summary>Platform byte in a .tap file's header, per VICE's TAP format spec.</summary>
@@ -15,9 +18,26 @@ public sealed record PetTapFile(byte Version, PetTapPlatform Platform, byte Vide
     private const string Signature = "C64-TAPE-RAW";
     public const int HeaderLength = 20;
 
-    public static PetTapFile Parse(IReadOnlyList<byte> bytes)
+    public static PetTapFile Parse(IReadOnlyList<byte> bytes, ILogger? logger = null)
     {
         ArgumentNullException.ThrowIfNull(bytes);
+        var log = logger ?? NullLogger.Instance;
+        try
+        {
+            var tap = ParseCore(bytes);
+            log.LogDebug("Parsed .tap ({Size} B): version={Version} platform={Platform} video={Video} pulses={Pulses}.",
+                bytes.Count, tap.Version, tap.Platform, tap.VideoStandard, tap.PulseCycles.Count);
+            return tap;
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Parsing .tap ({Size} B) failed.", bytes.Count);
+            throw;
+        }
+    }
+
+    private static PetTapFile ParseCore(IReadOnlyList<byte> bytes)
+    {
         if (bytes.Count < HeaderLength)
             throw new FormatException($"A .tap file needs at least a {HeaderLength}-byte header, got {bytes.Count} bytes.");
 

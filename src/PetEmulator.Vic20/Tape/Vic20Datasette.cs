@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using PetEmulator.Chips;
 using PetEmulator.Vic20;
 
@@ -37,14 +39,16 @@ public sealed class Vic20Datasette
     private readonly MOS6522 _via2;
     private readonly Vic20CassetteLines _lines;
     private readonly Vic20CassetteWriteRecorder _writeRecorder;
+    private readonly ILogger _log;
     private IReadOnlyList<int> _pulseCycles = [];
     private int _pulseIndex;
     private int _cyclesUntilNextEdge;
 
-    public Vic20Datasette(MOS6522 via1, MOS6522 via2)
+    public Vic20Datasette(MOS6522 via1, MOS6522 via2, ILogger? logger = null)
     {
         _via1 = via1 ?? throw new ArgumentNullException(nameof(via1));
         _via2 = via2 ?? throw new ArgumentNullException(nameof(via2));
+        _log = logger ?? NullLogger.Instance;
         _lines = new Vic20CassetteLines(_via1, _via2);
         _writeRecorder = new Vic20CassetteWriteRecorder(() => _lines.WriteLevel);
     }
@@ -94,6 +98,7 @@ public sealed class Vic20Datasette
         PlayPressed = false; // loading a fresh tape doesn't press play for you - matches a real deck
         _lines.SetPlaySense(false);
         Rewind();
+        _log.LogInformation("Tape loaded '{Name}' ({Pulses} pulses).", name ?? "(unnamed)", pulseCycles.Count);
     }
 
     /// <summary>Puts a fresh, empty, writable tape "in the deck" - zero pulses, a real name (see

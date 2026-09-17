@@ -3,6 +3,8 @@ using PetEmulator.Audio;
 using PetEmulator.Core;
 using PetEmulator.Desktop.Infrastructure;
 using PetEmulator.Desktop.Resources;
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using PetEmulator.Vic20.Display;
 using PetEmulator.Pet.Fonts;
 
@@ -13,6 +15,7 @@ public sealed class Mos6560DebugSession : ChipDebugSessionBase
     private readonly MOS6560 _chip;
     private readonly VicPreviewViewModel _preview;
     private readonly IAudioOutput _audioOutput;
+    private static readonly ILogger Log = EmulatorLogging.CreateLogger("ChipTester");
 
     public Mos6560DebugSession(string romsRoot)
         : this(CreateState(romsRoot)) { }
@@ -22,8 +25,7 @@ public sealed class Mos6560DebugSession : ChipDebugSessionBase
     {
         _chip = state.Chip;
         _preview = state.Preview;
-        _audioOutput = AudioOutputFactory.CreateDefault();
-        _audioOutput.Start(_chip);
+        _audioOutput = CreateAudioOutput();
         _preview.Refresh();
     }
 
@@ -33,7 +35,36 @@ public sealed class Mos6560DebugSession : ChipDebugSessionBase
     public override void Dispose()
     {
         base.Dispose();
-        _audioOutput.Dispose();
+        try
+        {
+            _audioOutput.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Log.LogWarning(ex, "MOS6560 audio output dispose failed.");
+        }
+    }
+
+    /// <summary>Platform audio backend with silent fallback - no backend exists for
+    /// Windows/macOS yet, and without the fallback the whole Chip Tester died on
+    /// construction there (see Vic20MachineViewModel for the same pattern).</summary>
+    private IAudioOutput CreateAudioOutput()
+    {
+        try
+        {
+            var output = AudioOutputFactory.CreateDefault();
+            output.Start(_chip);
+            Log.LogInformation("MOS6560 audio backend started: {Backend}.", output.GetType().Name);
+            return output;
+        }
+        catch (Exception ex)
+        {
+            Log.LogWarning(ex,
+                "No platform audio backend ({ErrorType}: {Message}); continuing silent.", ex.GetType().Name, ex.Message);
+            var silent = AudioOutputFactory.CreateNull();
+            silent.Start(_chip);
+            return silent;
+        }
     }
 
     private static VicState CreateState(string romsRoot)

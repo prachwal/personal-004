@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using PetEmulator.Core;
 using PetEmulator.Chips;
 using PetEmulator.CpuZ80.Bus;
@@ -11,11 +13,15 @@ namespace PetEmulator.Trs80;
 public sealed class Trs80Machine : IMachine, IMachineStateStore<Trs80Snapshot>
 {
     public const int TStatesPerSecond = 1_774_000;
-    public Trs80Machine(ReadOnlySpan<byte> rom, Jv1DiskImage? disk = null, byte[]? tape = null, IGlyphFont? font = null, IBusCycleObserver? cycleObserver = null)
-        : this(rom, disk is null ? null : new Trs80DiskImageAdapter(disk), tape, font, cycleObserver) { }
+    private readonly ILogger _log;
+    public Trs80Machine(ReadOnlySpan<byte> rom, Jv1DiskImage? disk = null, byte[]? tape = null, IGlyphFont? font = null, IBusCycleObserver? cycleObserver = null, ILogger? logger = null)
+        : this(rom, disk is null ? null : new Trs80DiskImageAdapter(disk), tape, font, cycleObserver, logger) { }
 
-    public Trs80Machine(ReadOnlySpan<byte> rom, IFD1791DiskImage? disk, byte[]? tape = null, IGlyphFont? font = null, IBusCycleObserver? cycleObserver = null)
+    public Trs80Machine(ReadOnlySpan<byte> rom, IFD1791DiskImage? disk, byte[]? tape = null, IGlyphFont? font = null, IBusCycleObserver? cycleObserver = null, ILogger? logger = null)
     {
+        _log = logger ?? NullLogger.Instance;
+        _log.LogInformation("Constructing Trs80Machine rom={RomSize} B disk={Disk} tape={Tape}.",
+            rom.Length, disk is null ? "none" : disk.GetType().Name, tape is null ? "none" : $"{tape.Length} B");
         Keyboard = new Trs80KeyboardMatrix();
         Printer = new Trs80Printer();
         Fdc = disk is null ? null : new Trs80FdcWiring(disk);
@@ -27,6 +33,7 @@ public sealed class Trs80Machine : IMachine, IMachineStateStore<Trs80Snapshot>
         Processor = Cpu;
         Video = new Trs80RasterDisplay(Bus, font ?? new Trs80CharacterFont(new byte[2048]));
         IsReady = true;
+        _log.LogInformation("Trs80Machine constructed.");
     }
     public string Name => "TRS-80 Model I";
     public bool IsReady { get; }
@@ -50,6 +57,7 @@ public sealed class Trs80Machine : IMachine, IMachineStateStore<Trs80Snapshot>
     public void InsertDisk(IFD1791DiskImage disk)
     {
         ArgumentNullException.ThrowIfNull(disk);
+        _log.LogInformation("InsertDisk {Disk} (FDC present={FdcPresent}).", disk.GetType().Name, Fdc is not null);
         if (Fdc is null)
         {
             Fdc = new Trs80FdcWiring(disk);
@@ -69,11 +77,16 @@ public sealed class Trs80Machine : IMachine, IMachineStateStore<Trs80Snapshot>
     public void LoadTape(byte[] tape)
     {
         ArgumentNullException.ThrowIfNull(tape);
+        _log.LogInformation("LoadTape ({Size} B).", tape.Length);
         Cassette = new Trs80CassettePlayer(tape);
         Bus.Cassette = Cassette;
     }
 
-    public void Reset() { Bus.Reset(); InterruptLines.Clear(); Cpu.Reset(); }
+    public void Reset()
+    {
+        _log.LogDebug("Reset.");
+        Bus.Reset(); InterruptLines.Clear(); Cpu.Reset();
+    }
     public void StepInstruction() { var before = Cpu.CycleCount; Cpu.StepInstruction(); var elapsed = checked((int)(Cpu.CycleCount - before)); Bus.Tick(elapsed); Video.Tick(elapsed); }
     public void Run(ulong instructionCount) { for (ulong i = 0; i < instructionCount; i++) StepInstruction(); }
 

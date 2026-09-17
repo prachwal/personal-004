@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Text;
 
 namespace PetEmulator.Pet.CbmDos;
@@ -31,10 +33,23 @@ public sealed class D64Image
         DosType = dosType;
     }
 
-    public static D64Image Load(string path)
+    public static D64Image Load(string path, ILogger? logger = null)
     {
-        byte[] data = File.ReadAllBytes(path);
-        return Parse(data);
+        var log = logger ?? NullLogger.Instance;
+        log.LogInformation("Loading D64 '{Path}'.", path);
+        try
+        {
+            byte[] data = File.ReadAllBytes(path);
+            var image = Parse(data);
+            log.LogInformation("D64 loaded '{Path}' ({Size} B, disk='{Disk}' id={Id} dos={Dos}).",
+                path, data.Length, image.DiskName, image.DiskId, image.DosType);
+            return image;
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Loading D64 '{Path}' failed.", path);
+            throw;
+        }
     }
 
     public static D64Image Load(byte[] data) => Parse(data);

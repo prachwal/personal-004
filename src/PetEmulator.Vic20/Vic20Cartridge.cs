@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using PetEmulator.Vic20.Cartridge.Abstractions;
 
 namespace PetEmulator.Vic20;
@@ -81,18 +83,36 @@ public sealed class Vic20Cartridge : IVic20ExpansionDevice
 
     public IReadOnlyList<Vic20CartridgeResource> Resources { get; }
 
-    public static Vic20Cartridge Load(string path, ushort romStartAddress = Vic20MemoryMap.CartridgeStart)
+    public static Vic20Cartridge Load(string path, ushort romStartAddress = Vic20MemoryMap.CartridgeStart, ILogger? logger = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        var log = logger ?? NullLogger.Instance;
+        log.LogInformation("Loading cartridge '{Path}'.", path);
+        try
+        {
+            var cartridge = LoadCore(path, romStartAddress, log);
+            log.LogInformation("Cartridge loaded '{Path}' ({Resources} resources).", path, cartridge.Resources.Count);
+            return cartridge;
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Loading cartridge '{Path}' failed.", path);
+            throw;
+        }
+    }
+
+    private static Vic20Cartridge LoadCore(string path, ushort romStartAddress, ILogger log)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (path.EndsWith(".prg", StringComparison.OrdinalIgnoreCase))
         {
-            Vic20PrgImage prgImage = Vic20PrgParser.Parse(path);
+            Vic20PrgImage prgImage = Vic20PrgParser.Parse(path, log);
             return new(prgImage.Data, prgImage.LoadAddress);
         }
         if (!path.EndsWith(".crt", StringComparison.OrdinalIgnoreCase))
             return new(File.ReadAllBytes(path), romStartAddress);
 
-        Vic20CrtImage image = Vic20CrtParser.Parse(path);
+        Vic20CrtImage image = Vic20CrtParser.Parse(path, log);
         if (image.Chips.Count > 1)
             return new(new Vic20BankedCrt(image.Chips));
         if (image.Chips.Count == 0 || image.Chips[0].Bank != 0)

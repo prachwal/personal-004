@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using PetEmulator.Desktop.ViewModels;
 
 namespace PetEmulator.Desktop.Views;
@@ -13,6 +15,7 @@ namespace PetEmulator.Desktop.Views;
 /// DataContext, not whatever it was when this View was first constructed.</summary>
 public partial class PetMachineView : UserControl
 {
+    private static readonly ILogger Log = EmulatorLogging.CreateLogger("View");
     private PetMachineViewModel? _wired;
 
     public PetMachineView()
@@ -43,6 +46,9 @@ public partial class PetMachineView : UserControl
         _wired.GeometryChanged += OnGeometryChanged;
         SetScreenSize();
         Screen.Focus();
+        var (parWidth, parHeight) = _wired.PixelAspect;
+        Log.LogInformation("PetMachineView wired to {Title} ({Width}x{Height} par={ParWidth}:{ParHeight}).",
+            _wired.WindowTitle, _wired.PixelWidth, _wired.PixelHeight, parWidth, parHeight);
     }
 
     private void OnFrameReady(object? sender, EventArgs e) => Screen.UpdateFrame(_wired!.FrameBuffer);

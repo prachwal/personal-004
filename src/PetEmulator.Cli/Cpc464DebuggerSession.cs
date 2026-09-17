@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using PetEmulator.Debugger;
 using PetEmulator.Cpc464;
 
@@ -10,6 +12,7 @@ namespace PetEmulator.Cli;
 /// Cpc464Keyboard.SetKey's own parameters).</summary>
 public sealed class Cpc464DebuggerSession
 {
+    private static readonly ILogger Log = EmulatorLogging.CreateLogger("CLI");
     private string? _romsRoot;
     private Cpc464Machine? _machine;
     private MachineDebugger? _debugger;
@@ -29,7 +32,7 @@ public sealed class Cpc464DebuggerSession
                 _ => EnsureDebugger().Execute(commandLine)
             };
         }
-        catch (Exception ex) { return $"error: {ex.Message}"; }
+        catch (Exception ex) { Log.LogError(ex, "cpc464-debug '{Command}' failed.", commandLine); return $"error: {ex.Message}"; }
     }
 
     private string SetRoms(string path) { _romsRoot = path; _machine = null; _debugger = null; return $"roms set: {Path.GetFullPath(path)}"; }

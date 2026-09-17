@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace PetEmulator.Trs80;
 
 /// <summary>Raw JV1 TRS-80 disk image: no container header, a linear track-major dump of
@@ -17,7 +20,22 @@ public sealed class Jv1DiskImage
         Tracks = tracks;
     }
 
-    public static Jv1DiskImage Load(string path) => Load(File.ReadAllBytes(path));
+    public static Jv1DiskImage Load(string path, ILogger? logger = null)
+    {
+        var log = logger ?? NullLogger.Instance;
+        log.LogInformation("Loading JV1 '{Path}'.", path);
+        try
+        {
+            var image = Load(File.ReadAllBytes(path));
+            log.LogInformation("JV1 loaded '{Path}' ({Tracks} tracks).", path, image.Tracks);
+            return image;
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Loading JV1 '{Path}' failed.", path);
+            throw;
+        }
+    }
 
     public static Jv1DiskImage Load(byte[] data)
     {

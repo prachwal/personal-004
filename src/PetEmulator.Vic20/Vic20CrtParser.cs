@@ -1,5 +1,7 @@
 using System.Buffers.Binary;
 using System.Text;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace PetEmulator.Vic20;
 
@@ -23,10 +25,23 @@ public static class Vic20CrtParser
     private const int ChipHeaderLength = 0x10;
     private const string Signature = "C64 CARTRIDGE   ";
 
-    public static Vic20CrtImage Parse(string path)
+    public static Vic20CrtImage Parse(string path, ILogger? logger = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return Parse(File.ReadAllBytes(path));
+        var log = logger ?? NullLogger.Instance;
+        log.LogInformation("Parsing CRT '{Path}'.", path);
+        try
+        {
+            var image = Parse(File.ReadAllBytes(path));
+            log.LogInformation("CRT parsed '{Path}': name='{Name}' hw={Hardware} chips={Chips}.",
+                path, image.Name, image.HardwareType, image.Chips.Count);
+            return image;
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Parsing CRT '{Path}' failed.", path);
+            throw;
+        }
     }
 
     public static Vic20CrtImage Parse(ReadOnlySpan<byte> image)

@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using PetEmulator.Chips;
 
 namespace PetEmulator.Pet.Tape;
@@ -41,12 +43,17 @@ public readonly record struct DatasetteActivity(string Kind, string Detail);
 public sealed class PetDatasette
 {
     private readonly MT6520 _pia1;
+    private readonly ILogger _log;
     private IReadOnlyList<int> _pulseCycles = [];
     private int _pulseIndex;
     private int _cyclesUntilNextEdge;
     private bool _lastMotorOn;
 
-    public PetDatasette(MT6520 pia1) => _pia1 = pia1 ?? throw new ArgumentNullException(nameof(pia1));
+    public PetDatasette(MT6520 pia1, ILogger? logger = null)
+    {
+        _pia1 = pia1 ?? throw new ArgumentNullException(nameof(pia1));
+        _log = logger ?? NullLogger.Instance;
+    }
 
     /// <summary>Fires for motor start/stop and each played pulse boundary. Optional (nullable
     /// multicast delegate) - zero-cost and behavior-neutral when nobody subscribes.</summary>
@@ -84,11 +91,13 @@ public sealed class PetDatasette
         TapeName = name;
         PlayPressed = false; // loading a fresh tape doesn't press play for you - matches a real deck
         Rewind();
+        _log.LogInformation("Tape loaded '{Name}' ({Pulses} pulses).", name ?? "(unnamed)", pulseCycles.Count);
     }
 
     /// <summary>Ejects whatever tape is loaded: clears its pulses/name, releases play, and rewinds.</summary>
     public void Eject()
     {
+        _log.LogInformation("Tape ejected '{Name}'.", TapeName ?? "(none)");
         _pulseCycles = [];
         TapeName = null;
         PlayPressed = false;

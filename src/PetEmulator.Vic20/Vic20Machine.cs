@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using PetEmulator.Cpu6502.Variants;
 using PetEmulator.Core;
 using PetEmulator.Pet.CbmDos;
@@ -42,6 +44,7 @@ public sealed class Vic20Machine : IMachine, IMachineStateStore<Vic20Snapshot>
     private readonly List<PetIeeeDriveStatus> _mountedDrives = [];
     private bool _diskActivityPending;
     private readonly List<Vic20MountedCartridge> _mountedCartridges = [];
+    private readonly ILogger _log;
 
     // The real KERNAL's IRQ vector ($0314/$0315, "CINV") while idle - both LOAD and SAVE
     // temporarily redirect it to their own tape ISR for the duration of the operation, then
@@ -56,11 +59,15 @@ public sealed class Vic20Machine : IMachine, IMachineStateStore<Vic20Snapshot>
     public Vic20Machine(
         string romsRoot,
         Vic20DisplayConfig? displayConfig = null,
-        Vic20Cartridge? cartridge = null)
+        Vic20Cartridge? cartridge = null,
+        ILogger? logger = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
+        _log = logger ?? NullLogger.Instance;
         DisplayConfig = displayConfig ?? Vic20DisplayConfig.Ntsc;
-        var roms = Vic20RomLoader.Load(romsRoot, Vic20RomManifest.Ntsc);
+        _log.LogInformation("Constructing Vic20Machine romsRoot='{RomsRoot}' display={Display} cartridge={Cartridge}.",
+            romsRoot, DisplayConfig.VideoStandard, cartridge is null ? "none" : "provided");
+        var roms = Vic20RomLoader.Load(romsRoot, Vic20RomManifest.Ntsc, _log);
 
         _vic = new MOS6560("VIC", Vic20MemoryMap.VicBaseAddress, DisplayConfig.VideoStandard);
         _via1 = new MOS6522("VIA1", Vic20MemoryMap.Via1BaseAddress);
@@ -95,7 +102,7 @@ public sealed class Vic20Machine : IMachine, IMachineStateStore<Vic20Snapshot>
             _via1.Update();
             _via2.Update();
         };
-        _datasette = new Vic20Datasette(_via1, _via2);
+        _datasette = new Vic20Datasette(_via1, _via2, _log);
         _serialBus = new Vic20SerialBus();
         _serialBus.Activity += activity =>
         {
@@ -120,6 +127,7 @@ public sealed class Vic20Machine : IMachine, IMachineStateStore<Vic20Snapshot>
         };
 
         Reset();
+        _log.LogInformation("Vic20Machine constructed and reset.");
     }
 
     /// <summary>The keyboard matrix VIA1 scans. A caller (e.g. a GUI's key handler) presses/
@@ -158,21 +166,43 @@ public sealed class Vic20Machine : IMachine, IMachineStateStore<Vic20Snapshot>
             .. _memoryBus.ExpansionDevices.SelectMany(item => item.Resources),
         ];
 
-    public void MountCartridge(string path)
+    public void MountCartridge(string path, ILogger? logger = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        var cartridge = Vic20Cartridge.Load(path);
-        _memoryBus.InsertCartridge(cartridge);
-        _mountedCartridges.Add(new Vic20MountedCartridge(path, cartridge));
+        var log = logger ?? _log;
+        log.LogInformation("MountCartridge '{Path}'.", path);
+        try
+        {
+            var cartridge = Vic20Cartridge.Load(path, logger: log);
+            _memoryBus.InsertCartridge(cartridge);
+            _mountedCartridges.Add(new Vic20MountedCartridge(path, cartridge));
+            log.LogInformation("Cartridge mounted '{Path}' ({Resources} resources).", path, cartridge.Resources.Count);
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "MountCartridge '{Path}' failed.", path);
+            throw;
+        }
     }
 
-    public void MountCartridgePlugin(string pluginPath, string imagePath)
+    public void MountCartridgePlugin(string pluginPath, string imagePath, ILogger? logger = null)
     {
-        var plugin = Vic20CartridgePluginLoader.Load(pluginPath);
-        var image = File.ReadAllBytes(imagePath);
-        var cartridge = Vic20Cartridge.FromPlugin(plugin.Create(image));
-        _memoryBus.InsertCartridge(cartridge);
-        _mountedCartridges.Add(new Vic20MountedCartridge(imagePath, cartridge));
+        var log = logger ?? _log;
+        log.LogInformation("MountCartridgePlugin plugin='{Plugin}' image='{Image}'.", pluginPath, imagePath);
+        try
+        {
+            var plugin = Vic20CartridgePluginLoader.Load(pluginPath, log);
+            var image = File.ReadAllBytes(imagePath);
+            var cartridge = Vic20Cartridge.FromPlugin(plugin.Create(image));
+            _memoryBus.InsertCartridge(cartridge);
+            _mountedCartridges.Add(new Vic20MountedCartridge(imagePath, cartridge));
+            log.LogInformation("Cartridge plugin mounted plugin='{Plugin}' image='{Image}' ({Size} B).", pluginPath, imagePath, image.Length);
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "MountCartridgePlugin plugin='{Plugin}' image='{Image}' failed.", pluginPath, imagePath);
+            throw;
+        }
     }
 
     public void AttachExpansionDevice(IVic20ExpansionDevice device)
@@ -218,12 +248,22 @@ public sealed class Vic20Machine : IMachine, IMachineStateStore<Vic20Snapshot>
     public void MountDisk(string path, int deviceNumber = 8)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        var image = D64Image.Load(path);
-        var drive = new PetIeeeDiskDrive(deviceNumber);
-        drive.Engine.AttachImage(image);
-        _serialBus.AttachDevice(drive);
-        _mountedDrives.RemoveAll(d => d.Id == $"ieee488:{deviceNumber}");
-        _mountedDrives.Add(new PetIeeeDriveStatus(deviceNumber, Path.GetFileName(path)));
+        _log.LogInformation("MountDisk '{Path}' device={Device}.", path, deviceNumber);
+        try
+        {
+            var image = D64Image.Load(path, _log);
+            var drive = new PetIeeeDiskDrive(deviceNumber);
+            drive.Engine.AttachImage(image);
+            _serialBus.AttachDevice(drive);
+            _mountedDrives.RemoveAll(d => d.Id == $"ieee488:{deviceNumber}");
+            _mountedDrives.Add(new PetIeeeDriveStatus(deviceNumber, Path.GetFileName(path)));
+            _log.LogInformation("Disk mounted '{Path}' device={Device} ('{Disk}').", path, deviceNumber, image.DiskName);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "MountDisk '{Path}' device={Device} failed.", path, deviceNumber);
+            throw;
+        }
     }
 
     /// <summary>Creates a formatted, writable D64 at <paramref name="path"/> and mounts it.</summary>

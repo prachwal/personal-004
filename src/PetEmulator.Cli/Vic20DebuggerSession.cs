@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using System.Globalization;
 using System.Text;
 using PetEmulator.Debugger;
@@ -17,6 +19,7 @@ namespace PetEmulator.Cli;
 /// </summary>
 public sealed class Vic20DebuggerSession
 {
+    private static readonly ILogger Log = EmulatorLogging.CreateLogger("CLI");
     private string? _romsRoot;
     private Vic20Machine? _machine;
     private MachineDebugger? _debugger;
@@ -52,6 +55,7 @@ public sealed class Vic20DebuggerSession
         }
         catch (Exception ex)
         {
+            Log.LogError(ex, "vic20-debug '{Command}' failed.", commandLine);
             return $"error: {ex.Message}";
         }
     }

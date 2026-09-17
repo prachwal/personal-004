@@ -4,6 +4,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PetEmulator.Audio;
 using PetEmulator.Desktop.Input;
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
+using PetEmulator.Desktop.Services;
 using PetEmulator.Core;
 using PetEmulator.Core.Keyboard;
 using PetEmulator.Pet;
@@ -37,6 +40,7 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
     private readonly IPetKeyboardMap _keyboardMap;
     private readonly PetProfile _profile;
     private readonly IAudioOutput _audioOutput;
+    private readonly ILogger _log = EmulatorLogging.CreateLogger("PET-VM");
     private DateTime _diskActivityUntilUtc = DateTime.MinValue;
 
     [ObservableProperty]
@@ -89,10 +93,11 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
 
         _profile = profile;
+        _log.LogInformation("Creating PET machine: profile='{Profile}' romsRoot='{RomsRoot}'.", profile.Name, romsRoot);
         var font = new PetCharacterRomLoader().Load(
             Path.Combine(romsRoot, profile.RomDirectory, profile.CharacterRomPath));
 
-        _machine = new PetMachine(profile, romsRoot);
+        _machine = new PetMachine(profile, romsRoot, logger: _log);
         _audioOutput = AudioOutputFactory.CreateNull();
         _display = new PetRasterDisplay(profile, _machine.Memory, font);
         FrameBuffer = new uint[_display.PixelWidth * _display.PixelHeight];
@@ -135,26 +140,73 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
 
     public uint[] FrameBuffer { get; }
 
-    public void Reset() => _machine.Reset();
+    public void Reset()
+    {
+        try
+        {
+            _machine.Reset();
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Reset failed for profile '{Profile}'.", _profile.Name);
+            throw;
+        }
+    }
 
     /// <summary>Loads a VICE-style .tap file into the running machine's datasette - the file-picker
     /// dialog itself is Avalonia-specific glue that lives in <see cref="MainWindow"/>'s code-behind
     /// (needs a <c>TopLevel</c>), which calls straight through to this.</summary>
     public void LoadTape(string path)
     {
-        var tap = PetTapFile.Parse(File.ReadAllBytes(path));
-        _machine.Datasette.LoadTape(tap.PulseCycles, Path.GetFileName(path));
+        try
+        {
+            _log.LogInformation("Loading tape '{Path}'.", path);
+            var tap = PetTapFile.Parse(File.ReadAllBytes(path), _log);
+            _machine.Datasette.LoadTape(tap.PulseCycles, Path.GetFileName(path));
+            _log.LogInformation("Tape loaded: '{Path}' ({Pulses} pulses).", path, tap.PulseCycles.Count);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to load tape '{Path}'.", path);
+            throw;
+        }
     }
 
     /// <inheritdoc cref="LoadTape"/>
-    public void LoadDisk(string path) => _machine.MountDisk(path);
+    public void LoadDisk(string path)
+    {
+        try
+        {
+            _log.LogInformation("Mounting disk '{Path}'.", path);
+            _machine.MountDisk(path);
+            _log.LogInformation("Disk mounted: '{Path}'.", path);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to mount disk '{Path}'.", path);
+            throw;
+        }
+    }
 
     /// <summary>Creates a fresh, formatted, writable D64 at <paramref name="path"/> and mounts it
     /// - see <see cref="PetMachine.MountNewDisk"/>. Unlike <see cref="LoadTape"/>/
     /// <see cref="LoadDisk"/> this WRITES the file (a real image needs bytes on disk before
     /// <c>MountDisk</c> can read it back), so <see cref="MainWindow"/>'s code-behind uses a save,
     /// not an open, file picker for this one.</summary>
-    public void NewDisk(string path) => _machine.MountNewDisk(path, Path.GetFileNameWithoutExtension(path).ToUpperInvariant());
+    public void NewDisk(string path)
+    {
+        try
+        {
+            _log.LogInformation("Creating new disk '{Path}'.", path);
+            _machine.MountNewDisk(path, Path.GetFileNameWithoutExtension(path).ToUpperInvariant());
+            _log.LogInformation("New disk created: '{Path}'.", path);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to create disk '{Path}'.", path);
+            throw;
+        }
+    }
 
     [RelayCommand]
     private void PlayTape() => _machine.Datasette.PressPlay();
@@ -183,9 +235,19 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
 
     public void Tick()
     {
-        _machine.Run(InstructionsPerTick);
-        _display.Tick();
-        _display.Render(FrameBuffer);
+        try
+        {
+            _machine.Run(InstructionsPerTick);
+            _display.Tick();
+            _display.Render(FrameBuffer);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex,
+                "Tick failed at cycles={Cycles} instructions={Instructions}.",
+                _machine.Processor.CycleCount, _machine.Processor.InstructionCount);
+            throw;
+        }
 
         var regs = ((IDebuggableProcessor)_machine.Processor).GetRegisters();
         StatusText =

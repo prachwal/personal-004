@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using PetEmulator.Chips;
 using PetEmulator.Core;
 using PetEmulator.CpuZ80.Cpu;
@@ -14,10 +16,13 @@ public sealed class Cpc6128Machine : IMachine, IMachineStateStore<Cpc6128Snapsho
     private readonly Cpc6128Ports _ports;
     private readonly I8272Chip _fdc;
     private readonly CpcMachineClock _clock;
+    private readonly ILogger _log;
     private ulong _frameCycles;
 
-    public Cpc6128Machine(ReadOnlySpan<byte> rom)
+    public Cpc6128Machine(ReadOnlySpan<byte> rom, ILogger? logger = null)
     {
+        _log = logger ?? NullLogger.Instance;
+        _log.LogInformation("Constructing Cpc6128Machine rom={RomSize} B.", rom.Length);
         CpcGateArray? gateArray = null;
         Crtc = new MT6545("CPC6128 CRTC", 0xBC00);
         _bus = new Cpc6128MemoryBus(rom, () => gateArray!.LowerRomEnabled,
@@ -26,7 +31,7 @@ public sealed class Cpc6128Machine : IMachine, IMachineStateStore<Cpc6128Snapsho
         GateArray = gateArray;
         Ay = new Ay38910();
         Keyboard = new CpcKeyboard();
-        Cassette = new CpcCassette();
+        Cassette = new CpcCassette(_log);
         _clock = new CpcMachineClock(GateArray, Cassette);
         InterruptLines = new PetEmulator.CpuZ80.Interrupts.InterruptLines();
         _fdc = new I8272Chip();
@@ -71,14 +76,29 @@ public sealed class Cpc6128Machine : IMachine, IMachineStateStore<Cpc6128Snapsho
         _frameCycles = state.FrameCycles; FrameCount = state.FrameCount;
     }
 
-    public void LoadExpansionRom(byte number, ReadOnlySpan<byte> rom) => _bus.LoadUpperRom(number, rom);
+    public void LoadExpansionRom(byte number, ReadOnlySpan<byte> rom)
+    {
+        _log.LogInformation("LoadExpansionRom slot={Slot} ({Size} B).", number, rom.Length);
+        _bus.LoadUpperRom(number, rom);
+    }
 
     public void LoadDisk(int drive, DskDiskImage image)
     {
-        var floppy = new DskFloppyDrive(image) { MotorOn = true };
-        if (drive == 0) _fdc.Drive0 = floppy;
-        else if (drive == 1) _fdc.Drive1 = floppy;
-        else throw new ArgumentOutOfRangeException(nameof(drive));
+        ArgumentNullException.ThrowIfNull(image);
+        _log.LogInformation("LoadDisk drive={Drive}.", drive);
+        try
+        {
+            var floppy = new DskFloppyDrive(image) { MotorOn = true };
+            if (drive == 0) _fdc.Drive0 = floppy;
+            else if (drive == 1) _fdc.Drive1 = floppy;
+            else throw new ArgumentOutOfRangeException(nameof(drive));
+            _log.LogInformation("Disk loaded on drive {Drive}.", drive);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "LoadDisk drive={Drive} failed.", drive);
+            throw;
+        }
     }
 
     public void Reset()

@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using PetEmulator.Chips;
 
 namespace PetEmulator.Kaypro;
@@ -32,8 +34,22 @@ public sealed class KayproDiskImage : IFD1793DiskImage
     public int FirstSectorId => _firstSectorId;
     public int SectorsOnTrack(int track) => track is >= 0 and < Tracks ? SectorsPerTrack : 0;
 
-    public static KayproDiskImage Load(string path, bool writeProtected = false)
-        => new(File.ReadAllBytes(path), writeProtected);
+    public static KayproDiskImage Load(string path, bool writeProtected = false, ILogger? logger = null)
+    {
+        var log = logger ?? NullLogger.Instance;
+        log.LogInformation("Loading disk image '{Path}'.", path);
+        try
+        {
+            var image = new KayproDiskImage(File.ReadAllBytes(path), writeProtected);
+            log.LogInformation("Disk image loaded '{Path}' ({Size} B).", path, ImageSize);
+            return image;
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Loading disk image '{Path}' failed.", path);
+            throw;
+        }
+    }
 
     public byte[] ToArray() => (byte[])_data.Clone();
 

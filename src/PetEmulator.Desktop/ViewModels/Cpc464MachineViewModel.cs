@@ -5,6 +5,8 @@ using CommunityToolkit.Mvvm.Input;
 using PetEmulator.Audio;
 using PetEmulator.Core;
 using PetEmulator.Desktop.Input;
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using PetEmulator.Cpc464;
 using PetEmulator.Pet.Keyboard;
 
@@ -15,6 +17,7 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
     private const ulong InstructionsPerTick = 20_000;
     private readonly Cpc464Machine _machine;
     private readonly IAudioOutput _audioOutput;
+    private readonly ILogger _log = EmulatorLogging.CreateLogger("CPC464");
     [ObservableProperty] private bool _tapeLoaded;
     [ObservableProperty] private bool _tapePlaying;
 
@@ -22,10 +25,20 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
     [ObservableProperty] private string _statusText = "Amstrad CPC464  Z80  PC=0x0000";
     public Cpc464MachineViewModel(string romsRoot)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
         var romPath = Path.Combine(romsRoot, "cpc464", "cpc464.rom");
-        _machine = new Cpc464Machine(File.ReadAllBytes(romPath));
-        _audioOutput = AudioOutputFactory.CreateDefault();
-        _audioOutput.Start(_machine.Bus.Ay);
+        _log.LogInformation("Creating CPC464 machine from '{Path}'.", romPath);
+        try
+        {
+            _machine = new Cpc464Machine(File.ReadAllBytes(romPath), _log);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to create Cpc464Machine from '{Path}'.", romPath);
+            throw;
+        }
+
+        _audioOutput = CreateAudioOutput();
         FrameBuffer = new uint[320 * 200];
         Reset();
         GeometryChanged?.Invoke(this, EventArgs.Empty);
@@ -51,10 +64,20 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
     }
     public void LoadTape(string path)
     {
-        var cdt = Cpc464CdtImage.Parse(File.ReadAllBytes(path));
-        _machine.Bus.Cassette.LoadPulses(cdt.PulseTicks);
-        TapeLoaded = true;
-        TapePlaying = false;
+        try
+        {
+            _log.LogInformation("Loading tape '{Path}'.", path);
+            var cdt = Cpc464CdtImage.Parse(File.ReadAllBytes(path), _log);
+            _machine.Bus.Cassette.LoadPulses(cdt.PulseTicks);
+            TapeLoaded = true;
+            TapePlaying = false;
+            _log.LogInformation("Tape loaded: '{Path}'.", path);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to load tape '{Path}'.", path);
+            throw;
+        }
     }
 
     [RelayCommand]
@@ -72,7 +95,17 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
 
     [RelayCommand]
     private void EjectTape() { _machine.Bus.Cassette.Eject(); TapeLoaded = false; TapePlaying = false; }
-    public void Dispose() => _audioOutput.Dispose();
+    public void Dispose()
+    {
+        try
+        {
+            _audioOutput.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Audio output dispose failed.");
+        }
+    }
     public void HandleKey(Key key, HostKeyEventKind kind) { if (TryMap(key, out var row, out var column)) _machine.Bus.Keyboard.SetKey(row, column, kind == HostKeyEventKind.Press); }
     private void Render()
     {
@@ -116,5 +149,26 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
         if (Matrix.TryGetValue(key, out var cell)) { row = cell.Row; column = cell.Column; return true; }
         row = column = 0;
         return false;
+    }
+
+    /// <summary>Platform audio backend with silent fallback - see
+    /// <see cref="Vic20MachineViewModel"/> for why the fallback exists.</summary>
+    private IAudioOutput CreateAudioOutput()
+    {
+        try
+        {
+            var output = AudioOutputFactory.CreateDefault();
+            output.Start(_machine.Bus.Ay);
+            _log.LogInformation("Audio backend started: {Backend}.", output.GetType().Name);
+            return output;
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex,
+                "No platform audio backend ({ErrorType}: {Message}); continuing silent.", ex.GetType().Name, ex.Message);
+            var silent = AudioOutputFactory.CreateNull();
+            silent.Start(_machine.Bus.Ay);
+            return silent;
+        }
     }
 }

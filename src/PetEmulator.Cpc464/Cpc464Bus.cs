@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using PetEmulator.Chips;
 using PetEmulator.Core;
 using PetEmulator.CpuZ80.Bus;
@@ -11,7 +13,7 @@ public sealed class Cpc464Bus : IBus, IMemoryBus
     public const int RomSize = 0x8000;
     private readonly byte[] _ram = new byte[0x10000];
     private readonly byte[] _rom;
-    public Cpc464Bus(ReadOnlySpan<byte> rom)
+    public Cpc464Bus(ReadOnlySpan<byte> rom, ILogger? logger = null)
     {
         if (rom.Length != RomSize) throw new ArgumentException("CPC464 ROM must be exactly 32 KB.", nameof(rom));
         _rom = rom.ToArray();
@@ -19,7 +21,7 @@ public sealed class Cpc464Bus : IBus, IMemoryBus
         GateArray = new CpcGateArray(Crtc, ReadRam);
         Ay = new Ay38910();
         Keyboard = new Cpc464Keyboard();
-        Cassette = new Cpc464Cassette();
+        Cassette = new Cpc464Cassette(logger ?? NullLogger.Instance);
         InterruptLines = new InterruptLines();
     }
     public MT6545 Crtc { get; }

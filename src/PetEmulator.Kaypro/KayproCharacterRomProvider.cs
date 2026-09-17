@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using PetEmulator.Pet.Fonts;
 
 namespace PetEmulator.Kaypro;
@@ -16,10 +18,21 @@ internal sealed class KayproGlyphFont(KayproFont font) : IGlyphFont
 /// Font/Glyph Viewer.</summary>
 public sealed class KayproCharacterRomProvider : ICharacterRomProvider
 {
+    private readonly ILogger _log;
+
+    public KayproCharacterRomProvider(ILogger? logger = null) => _log = logger ?? NullLogger.Instance;
+
     public IEnumerable<FontSource> DiscoverFonts(string romsRoot)
     {
         var path = Path.Combine(romsRoot, "kaypro", "kaypro-81-146.bin");
         if (File.Exists(path))
+        {
+            _log.LogInformation("Font discovered: '{Path}'.", path);
             yield return new FontSource("Kaypro II character ROM", new KayproGlyphFont(KayproFont.Load(path)));
+        }
+        else
+        {
+            _log.LogInformation("Font missing: '{Path}'.", path);
+        }
     }
 }

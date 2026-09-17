@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using PetEmulator.Desktop.ViewModels.ChipTests;
 
 namespace PetEmulator.Desktop.ViewModels;
@@ -7,6 +9,7 @@ namespace PetEmulator.Desktop.ViewModels;
 public sealed partial class ChipTesterViewModel : ObservableObject, IShellModule
 {
     private readonly string _romsRoot;
+    private static readonly ILogger Log = EmulatorLogging.CreateLogger("ChipTester");
 
     public ChipTesterViewModel(string romsRoot)
     {
@@ -39,11 +42,21 @@ public sealed partial class ChipTesterViewModel : ObservableObject, IShellModule
     {
         if (value is ChipScenarioEntry scenario)
         {
-            SelectedScenario?.Dispose();
-            SelectedScenario = scenario.Create();
-            SelectedScenario.LoadStimulus(scenario.Stimulus ?? []);
-            OnPropertyChanged(nameof(SelectedScenario));
-            OnPropertyChanged(nameof(StatusText));
+            Log.LogInformation("Opening scenario '{Scenario}'.", scenario.Name);
+            try
+            {
+                SelectedScenario?.Dispose();
+                SelectedScenario = scenario.Create();
+                SelectedScenario.LoadStimulus(scenario.Stimulus ?? []);
+                OnPropertyChanged(nameof(SelectedScenario));
+                OnPropertyChanged(nameof(StatusText));
+                Log.LogInformation("Scenario '{Scenario}' ready.", scenario.Name);
+            }
+            catch (Exception ex)
+            {
+                Log.LogError(ex, "Failed to open scenario '{Scenario}'.", scenario.Name);
+                throw;
+            }
         }
     }
 

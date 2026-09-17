@@ -1,6 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 using PetEmulator.Desktop.Input;
 using PetEmulator.Desktop.Services;
 using PetEmulator.Desktop.ViewModels;
@@ -10,13 +12,17 @@ namespace PetEmulator.Desktop.Views;
 
 public partial class MainWindow : Window
 {
+    private static readonly ILogger Log = EmulatorLogging.CreateLogger("View");
     private readonly MainWindowViewModel _viewModel;
 
     public MainWindow()
     {
         InitializeComponent();
+        Log.LogDebug("MainWindow initializing.");
         _viewModel = new MainWindowViewModel(new AvaloniaFilePickerService(this));
         DataContext = _viewModel;
+        Log.LogInformation("MainWindow ready with initial module {Module} ({Title}).",
+            _viewModel.CurrentModule.GetType().Name, _viewModel.CurrentModule.WindowTitle);
 
         _viewModel.CloseRequested += (_, _) => Close();
 
@@ -33,7 +39,7 @@ public partial class MainWindow : Window
         // Rewire()) - swapped per machine, not owned here.
         Loaded += (_, _) => { Focus(); MachineHost.Focus(); };
         Activated += (_, _) => { Focus(); MachineHost.Focus(); };
-        Closed += (_, _) => _viewModel.Dispose();
+        Closed += (_, _) => { Log.LogInformation("MainWindow closed."); _viewModel.Dispose(); };
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)

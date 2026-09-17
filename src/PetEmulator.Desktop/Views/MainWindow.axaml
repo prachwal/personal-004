@@ -10,6 +10,17 @@
         Width="960" Height="640"
         Background="{DynamicResource WindowBackgroundBrush}">
     <DockPanel>
+        <!-- Bottom diagnostics bar: the last error plus the session log path. WinExe has no
+             console, so without this (and the log file it points at) failures were invisible. -->
+        <Border DockPanel.Dock="Bottom" Padding="8,4"
+                Background="{DynamicResource WindowBackgroundBrush}"
+                ToolTip.Tip="{Binding LogFilePath}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="Log:" Opacity="0.6" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding LogFilePath}" Opacity="0.6" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding LastError}" Foreground="Red" VerticalAlignment="Center" TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
                 <MenuItem Header="_Reset" Command="{Binding ResetCommand}" />

@@ -1,15 +1,17 @@
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using Microsoft.Extensions.Logging;
+using PetEmulator.Core.Logging;
 
 namespace PetEmulator.Desktop.Services;
 
 public sealed class AvaloniaFilePickerService(Window window) : IFilePickerService
 {
+    private static readonly ILogger Log = EmulatorLogging.CreateLogger("Picker");
     public async Task<string?> PickTapeToOpenAsync()
     {
         return await PickOpenFileAsync("Load tape", "Tape images", ["*.tap", "*.cdt"]);
     }
-
     public async Task<string?> PickDiskToOpenAsync()
     {
         return await PickOpenFileAsync("Load disk", "Disk images", ["*.d64", "*.dsk", "*.td0", "*.jv1", "*.dmk"]);
@@ -53,6 +55,14 @@ public sealed class AvaloniaFilePickerService(Window window) : IFilePickerServic
             AllowMultiple = false,
             FileTypeFilter = [new FilePickerFileType(filterName) { Patterns = patterns }]
         });
-        return files.Count == 0 ? null : files[0].Path.LocalPath;
+        if (files.Count == 0)
+        {
+            Log.LogInformation("'{Title}' cancelled by the user.", title);
+            return null;
+        }
+
+        var path = files[0].Path.LocalPath;
+        Log.LogInformation("'{Title}' picked '{Path}'.", title, path);
+        return path;
     }
 }
