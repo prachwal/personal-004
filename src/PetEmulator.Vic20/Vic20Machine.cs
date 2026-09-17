@@ -266,6 +266,15 @@ public sealed class Vic20Machine : IMachine, IMachineStateStore<Vic20Snapshot>
         }
     }
 
+    /// <summary>Ejects the disk image on the IEC serial bus at <paramref name="deviceNumber"/>:
+    /// detaches the drive and drops its status entry, so a GUI's disk icon goes gray again.</summary>
+    public void EjectDisk(int deviceNumber = 8)
+    {
+        _log.LogInformation("EjectDisk device={Device}.", deviceNumber);
+        _serialBus.DetachDevice(deviceNumber);
+        _mountedDrives.RemoveAll(d => d.Id == $"ieee488:{deviceNumber}");
+    }
+
     /// <summary>Creates a formatted, writable D64 at <paramref name="path"/> and mounts it.</summary>
     public void MountNewDisk(string path, string diskName, string diskId = "00", int deviceNumber = 8)
     {

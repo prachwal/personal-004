@@ -256,6 +256,15 @@ public sealed class PetMachine : IMachine, IMachineStateStore<PetSnapshot>
         MountDisk(path, deviceNumber);
     }
 
+    /// <summary>Ejects the disk image on the IEEE-488 bus at <paramref name="deviceNumber"/>:
+    /// detaches the drive and drops its status entry, so a GUI's disk icon goes gray again.</summary>
+    public void EjectDisk(int deviceNumber = 8)
+    {
+        _log.LogInformation("EjectDisk device={Device}.", deviceNumber);
+        _ieeeBus.DetachDevice(deviceNumber);
+        _mountedDrives.RemoveAll(d => d.Id == $"ieee488:{deviceNumber}");
+    }
+
     /// <summary>Whether a disk is currently mounted at <paramref name="deviceNumber"/> - for a
     /// GUI's single dedicated disk-drive icon (device 8 is the PET/CBM DOS convention for "the"
     /// drive; see <see cref="MountDisk"/>'s default), as opposed to <see cref="Devices"/>'s full

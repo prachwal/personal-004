@@ -9,6 +9,10 @@
         <SolidColorBrush x:Key="DeviceBarBackgroundBrush" Color="#FF161616" />
         <SolidColorBrush x:Key="DeviceStatusTextBrush" Color="#FFAAAAAA" />
         <SolidColorBrush x:Key="ErrorTextBrush" Color="#FFFF7070" />
+        <!-- Screen surround: deliberately lighter than both the window (#1A1A1A) and the
+             emulator's own black, so the rendered frame's bounds stay visible. -->
+        <SolidColorBrush x:Key="ScreenFrameBackgroundBrush" Color="#FF2E2E2E" />
+        <SolidColorBrush x:Key="ScreenFrameBorderBrush" Color="#FF6A6A6A" />
     </Application.Resources>
     <Application.Styles>
         <FluentTheme />

@@ -1,6 +1,7 @@
 using Avalonia.Input;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using PetEmulator.Audio;
 using PetEmulator.Core;
 using PetEmulator.Desktop.Input;
@@ -20,7 +21,17 @@ public sealed partial class Trs80MachineViewModel : ObservableObject, IMachineVi
     private readonly ILogger _log = EmulatorLogging.CreateLogger("TRS80-VM");
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(DiskIconBrush))] private bool _diskLoaded;
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(DiskIconBrush))] private bool _diskBusy;
-    [ObservableProperty] private string _statusText = "TRS-80 Model I  Z80  PC=0x0000  Cycles=0";
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(TapeIconBrush))] private bool _tapeLoaded;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(TapeIconBrush))] private bool _tapePlaying;
+    [ObservableProperty] private string? _diskName;
+    [ObservableProperty]
+    private IReadOnlyList<StatusField> _statusFields =
+    [
+        new("AF", "0x0000"), new("BC", "0x0000"), new("DE", "0x0000"), new("HL", "0x0000"),
+        new("IX", "0x0000"), new("IY", "0x0000"), new("PC", "0x0000"), new("SP", "0xFFFF"),
+        new("I", "0x00"), new("R", "0x00"), new("IFF1", "0"), new("IM", "0"),
+        new("Cycles", "0"), new("Instructions", "0"), new("Disk", "none"), new("Tape", "none"),
+    ];
     public Trs80MachineViewModel(string romsRoot)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
@@ -41,6 +52,11 @@ public sealed partial class Trs80MachineViewModel : ObservableObject, IMachineVi
         GeometryChanged?.Invoke(this, EventArgs.Empty);
     }
     public string WindowTitle => "TRS-80 Model I";
+    public string MachineSummary => $"TRS-80 Model I | {PixelWidth}×{PixelHeight} | Z80 | Level II";
+
+    public KeyboardToggleViewModel? KeyboardToggle => null;
+
+    public bool IsStatusEnabled { get; set; } = true;
     public int PixelWidth => PetEmulator.Trs80.Display.Trs80RasterDisplay.PixelWidth;
     public IAudioOutput AudioOutput => _audioOutput;
     public int PixelHeight => PetEmulator.Trs80.Display.Trs80RasterDisplay.PixelHeight;
@@ -49,6 +65,12 @@ public sealed partial class Trs80MachineViewModel : ObservableObject, IMachineVi
     public IReadOnlyList<IDeviceStatus> Devices => [];
     public object? Extra => null;
     public IBrush DiskIconBrush => !DiskLoaded ? Brushes.Gray : DiskBusy ? Brushes.Red : Brushes.LimeGreen;
+
+    /// <summary>Read-only tape status: the TRS-80 exposes only its cassette port
+    /// (<see cref="ITapeViewModel"/> deliberately has no transport controls - firmware owns the
+    /// motor), so unlike <see cref="IDatasetteViewModel"/> machines there are no play/stop/eject
+    /// buttons here, just the 📼 state the view binds.</summary>
+    public IBrush TapeIconBrush => !TapeLoaded ? Brushes.Gray : TapePlaying ? Brushes.LimeGreen : Brushes.LightGray;
     public event EventHandler? FrameReady;
     public event EventHandler? GeometryChanged;
     public void Tick()
@@ -65,7 +87,28 @@ public sealed partial class Trs80MachineViewModel : ObservableObject, IMachineVi
                 _machine.CycleCount, _machine.Processor.InstructionCount);
             throw;
         }
-        var r = ((IDebuggableProcessor)_machine.Processor).GetRegisters(); StatusText = $"TRS-80 Model I  Z80  PC=0x{r["PC"]:X4} SP=0x{r["SP"]:X4} Cycles={_machine.CycleCount}"; FrameReady?.Invoke(this, EventArgs.Empty);
+
+        if (IsStatusEnabled)
+        {
+            var r = ((IDebuggableProcessor)_machine.Processor).GetRegisters();
+            StatusFields =
+            [
+                new("AF", $"0x{r["AF"]:X4}"), new("BC", $"0x{r["BC"]:X4}"),
+                new("DE", $"0x{r["DE"]:X4}"), new("HL", $"0x{r["HL"]:X4}"),
+                new("IX", $"0x{r["IX"]:X4}"), new("IY", $"0x{r["IY"]:X4}"),
+                new("PC", $"0x{r["PC"]:X4}"), new("SP", $"0x{r["SP"]:X4}"),
+                new("I", $"0x{r["I"]:X2}"), new("R", $"0x{r["R"]:X2}"),
+                new("IFF1", $"{r["IFF1"]}"), new("IM", $"{r["IM"]}"),
+                new("Cycles", $"{_machine.CycleCount}"),
+                new("Instructions", $"{_machine.Processor.InstructionCount}"),
+                new("Disk", DiskLoaded ? "ready" : "none"),
+                new("Tape", _machine.Cassette is null ? "none" : _machine.Cassette.MotorOn ? "playing" : "loaded"),
+            ];
+            TapeLoaded = _machine.Cassette is not null;
+            TapePlaying = _machine.Cassette?.MotorOn == true;
+        }
+
+        FrameReady?.Invoke(this, EventArgs.Empty);
     }
     public void Reset()
     {
@@ -87,12 +130,29 @@ public sealed partial class Trs80MachineViewModel : ObservableObject, IMachineVi
         try
         {
             _log.LogInformation("Mounting disk '{Path}'.", path);
-            _machine.InsertDisk(Path.GetExtension(path).Equals(".dmk", StringComparison.OrdinalIgnoreCase) ? new Trs80DmkDiskImageAdapter(DmkDiskImage.Load(path, _log)) : new Trs80DiskImageAdapter(Jv1DiskImage.Load(path, _log))); DiskLoaded = true;
+            _machine.InsertDisk(Path.GetExtension(path).Equals(".dmk", StringComparison.OrdinalIgnoreCase) ? new Trs80DmkDiskImageAdapter(DmkDiskImage.Load(path, _log)) : new Trs80DiskImageAdapter(Jv1DiskImage.Load(path, _log))); DiskLoaded = true; DiskName = Path.GetFileName(path);
             _log.LogInformation("Disk mounted: '{Path}'.", path);
         }
         catch (Exception ex)
         {
             _log.LogError(ex, "Failed to mount disk '{Path}'.", path);
+            throw;
+        }
+    }
+    [RelayCommand]
+    private void EjectDisk()
+    {
+        try
+        {
+            _log.LogInformation("Ejecting disk '{Disk}'.", DiskName ?? "(none)");
+            _machine.EjectDisk();
+            DiskLoaded = false;
+            DiskBusy = false;
+            DiskName = null;
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to eject disk.");
             throw;
         }
     }

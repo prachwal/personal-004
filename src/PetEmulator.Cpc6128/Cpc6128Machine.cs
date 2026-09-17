@@ -101,6 +101,16 @@ public sealed class Cpc6128Machine : IMachine, IMachineStateStore<Cpc6128Snapsho
         }
     }
 
+    /// <summary>Ejects the disk from <paramref name="drive"/> (the drive goes empty, so a GUI's
+    /// disk icon goes gray again).</summary>
+    public void EjectDisk(int drive)
+    {
+        _log.LogInformation("EjectDisk drive={Drive}.", drive);
+        if (drive == 0) _fdc.Drive0 = null;
+        else if (drive == 1) _fdc.Drive1 = null;
+        else throw new ArgumentOutOfRangeException(nameof(drive));
+    }
+
     public void Reset()
     {
         _bus.Reset();

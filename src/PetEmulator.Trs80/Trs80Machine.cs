@@ -71,6 +71,14 @@ public sealed class Trs80Machine : IMachine, IMachineStateStore<Trs80Snapshot>
 
     public void InsertDisk(Jv1DiskImage disk) => InsertDisk(new Trs80DiskImageAdapter(disk));
 
+    /// <summary>Ejects the disk from the running machine's drive (RAM/CPU state untouched) -
+    /// the controller stays wired, it just has nothing in the drive.</summary>
+    public void EjectDisk()
+    {
+        _log.LogInformation("EjectDisk.");
+        Fdc?.Controller.InsertDisk(0, null);
+    }
+
     /// <summary>Hot-swaps a cassette into the running machine (RAM/CPU state untouched) - unlike
     /// the FDC, cassette hardware has no "hangs forever probing a drive that isn't there" hazard,
     /// so it's safe to always (re)attach one instead of requiring one to already exist.</summary>

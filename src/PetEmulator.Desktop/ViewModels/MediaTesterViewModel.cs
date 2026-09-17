@@ -19,7 +19,10 @@ public sealed partial class MediaTesterViewModel : ObservableObject, IShellModul
 
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StatusFields))]
     private string _statusText = "Open a disk image";
+
+    public IReadOnlyList<StatusField> StatusFields => [new("Status", StatusText)];
 
     [ObservableProperty]
     private IReadOnlyList<byte> _previewBytes = Array.Empty<byte>();

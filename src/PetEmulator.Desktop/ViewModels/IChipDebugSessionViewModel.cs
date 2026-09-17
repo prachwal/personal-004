@@ -7,6 +7,10 @@ public interface IChipDebugSessionViewModel : IShellModule
 {
     object? Visual { get; }
 
+    /// <summary>Live one-line state ("Running, step N") for the scenario tab. The shell side
+    /// panel instead reads <see cref="IShellModule.StatusFields"/> - same state, one row.</summary>
+    string StatusText { get; }
+
     /// <summary>Plain-text description of the real chip this session models - shown in Chip
     /// Tester's "Opis" tab, sourced from
     /// <see cref="PetEmulator.Desktop.Resources.ChipDescriptions"/>.</summary>

@@ -26,7 +26,7 @@ public sealed class FontViewerViewModelTests
 
         viewModel.Fonts.Should().BeEmpty();
         viewModel.SelectedFont.Should().BeNull();
-        viewModel.StatusText.Should().Be("No character ROMs found");
+        viewModel.StatusFields.Should().ContainSingle().Which.Value.Should().Be("No character ROMs found");
     }
 
     [Test]

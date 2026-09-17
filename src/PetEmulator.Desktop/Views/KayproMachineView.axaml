@@ -5,35 +5,27 @@
              xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
              x:Class="PetEmulator.Desktop.Views.KayproMachineView"
              x:DataType="viewModels:KayproMachineViewModel">
+    <!-- Common machine frame (see PetMachineView): header top (metric left, keyboard toggle
+         right - the only machine with an on-screen keyboard), collapsible keyboard zone under
+         the header, bordered screen fill, widgets bottom, status bottom. -->
     <DockPanel>
         <Border DockPanel.Dock="Bottom" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4">
             <StackPanel Orientation="Horizontal" Spacing="16">
                 <controls:DiskDriveControl />
-                <TextBlock FontFamily="monospace" Foreground="{DynamicResource DeviceStatusTextBrush}" Text="Drive A: Kaypro II" />
+                <TextBlock FontFamily="monospace" Foreground="{DynamicResource DeviceStatusTextBrush}" Text="Drive A: Kaypro II" VerticalAlignment="Center" />
             </StackPanel>
         </Border>
-        <Border DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBackgroundBrush}" Padding="8,4">
-            <TextBlock FontFamily="monospace" Foreground="{DynamicResource StatusTextBrush}" Text="{Binding StatusText}" />
+
+        <controls:MachineHeaderBar DockPanel.Dock="Top" />
+
+        <Border DockPanel.Dock="Top" IsVisible="{Binding KeyboardToggle.IsVisible}"
+                Background="#F0101010" BorderBrush="#FF444444" BorderThickness="0,0,0,1"
+                Padding="12">
+            <controls:EmulatorKeyboardView x:Name="OnScreenKeyboard" Height="260" />
         </Border>
-        <Border DockPanel.Dock="Top" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4">
-            <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="KAYPRO II TERMINAL  |  80×24  |  81-146A font ROM  |  ENTER sends CR" VerticalAlignment="Center" />
-                <ToggleButton Grid.Column="1" Content="⌨ Keyboard" IsChecked="{Binding IsKeyboardVisible}" Padding="8,2" />
-            </Grid>
+
+        <Border BorderBrush="{DynamicResource ScreenFrameBorderBrush}" BorderThickness="1" Background="{DynamicResource ScreenFrameBackgroundBrush}" Padding="8">
+            <controls:PetScreenControl Name="Screen" Focusable="True" />
         </Border>
-        <Grid>
-            <Border BorderBrush="#FF3A3A3A" BorderThickness="1" Background="#FF000000" Padding="8">
-                <controls:PetScreenControl Name="Screen" Focusable="True" />
-            </Border>
-            <!-- Optional on-screen keyboard: hidden by default (see task doc comment on
-                 IsKeyboardVisible), floats centered over the screen instead of pushing the
-                 DockPanel layout around like a docked panel would. -->
-            <Border IsVisible="{Binding IsKeyboardVisible}"
-                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Background="#F0101010" BorderBrush="#FF444444" BorderThickness="1" CornerRadius="6"
-                    Padding="12">
-                <controls:EmulatorKeyboardView x:Name="OnScreenKeyboard" Width="760" Height="260" />
-            </Border>
-        </Grid>
     </DockPanel>
 </UserControl>

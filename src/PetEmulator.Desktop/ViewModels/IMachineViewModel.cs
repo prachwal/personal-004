@@ -48,6 +48,23 @@ public interface IMachineViewModel : IShellModule
     /// modeled yet (VIC-20 v1). See <see cref="IDeviceStatus"/>.</summary>
     IReadOnlyList<IDeviceStatus> Devices { get; }
 
+    /// <summary>One-line machine metric for the shared header bar
+    /// (<c>MachineHeaderBar</c>) - "NAME | WxH | CPU | extra", e.g.
+    /// "Amstrad CPC6128 | 320×200 | Z80 | 128K". Computed per instance so profile-driven
+    /// machines (PET) can reflect the active profile.</summary>
+    string MachineSummary { get; }
+
+    /// <summary>On-screen keyboard toggle for the header bar's right slot (<c>MachineHeaderBar</c>
+    /// renders a ⌨ button bound to it). Null when the machine has no on-screen keyboard - the
+    /// slot then stays empty instead of showing a disabled button.</summary>
+    KeyboardToggleViewModel? KeyboardToggle { get; }
+
+    /// <summary>Live status updates (register reads, device polling, side-panel refresh) on/off.
+    /// Bound by the header bar's Status toggle. Off skips every diagnostic read in
+    /// <see cref="Tick"/> - the machine still runs and renders, but no dictionaries/lists are
+    /// allocated and no status bindings churn, which is measurably cheaper at 50 ticks/second.</summary>
+    bool IsStatusEnabled { get; set; }
+
     /// <summary>Reserved, unused extension point - see this interface's own doc comment.</summary>
     object? Extra { get; }
 

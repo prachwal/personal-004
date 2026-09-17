@@ -43,7 +43,11 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     private string _windowTitle = "VIC-20 Emulator";
 
     [ObservableProperty]
-    private string _statusText = "PC=0x0000 A=0x00 X=0x00 Y=0x00 SP=0x00 P=0x00 Cycles=0 Instructions=0";
+    private IReadOnlyList<StatusField> _statusFields =
+    [
+        new("PC", "0x0000"), new("A", "0x00"), new("X", "0x00"), new("Y", "0x00"),
+        new("SP", "0x00"), new("P", "0x00"), new("Cycles", "0"), new("Instructions", "0"),
+    ];
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TapeIconBrush))]
@@ -66,6 +70,9 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     private bool _diskBusy;
 
     public IBrush DiskIconBrush => !DiskLoaded ? Brushes.Gray : DiskBusy ? Brushes.Red : Brushes.LimeGreen;
+
+    [ObservableProperty]
+    private string? _diskName;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CartridgeIconBrush))]
@@ -116,6 +123,13 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
     public int PixelWidth => _display.PixelWidth;
 
     public IAudioOutput AudioOutput => _audioOutput;
+
+    public string MachineSummary =>
+        $"VIC-20 | {PixelWidth}×{PixelHeight} | 6502 | {_machine.DisplayConfig.VideoStandard}";
+
+    public KeyboardToggleViewModel? KeyboardToggle => null;
+
+    public bool IsStatusEnabled { get; set; } = true;
 
     public Vic20ProgramProfileSelectorViewModel ProgramProfileSelector { get; }
 
@@ -174,11 +188,31 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
         {
             _log.LogInformation( $"Mounting disk '{path}' ({DescribeFile(path)}).");
             _machine.MountDisk(path);
+            DiskLoaded = true;
+            DiskName = Path.GetFileName(path);
             _log.LogInformation( $"Disk mounted: '{path}'.");
         }
         catch (Exception ex)
         {
             _log.LogError(ex, $"Failed to mount disk '{path}'.");
+            throw;
+        }
+    }
+
+    [RelayCommand]
+    private void EjectDisk()
+    {
+        try
+        {
+            _log.LogInformation("Ejecting disk '{Disk}'.", DiskName ?? "(none)");
+            _machine.EjectDisk();
+            DiskLoaded = false;
+            DiskBusy = false;
+            DiskName = null;
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to eject disk.");
             throw;
         }
     }
@@ -316,7 +350,12 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
             : throw new FileNotFoundException($"VIC-20 cartridge plugin '{fileName}' was not deployed.", path);
     }
 
-    public void NewDisk(string path) => _machine.MountNewDisk(path, Path.GetFileNameWithoutExtension(path).ToUpperInvariant());
+    public void NewDisk(string path)
+    {
+        _machine.MountNewDisk(path, Path.GetFileNameWithoutExtension(path).ToUpperInvariant());
+        DiskLoaded = true;
+        DiskName = Path.GetFileName(path);
+    }
 
     [RelayCommand]
     private void PlayTape() => _machine.Datasette.PressPlay();
@@ -387,22 +426,29 @@ public sealed partial class Vic20MachineViewModel : ObservableObject, IMachineVi
             throw;
         }
 
-        var regs = ((IDebuggableProcessor)_machine.Processor).GetRegisters();
-        StatusText =
-            $"PC=0x{regs["PC"]:X4} A=0x{regs["A"]:X2} X=0x{regs["X"]:X2} Y=0x{regs["Y"]:X2} " +
-            $"SP=0x{regs["SP"]:X2} P=0x{regs["P"]:X2} " +
-            $"Cycles={_machine.Processor.CycleCount} Instructions={_machine.Processor.InstructionCount}";
+        if (IsStatusEnabled)
+        {
+            var regs = ((IDebuggableProcessor)_machine.Processor).GetRegisters();
+            StatusFields =
+            [
+                new("PC", $"0x{regs["PC"]:X4}"), new("A", $"0x{regs["A"]:X2}"),
+                new("X", $"0x{regs["X"]:X2}"), new("Y", $"0x{regs["Y"]:X2}"),
+                new("SP", $"0x{regs["SP"]:X2}"), new("P", $"0x{regs["P"]:X2}"),
+                new("Cycles", $"{_machine.Processor.CycleCount}"),
+                new("Instructions", $"{_machine.Processor.InstructionCount}"),
+            ];
 
-        Devices = _machine.Devices.Where(d => d.Id is not ("datasette" or "ieee488:8")).ToList();
-        DiskLoaded = _machine.HasDisk();
-        if (_machine.PollDiskActivity())
-            _diskActivityUntilUtc = DateTime.UtcNow + DiskActivityLinger;
-        DiskBusy = DateTime.UtcNow < _diskActivityUntilUtc;
-        UpdateCartridgeState();
-        // TapeName (not HasTape) - a freshly created blank tape has zero pulses but is still "in
-        // the deck", same reasoning as Vic20DatasetteStatus's own switch.
-        TapeLoaded = _machine.Datasette.TapeName is not null;
-        TapePlaying = _machine.Datasette.PlayPressed && _machine.Datasette.MotorOn;
+            Devices = _machine.Devices.Where(d => d.Id is not ("datasette" or "ieee488:8")).ToList();
+            DiskLoaded = _machine.HasDisk();
+            if (_machine.PollDiskActivity())
+                _diskActivityUntilUtc = DateTime.UtcNow + DiskActivityLinger;
+            DiskBusy = DateTime.UtcNow < _diskActivityUntilUtc;
+            UpdateCartridgeState();
+            // TapeName (not HasTape) - a freshly created blank tape has zero pulses but is still "in
+            // the deck", same reasoning as Vic20DatasetteStatus's own switch.
+            TapeLoaded = _machine.Datasette.TapeName is not null;
+            TapePlaying = _machine.Datasette.PlayPressed && _machine.Datasette.MotorOn;
+        }
 
         FrameReady?.Invoke(this, EventArgs.Empty);
     }

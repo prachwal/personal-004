@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using PetEmulator.Core.Logging;
 using PetEmulator.Desktop.Infrastructure;
+using System.Diagnostics;
 using PetEmulator.Desktop.Models;
 using PetEmulator.Desktop.Services;
 using PetEmulator.Desktop.Views;
@@ -40,14 +41,38 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private IShellModule _currentModule;
 
-    /// <summary>Last failure detail, also shown in the MainWindow status bar - previously
+    /// <summary>Last failure detail, also shown in the side panel - previously
     /// machine-switch and media errors only went to <c>Console.Error</c> (invisible in a
     /// WinExe with no console) or were swallowed by the command dispatcher entirely.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasError))]
     private string _lastError = string.Empty;
 
-    /// <summary>Session log file path, shown in the status bar tooltip.</summary>
-    public string LogFilePath => EmulatorLogging.LogFilePath;
+    /// <summary>Whether <see cref="LastError"/> currently holds a failure - drives the ERROR
+    /// block visibility in the side panel so it doesn't occupy space when empty.</summary>
+    public bool HasError => !string.IsNullOrEmpty(LastError);
+
+    /// <summary>Whether the left status panel is expanded (false = collapsed to a narrow strip
+    /// with just the expand button).</summary>
+    [ObservableProperty]
+    private bool _isStatusPanelExpanded = true;
+
+    /// <summary>Opens the session log file in the associated viewer (see
+    /// <see cref="EmulatorLogging.LogFilePath"/>) - the file path itself is no longer pasted
+    /// into the UI, this button is its only surface.</summary>
+    [RelayCommand]
+    private void OpenLog()
+    {
+        try
+        {
+            ShellLog.LogInformation("Opening session log: {LogFile}.", EmulatorLogging.LogFilePath);
+            Process.Start(new ProcessStartInfo(EmulatorLogging.LogFilePath) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            ReportError(ShellLog, "Failed to open the session log.", ex);
+        }
+    }
 
     public MainWindowViewModel(IFilePickerService filePicker)
     {
@@ -207,6 +232,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private void Exit() => CloseRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
+    private void ToggleStatusPanel() => IsStatusPanelExpanded = !IsStatusPanelExpanded;
+
+    [RelayCommand]
     private void SwitchMachine(ModuleMenuEntry entry)
     {
         var create = entry.Create;
@@ -261,6 +289,23 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>Second-deck loader for machines with two tape transports (PET cassette #2) -
+    /// see <see cref="ISecondTapeViewModel"/>.</summary>
+    [RelayCommand]
+    private async Task LoadTape2()
+    {
+        try
+        {
+            var path = await _filePicker.PickTapeToOpenAsync();
+            if (path is not null)
+                LoadTape2(path);
+        }
+        catch (Exception ex)
+        {
+            ReportError(TapeLog, "Load tape #2 dialog failed.", ex);
+        }
+    }
+
     public void LoadTape(string path)
     {
         if (CurrentModule is not ITapeViewModel tape)
@@ -278,6 +323,28 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             ReportError(TapeLog, $"Failed to load tape '{path}'.", ex);
+        }
+    }
+
+    public void LoadTape2(string path)
+    {
+        if (CurrentModule is not ISecondTapeViewModel second)
+        {
+            TapeLog.LogWarning("Current module {Module} has no second tape deck; ignoring '{Path}'.",
+                CurrentModule.GetType().Name, path);
+            return;
+        }
+
+        try
+        {
+            TapeLog.LogInformation("Loading tape #2 '{Path}' ({Size}) into {Module}.",
+                path, DescribeFile(path), CurrentModule.GetType().Name);
+            second.LoadTape2(path);
+            TapeLog.LogInformation("Tape #2 loaded: '{Path}'.", path);
+        }
+        catch (Exception ex)
+        {
+            ReportError(TapeLog, $"Failed to load tape #2 '{path}'.", ex);
         }
     }
 
@@ -393,7 +460,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Logs <paramref name="exception"/> in full and surfaces a one-line summary in
-    /// the status bar (<see cref="LastError"/>) - the file log always has the complete chain.</summary>
+    /// the side panel (<see cref="LastError"/>) - the file log always has the complete chain.</summary>
     private void ReportError(ILogger log, string message, Exception exception)
     {
         log.LogError(exception, "{Message}", message);

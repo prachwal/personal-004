@@ -117,6 +117,11 @@ public sealed class Vic20SerialBus
         _devices.Add(device);
     }
 
+    /// <summary>Detaches whatever device sits at <paramref name="primaryAddress"/>, if any
+    /// (ejecting a disk).</summary>
+    public void DetachDevice(int primaryAddress) =>
+        _devices.RemoveAll(existing => existing.PrimaryAddress == primaryAddress);
+
     /// <summary>Drives or releases the computer's ATN output. <see langword="false"/> asserts it.</summary>
     public void SetHostAtn(bool released)
     {

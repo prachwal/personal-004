@@ -24,7 +24,7 @@ namespace PetEmulator.Desktop.ViewModels;
 /// than mutating this one in place, so <see cref="MainWindowViewModel.CurrentModule"/> swaps
 /// wholesale and any stale event subscription dies with the old instance.
 /// </summary>
-public sealed partial class PetMachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel, IDiskDriveViewModel, INewDiskViewModel
+public sealed partial class PetMachineViewModel : ObservableObject, IMachineViewModel, IDatasetteViewModel, IDiskDriveViewModel, INewDiskViewModel, ISecondTapeViewModel
 {
     // ponytail: fixed per-tick instruction budget, no adaptive pacing to a wall-clock cycle
     // rate. Good enough for a display GUI; revisit if playback speed needs to match real hardware.
@@ -46,8 +46,14 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
     [ObservableProperty]
     private string _windowTitle;
 
+    /// <summary>Live register/cycle rows for the side panel - one <see cref="StatusField"/> per
+    /// row, rebuilt every <see cref="Tick"/> instead of one preformatted string.</summary>
     [ObservableProperty]
-    private string _statusText = "PC=0x0000 A=0x00 X=0x00 Y=0x00 SP=0x00 P=0x00 Cycles=0 Instructions=0";
+    private IReadOnlyList<StatusField> _statusFields =
+    [
+        new("PC", "0x0000"), new("A", "0x00"), new("X", "0x00"), new("Y", "0x00"),
+        new("SP", "0x00"), new("P", "0x00"), new("Cycles", "0"), new("Instructions", "0"),
+    ];
 
     /// <summary>Refreshed every <see cref="Tick"/> from <see cref="PetMachine.Devices"/>, minus
     /// the datasette and the primary (device 8) disk drive - both get their own dedicated icon
@@ -87,6 +93,10 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
     /// the IEEE-488 bus - see <see cref="PetMachine.PollDiskActivity"/>.</summary>
     public IBrush DiskIconBrush => !DiskLoaded ? Brushes.Gray : DiskBusy ? Brushes.Red : Brushes.LimeGreen;
 
+    /// <summary>Mounted image file name for the drive widget tooltip - null with an empty drive.</summary>
+    [ObservableProperty]
+    private string? _diskName;
+
     public PetMachineViewModel(PetProfile profile, string romsRoot)
     {
         ArgumentNullException.ThrowIfNull(profile);
@@ -112,6 +122,8 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
 
         _windowTitle = $"PET Emulator — {profile.Name}";
 
+        Tape2 = new PetDatasetteChannelViewModel(_machine, _log);
+
         // Nobody has subscribed yet at construction time (this instance doesn't exist for a View
         // to bind to until the constructor returns) - this exists only to give GeometryChanged a
         // real invocation site (CS0067 otherwise) and to document that geometry is fixed for a
@@ -123,6 +135,12 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
     public int PixelWidth => _display.PixelWidth;
 
     public IAudioOutput AudioOutput => _audioOutput;
+
+    public string MachineSummary => $"{_profile.Name} | {PixelWidth}×{PixelHeight} | 6502";
+
+    public KeyboardToggleViewModel? KeyboardToggle => null;
+
+    public bool IsStatusEnabled { get; set; } = true;
 
     public int PixelHeight => _display.PixelHeight;
 
@@ -179,6 +197,8 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
         {
             _log.LogInformation("Mounting disk '{Path}'.", path);
             _machine.MountDisk(path);
+            DiskLoaded = true;
+            DiskName = Path.GetFileName(path);
             _log.LogInformation("Disk mounted: '{Path}'.", path);
         }
         catch (Exception ex)
@@ -188,6 +208,46 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
         }
     }
 
+    [RelayCommand]
+    private void EjectDisk()
+    {
+        try
+        {
+            _log.LogInformation("Ejecting disk '{Disk}'.", DiskName ?? "(none)");
+            _machine.EjectDisk();
+            DiskLoaded = false;
+            DiskBusy = false;
+            DiskName = null;
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to eject disk.");
+            throw;
+        }
+    }
+
+    /// <summary>Cassette deck #2 (real PET hardware has two connectors - see
+    /// <see cref="PetMachine.Datasette2"/>). Bound by the second <c>DatasetteControl</c> in
+    /// <c>PetMachineView</c>; tapes arrive via File → Load Tape #2.</summary>
+    public PetDatasetteChannelViewModel Tape2 { get; }
+
+    /// <summary>Loads a VICE-style .tap file into cassette deck #2.</summary>
+    public void LoadTape2(string path)
+    {
+        try
+        {
+            _log.LogInformation("Loading tape #2 '{Path}'.", path);
+            var tap = PetTapFile.Parse(File.ReadAllBytes(path), _log);
+            _machine.Datasette2.LoadTape(tap.PulseCycles, Path.GetFileName(path));
+            Tape2.Refresh();
+            _log.LogInformation("Tape #2 loaded: '{Path}' ({Pulses} pulses).", path, tap.PulseCycles.Count);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to load tape #2 '{Path}'.", path);
+            throw;
+        }
+    }
     /// <summary>Creates a fresh, formatted, writable D64 at <paramref name="path"/> and mounts it
     /// - see <see cref="PetMachine.MountNewDisk"/>. Unlike <see cref="LoadTape"/>/
     /// <see cref="LoadDisk"/> this WRITES the file (a real image needs bytes on disk before
@@ -199,6 +259,8 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
         {
             _log.LogInformation("Creating new disk '{Path}'.", path);
             _machine.MountNewDisk(path, Path.GetFileNameWithoutExtension(path).ToUpperInvariant());
+            DiskLoaded = true;
+            DiskName = Path.GetFileName(path);
             _log.LogInformation("New disk created: '{Path}'.", path);
         }
         catch (Exception ex)
@@ -249,15 +311,23 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
             throw;
         }
 
-        var regs = ((IDebuggableProcessor)_machine.Processor).GetRegisters();
-        StatusText =
-            $"PC=0x{regs["PC"]:X4} A=0x{regs["A"]:X2} X=0x{regs["X"]:X2} Y=0x{regs["Y"]:X2} " +
-            $"SP=0x{regs["SP"]:X2} P=0x{regs["P"]:X2} " +
-            $"Cycles={_machine.Processor.CycleCount} Instructions={_machine.Processor.InstructionCount}";
+        if (IsStatusEnabled)
+        {
+            var regs = ((IDebuggableProcessor)_machine.Processor).GetRegisters();
+            StatusFields =
+            [
+                new("PC", $"0x{regs["PC"]:X4}"), new("A", $"0x{regs["A"]:X2}"),
+                new("X", $"0x{regs["X"]:X2}"), new("Y", $"0x{regs["Y"]:X2}"),
+                new("SP", $"0x{regs["SP"]:X2}"), new("P", $"0x{regs["P"]:X2}"),
+                new("Cycles", $"{_machine.Processor.CycleCount}"),
+                new("Instructions", $"{_machine.Processor.InstructionCount}"),
+            ];
 
-        Devices = _machine.Devices.Where(d => d.Id is not ("datasette" or "ieee488:8")).ToList();
+            Devices = _machine.Devices.Where(d => d.Id is not ("datasette" or "ieee488:8")).ToList();
+        }
         TapeLoaded = _machine.Datasette.HasTape;
         TapePlaying = _machine.Datasette.PlayPressed && _machine.Datasette.MotorOn;
+        Tape2.Refresh();
 
         DiskLoaded = _machine.HasDisk();
         if (_machine.PollDiskActivity())
@@ -268,4 +338,71 @@ public sealed partial class PetMachineViewModel : ObservableObject, IMachineView
     }
 
     public void Dispose() => _audioOutput.Dispose();
+
+    /// <summary>Bindable view over <see cref="PetMachine.Datasette2"/> with the exact
+    /// <see cref="IDatasetteViewModel"/> shape <c>DatasetteControl</c> binds - transport buttons
+    /// included (deck #2 has its own PLAY/sense/motor lines, unlike TRS-80's port-only tape).</summary>
+    public sealed partial class PetDatasetteChannelViewModel : ObservableObject, IDatasetteViewModel
+    {
+        private readonly PetMachine _machine;
+
+        public PetDatasetteChannelViewModel(PetMachine machine, ILogger log)
+        {
+            _machine = machine;
+            Log = log;
+            Refresh();
+        }
+
+        private ILogger Log { get; }
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(TapeIconBrush))]
+        private bool _tapeLoaded;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(TapeIconBrush))]
+        private bool _tapePlaying;
+
+        public IBrush TapeIconBrush => !TapeLoaded ? Brushes.Gray : TapePlaying ? Brushes.LimeGreen : Brushes.LightGray;
+
+        public void LoadTape(string path)
+        {
+            try
+            {
+                Log.LogInformation("Loading tape #2 '{Path}'.", path);
+                var tap = PetTapFile.Parse(File.ReadAllBytes(path));
+                _machine.Datasette2.LoadTape(tap.PulseCycles, Path.GetFileName(path));
+                Refresh();
+                Log.LogInformation("Tape #2 loaded: '{Path}' ({Pulses} pulses).", path, tap.PulseCycles.Count);
+            }
+            catch (Exception ex)
+            {
+                Log.LogError(ex, "Failed to load tape #2 '{Path}'.", path);
+                throw;
+            }
+        }
+
+        public void Refresh()
+        {
+            TapeLoaded = _machine.Datasette2.HasTape;
+            TapePlaying = _machine.Datasette2.PlayPressed && _machine.Datasette2.MotorOn;
+        }
+
+        [RelayCommand]
+        private void PlayTape() => _machine.Datasette2.PressPlay();
+
+        [RelayCommand]
+        private void StopTape()
+        {
+            _machine.Datasette2.Stop();
+            Refresh();
+        }
+
+        [RelayCommand]
+        private void EjectTape()
+        {
+            _machine.Datasette2.Eject();
+            Refresh();
+        }
+    }
 }

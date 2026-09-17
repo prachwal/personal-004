@@ -6,11 +6,9 @@
              xmlns:core="clr-namespace:PetEmulator.Core;assembly=PetEmulator.Core"
              x:Class="PetEmulator.Desktop.Views.PetMachineView"
              x:DataType="viewModels:PetMachineViewModel">
+    <!-- Common machine frame: header (metric) top, widgets bottom, status bottom, bordered
+         screen fill. See MachineHeaderBar/MachineStatusBar. -->
     <DockPanel>
-        <Border DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBackgroundBrush}" Padding="8,4">
-            <TextBlock FontFamily="monospace" Foreground="{DynamicResource StatusTextBrush}" Text="{Binding StatusText}" />
-        </Border>
-
         <!-- Where the keyboard-test input box used to live. The datasette and the primary disk
              drive each get their own dedicated icon (real PET hardware needs a physical PLAY
              press before LOAD can proceed past "PRESS PLAY ON TAPE #1"; a disk drive's LED blinks
@@ -19,7 +17,14 @@
              no XAML change here. -->
         <Border DockPanel.Dock="Bottom" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4">
             <StackPanel Orientation="Horizontal" Spacing="16">
-                <controls:DatasetteControl />
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="#1" FontFamily="monospace" Foreground="{DynamicResource DeviceStatusTextBrush}" VerticalAlignment="Center" />
+                    <controls:DatasetteControl />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="4" ToolTip.Tip="Cassette deck #2">
+                    <TextBlock Text="#2" FontFamily="monospace" Foreground="{DynamicResource DeviceStatusTextBrush}" VerticalAlignment="Center" />
+                    <controls:DatasetteControl DataContext="{Binding Tape2}" />
+                </StackPanel>
                 <controls:DiskDriveControl />
 
                 <ItemsControl ItemsSource="{Binding Devices}">
@@ -40,6 +45,10 @@
             </StackPanel>
         </Border>
 
-        <controls:PetScreenControl Name="Screen" Focusable="True" />
+        <controls:MachineHeaderBar DockPanel.Dock="Top" />
+
+        <Border BorderBrush="{DynamicResource ScreenFrameBorderBrush}" BorderThickness="1" Background="{DynamicResource ScreenFrameBackgroundBrush}" Padding="8">
+            <controls:PetScreenControl Name="Screen" Focusable="True" />
+        </Border>
     </DockPanel>
 </UserControl>

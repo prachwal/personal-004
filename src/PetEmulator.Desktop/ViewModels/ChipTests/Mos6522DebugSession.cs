@@ -37,6 +37,8 @@ public sealed partial class Mos6522DebugSession : ObservableObject, IChipDebugSe
     public string WindowTitle => "MOS 6522 VIA";
     public string StatusText => IsRunning ? $"Running, step {_step}" : $"Paused, step {_step}";
 
+    public IReadOnlyList<StatusField> StatusFields => [new("State", StatusText)];
+
     [RelayCommand]
     private void Run()
     {

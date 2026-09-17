@@ -5,7 +5,21 @@
              x:Class="PetEmulator.Desktop.Views.KeyboardMatrixView"
              x:DataType="viewModels:KeyboardMatrixViewModel">
     <StackPanel Margin="24" Spacing="12">
-        <TextBlock Text="{Binding StatusText}" FontSize="20" />
+        <ItemsControl ItemsSource="{Binding StatusFields}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="16" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="viewModels:StatusField">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="{Binding Name}" FontSize="20" Opacity="0.6" />
+                        <TextBlock Text="{Binding Value}" FontSize="20" FontFamily="monospace" />
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
         <StackPanel Orientation="Horizontal" Spacing="8">
             <ComboBox ItemsSource="{Binding Machines}" SelectedItem="{Binding SelectedMachine}" />
             <TextBlock Text="ReadColumns:" VerticalAlignment="Center" />

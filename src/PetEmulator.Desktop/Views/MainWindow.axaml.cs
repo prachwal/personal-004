@@ -13,18 +13,29 @@ namespace PetEmulator.Desktop.Views;
 public partial class MainWindow : Window
 {
     private static readonly ILogger Log = EmulatorLogging.CreateLogger("View");
-    private readonly MainWindowViewModel _viewModel;
+    private readonly MainWindowViewModel? _viewModel;
 
     public MainWindow()
     {
         InitializeComponent();
-        Log.LogDebug("MainWindow initializing.");
-        _viewModel = new MainWindowViewModel(new AvaloniaFilePickerService(this));
-        DataContext = _viewModel;
-        Log.LogInformation("MainWindow ready with initial module {Module} ({Title}).",
-            _viewModel.CurrentModule.GetType().Name, _viewModel.CurrentModule.WindowTitle);
+        if (Design.IsDesignMode)
+        {
+            // The Avalonia previewer instantiates this window from a temp directory with no
+            // roms/ anywhere nearby (see RomsRootLocator) - building the real shell here would
+            // throw DirectoryNotFoundException and kill the preview. The XAML itself renders
+            // fine with a blank DataContext.
+            Log.LogDebug("MainWindow in design mode; skipping shell construction.");
+            return;
+        }
 
-        _viewModel.CloseRequested += (_, _) => Close();
+        Log.LogDebug("MainWindow initializing.");
+        var viewModel = new MainWindowViewModel(new AvaloniaFilePickerService(this));
+        _viewModel = viewModel;
+        DataContext = viewModel;
+        Log.LogInformation("MainWindow ready with initial module {Module} ({Title}).",
+            viewModel.CurrentModule.GetType().Name, viewModel.CurrentModule.WindowTitle);
+
+        viewModel.CloseRequested += (_, _) => Close();
 
         // Receive machine cursor keys before Menu handles them. Do not forward keys whose
         // original source is a MenuItem: those belong to the application menu itself.
@@ -39,19 +50,19 @@ public partial class MainWindow : Window
         // Rewire()) - swapped per machine, not owned here.
         Loaded += (_, _) => { Focus(); MachineHost.Focus(); };
         Activated += (_, _) => { Focus(); MachineHost.Focus(); };
-        Closed += (_, _) => { Log.LogInformation("MainWindow closed."); _viewModel.Dispose(); };
+        Closed += (_, _) => { Log.LogInformation("MainWindow closed."); _viewModel?.Dispose(); };
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Source is not MenuItem)
-            _viewModel.HandleKey(e.Key, HostKeyEventKind.Press);
+            _viewModel?.HandleKey(e.Key, HostKeyEventKind.Press);
     }
 
     private void OnKeyUp(object? sender, KeyEventArgs e)
     {
         if (e.Source is not MenuItem)
-            _viewModel.HandleKey(e.Key, HostKeyEventKind.Release);
+            _viewModel?.HandleKey(e.Key, HostKeyEventKind.Release);
     }
 
 }

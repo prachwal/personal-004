@@ -22,7 +22,8 @@ public sealed partial class KeyboardMatrixViewModel : ObservableObject, IShellMo
     }
 
     public string WindowTitle => "Keyboard Matrix";
-    public string StatusText => $"{SelectedMachine}  row 0 read: 0x{ReadColumns(0):X2}";
+    public IReadOnlyList<StatusField> StatusFields =>
+        [new("Machine", SelectedMachine), new("Row 0", $"0x{ReadColumns(0):X2}")];
     public ObservableCollection<KeyboardCell> Cells { get; }
     public string ReadColumnsText => $"0x{ReadColumns(0):X2}";
 
@@ -31,7 +32,7 @@ public sealed partial class KeyboardMatrixViewModel : ObservableObject, IShellMo
     public void SetPetMatrixCell(int row, int column, bool pressed)
     {
         if (pressed) _pet.Press(row, column); else _pet.Release(row, column);
-        OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(StatusFields));
         OnPropertyChanged(nameof(ReadColumnsText));
     }
 
@@ -42,14 +43,14 @@ public sealed partial class KeyboardMatrixViewModel : ObservableObject, IShellMo
     {
         if (pressed) _vic.Press(row, column); else _vic.Release(row, column);
         _vic.SetRowSelect((byte)~(1 << row));
-        OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(StatusFields));
         OnPropertyChanged(nameof(ReadColumnsText));
     }
 
     partial void OnSelectedMachineChanged(string value)
     {
         Rebuild();
-        OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(StatusFields));
     }
 
     public void ToggleCell(KeyboardCell cell)
@@ -63,7 +64,7 @@ public sealed partial class KeyboardMatrixViewModel : ObservableObject, IShellMo
             if (cell.IsPressed) _vic.Press(cell.Row, cell.Column); else _vic.Release(cell.Row, cell.Column);
             _vic.SetRowSelect((byte)~(1 << cell.Row));
         }
-        OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(StatusFields));
         OnPropertyChanged(nameof(ReadColumnsText));
     }
 

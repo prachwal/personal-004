@@ -1,6 +1,7 @@
 using Avalonia.Input;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using PetEmulator.Audio;
 using PetEmulator.Chips;
 using PetEmulator.Core;
@@ -30,19 +31,22 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
     private bool _diskBusy;
 
     [ObservableProperty]
+    private string? _diskName;
+
+    [ObservableProperty]
     private string _windowTitle = "Kaypro II";
 
     [ObservableProperty]
-    private string _statusText = "Kaypro II  Z80  PC=0x0000  Cycles=0 Instructions=0";
+    private IReadOnlyList<StatusField> _statusFields =
+    [
+        new("AF", "0x0000"), new("BC", "0x0000"), new("DE", "0x0000"), new("HL", "0x0000"),
+        new("IX", "0x0000"), new("IY", "0x0000"), new("PC", "0x0000"), new("SP", "0xFFFF"),
+        new("I", "0x00"), new("R", "0x00"), new("IFF1", "0"), new("IM", "0"),
+        new("Cycles", "0"), new("Instructions", "0"), new("Disk", "none"),
+    ];
 
     [ObservableProperty]
     private IReadOnlyList<IDeviceStatus> _devices = [];
-
-    /// <summary>Whether the on-screen keyboard overlay is shown. Off by default - it's an
-    /// optional aid for clicking keys with a mouse, not the primary input path (a real keyboard
-    /// still works via <see cref="HandleKey"/>), so it shouldn't occupy screen space unasked.</summary>
-    [ObservableProperty]
-    private bool _isKeyboardVisible;
 
     public KayproMachineViewModel(string romsRoot)
     {
@@ -61,6 +65,7 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
             {
                 _machine.InsertDisk(0, LoadKayproDisk(diskPath));
                 DiskLoaded = true;
+                DiskName = Path.GetFileName(diskPath);
                 _log.LogInformation("Boot disk auto-mounted: '{Path}'.", diskPath);
             }
             else
@@ -80,6 +85,13 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
     }
 
     public KayproFont Font { get; }
+    public string MachineSummary => $"Kaypro II | {PixelWidth}×{PixelHeight} | Z80 | CP/M | ENTER sends CR";
+
+    /// <summary>The single on-screen keyboard toggle, bound both by the header bar's ⌨ button
+    /// and the keyboard zone visibility - one source of truth, no sync code.</summary>
+    public KeyboardToggleViewModel KeyboardToggle { get; } = new();
+
+    public bool IsStatusEnabled { get; set; } = true;
     public IBrush DiskIconBrush => !DiskLoaded ? Brushes.Gray : DiskBusy ? Brushes.Red : Brushes.LimeGreen;
     public int PixelWidth => KayproVideo.PixelWidth;
     public IAudioOutput AudioOutput => _audioOutput;
@@ -99,11 +111,30 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
             _log.LogInformation("Mounting disk '{Path}'.", path);
             _machine.InsertDisk(0, LoadKayproDisk(path));
             DiskLoaded = true;
+            DiskName = Path.GetFileName(path);
             _log.LogInformation("Disk mounted: '{Path}'.", path);
         }
         catch (Exception ex)
         {
             _log.LogError(ex, "Failed to mount disk '{Path}'.", path);
+            throw;
+        }
+    }
+
+    [RelayCommand]
+    private void EjectDisk()
+    {
+        try
+        {
+            _log.LogInformation("Ejecting disk '{Disk}'.", DiskName ?? "(none)");
+            _machine.InsertDisk(0, null);
+            DiskLoaded = false;
+            DiskBusy = false;
+            DiskName = null;
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to eject disk.");
             throw;
         }
     }
@@ -140,12 +171,26 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
                 _machine.CycleCount, _machine.Processor.InstructionCount);
             throw;
         }
-        DiskBusy = DateTime.UtcNow < _diskActivityUntilUtc;
 
-        var registers = ((IDebuggableProcessor)_machine.Processor).GetRegisters();
-        StatusText = $"Kaypro II  Z80  PC=0x{registers["PC"]:X4} SP=0x{registers["SP"]:X4} " +
-                     $"Cycles={_machine.CycleCount} Instructions={_machine.Processor.InstructionCount} " +
-                     $"Disk={(DiskLoaded ? "ready" : "none")}";
+        if (IsStatusEnabled)
+        {
+            DiskBusy = DateTime.UtcNow < _diskActivityUntilUtc;
+
+            var registers = ((IDebuggableProcessor)_machine.Processor).GetRegisters();
+            StatusFields =
+            [
+                new("AF", $"0x{registers["AF"]:X4}"), new("BC", $"0x{registers["BC"]:X4}"),
+                new("DE", $"0x{registers["DE"]:X4}"), new("HL", $"0x{registers["HL"]:X4}"),
+                new("IX", $"0x{registers["IX"]:X4}"), new("IY", $"0x{registers["IY"]:X4}"),
+                new("PC", $"0x{registers["PC"]:X4}"), new("SP", $"0x{registers["SP"]:X4}"),
+                new("I", $"0x{registers["I"]:X2}"), new("R", $"0x{registers["R"]:X2}"),
+                new("IFF1", $"{registers["IFF1"]}"), new("IM", $"{registers["IM"]}"),
+                new("Cycles", $"{_machine.CycleCount}"),
+                new("Instructions", $"{_machine.Processor.InstructionCount}"),
+                new("Disk", DiskLoaded ? "ready" : "none"),
+            ];
+        }
+
         FrameReady?.Invoke(this, EventArgs.Empty);
     }
 

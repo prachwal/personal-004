@@ -20,9 +20,16 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
     private readonly ILogger _log = EmulatorLogging.CreateLogger("CPC464");
     [ObservableProperty] private bool _tapeLoaded;
     [ObservableProperty] private bool _tapePlaying;
+    [ObservableProperty]
+    private IReadOnlyList<StatusField> _statusFields =
+    [
+        new("AF", "0x0000"), new("BC", "0x0000"), new("DE", "0x0000"), new("HL", "0x0000"),
+        new("IX", "0x0000"), new("IY", "0x0000"), new("PC", "0x0000"), new("SP", "0xFFFF"),
+        new("I", "0x00"), new("R", "0x00"), new("IFF1", "0"), new("IM", "0"),
+        new("Cycles", "0"), new("Instructions", "0"),
+    ];
 
     public IBrush TapeIconBrush => !TapeLoaded ? Brushes.Gray : TapePlaying ? Brushes.LimeGreen : Brushes.LightGray;
-    [ObservableProperty] private string _statusText = "Amstrad CPC464  Z80  PC=0x0000";
     public Cpc464MachineViewModel(string romsRoot)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(romsRoot);
@@ -44,6 +51,11 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
         GeometryChanged?.Invoke(this, EventArgs.Empty);
     }
     public string WindowTitle => "Amstrad CPC464";
+    public string MachineSummary => $"Amstrad CPC464 | {PixelWidth}×{PixelHeight} | Z80 | Gate Array";
+
+    public KeyboardToggleViewModel? KeyboardToggle => null;
+
+    public bool IsStatusEnabled { get; set; } = true;
     public int PixelWidth => 320;
     public IAudioOutput AudioOutput => _audioOutput;
     public int PixelHeight => 200;
@@ -53,7 +65,27 @@ public sealed partial class Cpc464MachineViewModel : ObservableObject, IMachineV
     public object? Extra => null;
     public event EventHandler? FrameReady;
     public event EventHandler? GeometryChanged;
-    public void Tick() { _machine.Run(InstructionsPerTick); Render(); StatusText = $"Amstrad CPC464  Z80  PC=0x{_machine.Cpu.Registers.PC:X4}  Cycles={_machine.CycleCount}"; FrameReady?.Invoke(this, EventArgs.Empty); }
+    public void Tick()
+    {
+        _machine.Run(InstructionsPerTick);
+        Render();
+        if (IsStatusEnabled)
+        {
+            var r = ((IDebuggableProcessor)_machine.Processor).GetRegisters();
+            StatusFields =
+            [
+                new("AF", $"0x{r["AF"]:X4}"), new("BC", $"0x{r["BC"]:X4}"),
+                new("DE", $"0x{r["DE"]:X4}"), new("HL", $"0x{r["HL"]:X4}"),
+                new("IX", $"0x{r["IX"]:X4}"), new("IY", $"0x{r["IY"]:X4}"),
+                new("PC", $"0x{r["PC"]:X4}"), new("SP", $"0x{r["SP"]:X4}"),
+                new("I", $"0x{r["I"]:X2}"), new("R", $"0x{r["R"]:X2}"),
+                new("IFF1", $"{r["IFF1"]}"), new("IM", $"{r["IM"]}"),
+                new("Cycles", $"{_machine.CycleCount}"),
+                new("Instructions", $"{_machine.Processor.InstructionCount}"),
+            ];
+        }
+        FrameReady?.Invoke(this, EventArgs.Empty);
+    }
     public void Reset()
     {
         _machine.Reset();

@@ -16,7 +16,7 @@ public sealed class MediaTesterKayproTests
 
         viewModel.LoadDisk(path);
 
-        viewModel.StatusText.Should().Contain("CP/M");
+        viewModel.StatusFields.Should().ContainSingle().Which.Value.Should().Contain("CP/M");
         viewModel.Directory.Should().NotBeEmpty();
         viewModel.PreviewBytes.Should().NotBeEmpty();
         viewModel.DiskTitle.Should().Contain("Kaypro II");
@@ -192,7 +192,7 @@ public sealed class MediaTesterKayproTests
 
             await viewModel.OpenDiskCommand.ExecuteAsync(null);
 
-            viewModel.StatusText.Should().Contain("Unable to open");
+            viewModel.StatusFields.Should().ContainSingle().Which.Value.Should().Contain("Unable to open");
             viewModel.OperationStatus.Should().Contain("No disk image provider recognized");
             viewModel.HasImage.Should().BeFalse();
         }

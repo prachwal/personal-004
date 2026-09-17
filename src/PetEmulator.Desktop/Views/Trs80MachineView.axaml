@@ -1,7 +1,20 @@
-<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:views="clr-namespace:PetEmulator.Desktop.Views" xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels" xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls" x:Class="PetEmulator.Desktop.Views.Trs80MachineView" x:DataType="viewModels:Trs80MachineViewModel">
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:PetEmulator.Desktop.Views"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
+             x:Class="PetEmulator.Desktop.Views.Trs80MachineView"
+             x:DataType="viewModels:Trs80MachineViewModel">
+  <!-- Common machine frame (see PetMachineView): header top, widgets bottom, status bottom,
+       bordered screen fill. The tape icon is read-only (firmware owns the TRS-80 motor). -->
   <DockPanel>
-    <Border DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBackgroundBrush}" Padding="8,4"><TextBlock FontFamily="monospace" Foreground="{DynamicResource StatusTextBrush}" Text="{Binding StatusText}" /></Border>
-    <Border DockPanel.Dock="Top" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4"><TextBlock Text="TRS-80 MODEL I  |  64×16  |  Z80  |  Level II" /></Border>
-    <Border BorderBrush="#FF3A3A3A" BorderThickness="1" Background="#FF000000" Padding="8"><controls:PetScreenControl Name="Screen" Focusable="True" /></Border>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4">
+      <StackPanel Orientation="Horizontal" Spacing="16">
+        <controls:DiskDriveControl />
+        <TextBlock Text="📼" FontSize="14" Foreground="{Binding TapeIconBrush}" ToolTip.Tip="Tape (firmware-controlled motor - load via File menu)" VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+    <controls:MachineHeaderBar DockPanel.Dock="Top" />
+    <Border BorderBrush="{DynamicResource ScreenFrameBorderBrush}" BorderThickness="1" Background="{DynamicResource ScreenFrameBackgroundBrush}" Padding="8"><controls:PetScreenControl Name="Screen" Focusable="True" /></Border>
   </DockPanel>
 </UserControl>

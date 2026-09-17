@@ -24,7 +24,15 @@ public sealed partial class Cpc6128MachineViewModel : ObservableObject, IMachine
     [ObservableProperty] private bool _tapePlaying;
     [ObservableProperty] private bool _diskLoaded;
     [ObservableProperty] private bool _diskBusy;
-    [ObservableProperty] private string _statusText = "Amstrad CPC6128  Z80  PC=0x0000";
+    [ObservableProperty] private string? _diskName;
+    [ObservableProperty]
+    private IReadOnlyList<StatusField> _statusFields =
+    [
+        new("AF", "0x0000"), new("BC", "0x0000"), new("DE", "0x0000"), new("HL", "0x0000"),
+        new("IX", "0x0000"), new("IY", "0x0000"), new("PC", "0x0000"), new("SP", "0xFFFF"),
+        new("I", "0x00"), new("R", "0x00"), new("IFF1", "0"), new("IM", "0"),
+        new("Cycles", "0"), new("Instructions", "0"), new("Disk", "none"),
+    ];
 
     public Cpc6128MachineViewModel(string romsRoot)
     {
@@ -49,6 +57,11 @@ public sealed partial class Cpc6128MachineViewModel : ObservableObject, IMachine
     }
 
     public string WindowTitle => "Amstrad CPC6128";
+    public string MachineSummary => $"Amstrad CPC6128 | {PixelWidth}×{PixelHeight} | Z80 | 128K";
+
+    public KeyboardToggleViewModel? KeyboardToggle => null;
+
+    public bool IsStatusEnabled { get; set; } = true;
     public IAudioOutput AudioOutput => _audioOutput;
     public int PixelWidth => 320;
     public int PixelHeight => 200;
@@ -65,7 +78,22 @@ public sealed partial class Cpc6128MachineViewModel : ObservableObject, IMachine
     {
         _machine.Run(InstructionsPerTick);
         Render();
-        StatusText = $"Amstrad CPC6128  Z80  PC=0x{_machine.Cpu.Registers.PC:X4}  Cycles={_machine.CycleCount}";
+        if (IsStatusEnabled)
+        {
+            var r = ((IDebuggableProcessor)_machine.Processor).GetRegisters();
+            StatusFields =
+            [
+                new("AF", $"0x{r["AF"]:X4}"), new("BC", $"0x{r["BC"]:X4}"),
+                new("DE", $"0x{r["DE"]:X4}"), new("HL", $"0x{r["HL"]:X4}"),
+                new("IX", $"0x{r["IX"]:X4}"), new("IY", $"0x{r["IY"]:X4}"),
+                new("PC", $"0x{r["PC"]:X4}"), new("SP", $"0x{r["SP"]:X4}"),
+                new("I", $"0x{r["I"]:X2}"), new("R", $"0x{r["R"]:X2}"),
+                new("IFF1", $"{r["IFF1"]}"), new("IM", $"{r["IM"]}"),
+                new("Cycles", $"{_machine.CycleCount}"),
+                new("Instructions", $"{_machine.Processor.InstructionCount}"),
+                new("Disk", DiskLoaded ? "ready" : "none"),
+            ];
+        }
         FrameReady?.Invoke(this, EventArgs.Empty);
     }
 
@@ -104,11 +132,30 @@ public sealed partial class Cpc6128MachineViewModel : ObservableObject, IMachine
             _machine.LoadDisk(0, DskDiskImage.Load(File.ReadAllBytes(path)));
             DiskLoaded = true;
             DiskBusy = false;
+            DiskName = Path.GetFileName(path);
             _log.LogInformation("Disk loaded: '{Path}'.", path);
         }
         catch (Exception ex)
         {
             _log.LogError(ex, "Failed to load disk '{Path}'.", path);
+            throw;
+        }
+    }
+
+    [RelayCommand]
+    private void EjectDisk()
+    {
+        try
+        {
+            _log.LogInformation("Ejecting disk '{Disk}'.", DiskName ?? "(none)");
+            _machine.EjectDisk(0);
+            DiskLoaded = false;
+            DiskBusy = false;
+            DiskName = null;
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to eject disk.");
             throw;
         }
     }

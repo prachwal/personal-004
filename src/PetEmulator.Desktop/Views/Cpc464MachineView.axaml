@@ -1,12 +1,18 @@
-<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls" xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels" x:Class="PetEmulator.Desktop.Views.Cpc464MachineView" x:DataType="viewModels:Cpc464MachineViewModel">
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:PetEmulator.Desktop.Views.Controls"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             x:Class="PetEmulator.Desktop.Views.Cpc464MachineView"
+             x:DataType="viewModels:Cpc464MachineViewModel">
+  <!-- Common machine frame (see PetMachineView): header top, widgets bottom, status bottom,
+       bordered screen fill. -->
   <DockPanel>
-    <Border DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBackgroundBrush}" Padding="8,4"><TextBlock FontFamily="monospace" Foreground="{DynamicResource StatusTextBrush}" Text="{Binding StatusText}" /></Border>
-    <Border DockPanel.Dock="Top" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4">
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4">
       <StackPanel Orientation="Horizontal" Spacing="16">
-        <TextBlock Text="AMSTRAD CPC464  |  320×200  |  Z80  |  Gate Array" />
         <controls:DatasetteControl />
       </StackPanel>
     </Border>
-    <Border BorderBrush="#FF3A3A3A" BorderThickness="1" Background="#FF000000" Padding="8"><controls:PetScreenControl Name="Screen" Focusable="True" /></Border>
+    <controls:MachineHeaderBar DockPanel.Dock="Top" />
+    <Border BorderBrush="{DynamicResource ScreenFrameBorderBrush}" BorderThickness="1" Background="{DynamicResource ScreenFrameBackgroundBrush}" Padding="8"><controls:PetScreenControl Name="Screen" Focusable="True" /></Border>
   </DockPanel>
 </UserControl>

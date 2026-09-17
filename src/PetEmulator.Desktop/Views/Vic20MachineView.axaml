@@ -6,11 +6,10 @@
              xmlns:core="clr-namespace:PetEmulator.Core;assembly=PetEmulator.Core"
              x:Class="PetEmulator.Desktop.Views.Vic20MachineView"
              x:DataType="viewModels:Vic20MachineViewModel">
+    <!-- Common machine frame (see PetMachineView): header top, widgets bottom, status bottom.
+         Only deviation: the joystick side panel next to the screen - a game controller, not a
+         keyboard, so it stays beside the screen rather than in a top keyboard zone. -->
     <DockPanel>
-        <Border DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBackgroundBrush}" Padding="8,4">
-            <TextBlock FontFamily="monospace" Foreground="{DynamicResource StatusTextBrush}" Text="{Binding StatusText}" />
-        </Border>
-
         <!-- Datasette gets its own dedicated icon+buttons (see PetMachineView's identical block
              and Vic20MachineViewModel's doc comment); any other future device (cartridge, ...)
              shows up in the generic ItemsControl below with no XAML change needed here. -->
@@ -39,8 +38,12 @@
             </StackPanel>
         </Border>
 
+        <controls:MachineHeaderBar DockPanel.Dock="Top" />
+
         <Grid ColumnDefinitions="*,Auto">
-            <controls:PetScreenControl Name="Screen" Grid.Column="0" Focusable="True" />
+            <Border BorderBrush="{DynamicResource ScreenFrameBorderBrush}" BorderThickness="1" Background="{DynamicResource ScreenFrameBackgroundBrush}" Padding="8">
+                <controls:PetScreenControl Name="Screen" Grid.Column="0" Focusable="True" />
+            </Border>
             <controls:Vic20JoystickControl Grid.Column="1"
                                            DataContext="{Binding}"
                                            Margin="8,0,12,0" />

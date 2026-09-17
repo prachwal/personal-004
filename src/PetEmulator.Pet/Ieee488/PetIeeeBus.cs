@@ -62,6 +62,11 @@ public sealed class PetIeeeBus
         _devices.Add(device);
     }
 
+    /// <summary>Detaches whatever device sits at <paramref name="primaryAddress"/>, if any -
+    /// the bus analog of <see cref="AttachDevice"/>'s replace (ejecting a disk).</summary>
+    public void DetachDevice(int primaryAddress) =>
+        _devices.RemoveAll(d => d.PrimaryAddress == primaryAddress);
+
     public void OnATNWrite(bool atn)
     {
         if (atn == _lastAtn) return;

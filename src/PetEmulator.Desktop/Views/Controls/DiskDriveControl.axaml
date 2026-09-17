@@ -3,5 +3,14 @@
              xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
              x:Class="PetEmulator.Desktop.Views.Controls.DiskDriveControl"
              x:DataType="viewModels:IDiskDriveViewModel">
-    <TextBlock Text="💾" FontSize="14" Foreground="{Binding DiskIconBrush}" ToolTip.Tip="Disk drive 8" />
+    <!-- Primary disk-drive indicator, shared by every machine with a drive: 💾 mount state,
+         red activity LED while real bus traffic crosses (DiskBusy), ⏏ eject, and the mounted
+         image name as tooltip. -->
+    <StackPanel Orientation="Horizontal" Spacing="4" ToolTip.Tip="{Binding DiskName}">
+        <TextBlock Text="💾" FontSize="14" Foreground="{Binding DiskIconBrush}" VerticalAlignment="Center" />
+        <Ellipse Width="8" Height="8" Fill="Red" IsVisible="{Binding DiskBusy}"
+                 VerticalAlignment="Center" ToolTip.Tip="Disk activity" />
+        <Button Content="⏏" Padding="4,0" Command="{Binding EjectDiskCommand}"
+                IsEnabled="{Binding DiskLoaded}" ToolTip.Tip="Eject disk" VerticalAlignment="Center" />
+    </StackPanel>
 </UserControl>

@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:PetEmulator.Desktop.ViewModels"
+             x:Class="PetEmulator.Desktop.Views.Controls.MachineHeaderBar"
+             x:DataType="viewModels:IMachineViewModel">
+    <!-- One shared header row for every machine: metric left-aligned, toggles right-aligned.
+         Status gates all diagnostic reads in Tick (off = faster emulation); the keyboard slot
+         binds KeyboardToggle through a DataTemplate by concrete type (the same "podmiana
+         komponentu MVVM" MainWindow uses) - machines without an on-screen keyboard expose null
+         and the slot renders empty: no disabled button, no per-machine if/else here. -->
+    <Border Background="{DynamicResource DeviceBarBackgroundBrush}" Padding="8,4">
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{Binding MachineSummary}" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <ToggleButton Content="Status" IsChecked="{Binding IsStatusEnabled}" Padding="8,2"
+                              ToolTip.Tip="Live status updates (registers, devices). Off = faster." />
+                <ContentControl Content="{Binding KeyboardToggle}">
+                    <ContentControl.DataTemplates>
+                        <DataTemplate DataType="viewModels:KeyboardToggleViewModel">
+                            <ToggleButton Content="⌨ Keyboard" IsChecked="{Binding IsVisible}" Padding="8,2" />
+                        </DataTemplate>
+                    </ContentControl.DataTemplates>
+                </ContentControl>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

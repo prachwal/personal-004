@@ -36,7 +36,8 @@ public sealed partial class ChipTesterViewModel : ObservableObject, IShellModule
 
     public string WindowTitle => "Chip Tester";
 
-    public string StatusText => SelectedScenario?.StatusText ?? "Select a scenario";
+    public IReadOnlyList<StatusField> StatusFields =>
+        SelectedScenario?.StatusFields ?? [new("Status", "Select a scenario")];
 
     partial void OnSelectedItemChanged(object? value)
     {
@@ -45,11 +46,14 @@ public sealed partial class ChipTesterViewModel : ObservableObject, IShellModule
             Log.LogInformation("Opening scenario '{Scenario}'.", scenario.Name);
             try
             {
+                UnsubscribeScenario();
                 SelectedScenario?.Dispose();
                 SelectedScenario = scenario.Create();
+                if (SelectedScenario is System.ComponentModel.INotifyPropertyChanged notify)
+                    notify.PropertyChanged += OnScenarioPropertyChanged;
                 SelectedScenario.LoadStimulus(scenario.Stimulus ?? []);
                 OnPropertyChanged(nameof(SelectedScenario));
-                OnPropertyChanged(nameof(StatusText));
+                OnPropertyChanged(nameof(StatusFields));
                 Log.LogInformation("Scenario '{Scenario}' ready.", scenario.Name);
             }
             catch (Exception ex)
@@ -60,7 +64,26 @@ public sealed partial class ChipTesterViewModel : ObservableObject, IShellModule
         }
     }
 
-    public void Dispose() => SelectedScenario?.Dispose();
+    /// <summary>Forwards the scenario's own live status notifications (it notifies
+    /// <c>StatusText</c> for its tab) so the side panel's <see cref="StatusFields"/> - read live
+    /// off the scenario - refresh mid-step instead of only on scenario switch.</summary>
+    private void OnScenarioPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == "StatusText")
+            OnPropertyChanged(nameof(StatusFields));
+    }
+
+    public void Dispose()
+    {
+        UnsubscribeScenario();
+        SelectedScenario?.Dispose();
+    }
+
+    private void UnsubscribeScenario()
+    {
+        if (SelectedScenario is System.ComponentModel.INotifyPropertyChanged notify)
+            notify.PropertyChanged -= OnScenarioPropertyChanged;
+    }
 }
 
 public sealed record ChipTreeNode(string Name, IReadOnlyList<ChipScenarioEntry> Scenarios);

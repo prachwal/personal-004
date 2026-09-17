@@ -12,7 +12,7 @@
             <StackPanel Spacing="3">
                 <TextBlock Text="{Binding DiskTitle}" FontSize="20" FontWeight="Bold" />
                 <TextBlock Text="{Binding DiskSummary}" />
-                <TextBlock Text="{Binding StatusText}" FontSize="12" />
+                <TextBlock Text="{Binding StatusFields[0].Value}" FontSize="12" />
                 <TextBlock Text="{Binding OperationStatus}" FontSize="12" />
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">

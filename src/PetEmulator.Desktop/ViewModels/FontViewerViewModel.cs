@@ -42,14 +42,14 @@ public sealed partial class FontViewerViewModel : ObservableObject, IShellModule
     }
 
     public string WindowTitle => "Font / Glyph Viewer";
-    public string StatusText => SelectedFont?.Name ?? "No character ROMs found";
+    public IReadOnlyList<StatusField> StatusFields => [new("Font", SelectedFont?.Name ?? "No character ROMs found")];
     public ObservableCollection<FontSource> Fonts { get; }
     public ObservableCollection<GlyphCell> Glyphs { get; } = [];
 
     partial void OnSelectedFontChanged(FontSource? value)
     {
         RebuildGlyphs();
-        OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(StatusFields));
     }
 
     partial void OnReverseChanged(bool value) => RebuildGlyphs();

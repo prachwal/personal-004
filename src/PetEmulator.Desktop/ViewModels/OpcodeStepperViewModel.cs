@@ -37,8 +37,8 @@ public sealed partial class OpcodeStepperViewModel : ObservableObject, IShellMod
     }
 
     public string WindowTitle => "CPU Opcode Stepper";
-    public string StatusText => SelectedVariant is null ? "Select a CPU" :
-        $"{SelectedVariant.Name}  PC=0x{_cpu.PC:X4}  instructions={_cpu.InstructionCount}";
+    public IReadOnlyList<StatusField> StatusFields => SelectedVariant is null ? [new("Status", "Select a CPU")] :
+        [new("CPU", SelectedVariant.Name), new("PC", $"0x{_cpu.PC:X4}"), new("Instructions", $"{_cpu.InstructionCount}")];
     public IReadOnlyList<CpuVariantEntry> Variants { get; }
     public ObservableCollection<CpuRegisterRow> Registers { get; }
     public ObservableCollection<MemoryDiffRow> MemoryDiff { get; }
@@ -118,7 +118,7 @@ public sealed partial class OpcodeStepperViewModel : ObservableObject, IShellMod
         Registers.Clear();
         foreach (var register in ((IDebuggableProcessor)_cpu).GetRegisters())
             Registers.Add(new CpuRegisterRow(register.Key, register.Value));
-        OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(StatusFields));
     }
 
     public void Dispose() => _timer.Stop();

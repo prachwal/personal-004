@@ -51,6 +51,8 @@ public abstract partial class ChipDebugSessionBase : ObservableObject, IChipDebu
     protected virtual int TimerCyclesPerTick => 100;
     public string StatusText => IsRunning ? $"Running, step {_step}" : $"Paused, step {_step}";
 
+    public IReadOnlyList<StatusField> StatusFields => [new("State", StatusText)];
+
     [RelayCommand]
     private void Run()
     {
