@@ -61,11 +61,14 @@ public static class KayproKeyMap
         keys.AddRange(
         [
             ("SPACE", 0x20), ("RETURN", 0x0D), ("BACKSPACE", 0x08), ("TAB", 0x09), ("ESC", 0x1B),
+            ("DEL", 0x7F), ("LINE FEED", 0x0A),
             ("-", (byte)'-'), ("=", (byte)'='), (",", (byte)','), (".", (byte)'.'), ("/", (byte)'/'),
             (";", (byte)';'), ("'", (byte)'\''), ("[", (byte)'['), ("]", (byte)']'), ("`", (byte)'`'),
+            ("~", (byte)'~'), ("\\", (byte)'\\'),
             ("!", (byte)'!'), ("@", (byte)'@'), ("#", (byte)'#'), ("$", (byte)'$'), ("%", (byte)'%'),
             ("^", (byte)'^'), ("&", (byte)'&'), ("*", (byte)'*'), ("(", (byte)'('), (")", (byte)')'),
             ("_", (byte)'_'), ("+", (byte)'+'), (":", (byte)':'), ("\"", (byte)'"'),
+            ("<", (byte)'<'), (">", (byte)'>'), ("?", (byte)'?'),
             ("CTRL-C", WarmBoot),
         ]);
         return keys;
@@ -74,17 +77,15 @@ public static class KayproKeyMap
     private static IReadOnlyList<(string, byte)> BuildNumericPad()
     {
         // See class doc comment: not a verified factory default, modeled as duplicating the
-        // equivalent digit/operator keys.
-        var keys = new List<(string, byte)>();
-        for (var d = '7'; d <= '9'; d++) keys.Add((d.ToString(), (byte)d));
-        for (var d = '4'; d <= '6'; d++) keys.Add((d.ToString(), (byte)d));
-        for (var d = '1'; d <= '3'; d++) keys.Add((d.ToString(), (byte)d));
-        keys.Add(("0", (byte)'0'));
-        keys.Add((".", (byte)'.'));
-        keys.Add(("+", (byte)'+'));
-        keys.Add(("-", (byte)'-'));
-        keys.Add(("*", (byte)'*'));
-        keys.Add(("/", (byte)'/'));
-        return keys;
+        // equivalent digit/operator keys. Row-major over the pad's 4 columns: the loop below
+        // renders indices 0-10 normally (7 8 9 - / 4 5 6 , / 1 2 3); ENTER (tall), wide 0 and .
+        // are placed explicitly by the layout factory.
+        return
+        [
+            ("7", (byte)'7'), ("8", (byte)'8'), ("9", (byte)'9'), ("-", (byte)'-'),
+            ("4", (byte)'4'), ("5", (byte)'5'), ("6", (byte)'6'), (",", (byte)','),
+            ("1", (byte)'1'), ("2", (byte)'2'), ("3", (byte)'3'), ("ENTER", 0x0D),
+            ("0", (byte)'0'), (".", (byte)'.'),
+        ];
     }
 }

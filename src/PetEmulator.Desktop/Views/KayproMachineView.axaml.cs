@@ -38,11 +38,7 @@ public partial class KayproMachineView : UserControl
             _wired.WindowTitle, _wired.PixelWidth, _wired.PixelHeight);
 
         var machine = _wired;
-        OnScreenKeyboard.Configure(KayproKeyboardLayoutFactory.Build(), (signal, pressed) =>
-        {
-            if (pressed && KayproKeyboardLayoutFactory.TryParseSignal(signal, out var value))
-                machine.SendKeyboardByte(value);
-        });
+        OnScreenKeyboard.Configure(KayproKeyboardLayoutFactory.Build(), machine.SendKeyboardSignal);
     }
 
     private void OnFrameReady(object? sender, EventArgs e) => Screen.UpdateFrame(_wired!.FrameBuffer);

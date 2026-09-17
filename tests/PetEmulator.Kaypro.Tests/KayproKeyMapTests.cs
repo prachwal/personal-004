@@ -53,7 +53,7 @@ public sealed class KayproKeyMapTests
     [Test]
     public void EveryByteIsPrintableOrAKnownControlCode()
     {
-        var knownControls = new byte[] { 0x03, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x1B };
+        var knownControls = new byte[] { 0x03, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x1B, 0x7F };
         foreach (var (label, value) in KayproKeyMap.MainKeys.Concat(KayproKeyMap.NumericPad).Concat(KayproKeyMap.ArrowKeys))
             Assert.That(value is >= 0x20 and <= 0x7E || knownControls.Contains(value),
                 $"'{label}' sends 0x{value:X2}, not a printable 7-bit ASCII byte or a recognized control code");

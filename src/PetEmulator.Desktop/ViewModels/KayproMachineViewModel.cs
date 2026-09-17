@@ -8,6 +8,7 @@ using PetEmulator.Core;
 using PetEmulator.Desktop.Input;
 using Microsoft.Extensions.Logging;
 using PetEmulator.Core.Logging;
+using PetEmulator.Desktop.Views.Controls;
 using PetEmulator.Kaypro;
 using PetEmulator.Pet.Keyboard;
 
@@ -156,6 +157,53 @@ public sealed partial class KayproMachineViewModel : ObservableObject, IMachineV
     /// for the on-screen keyboard (KayproKeyboardLayoutFactory), whose keys already carry their
     /// resolved byte as their signal.</summary>
     public void SendKeyboardByte(byte value) => _machine.FeedKeyboardByte(value);
+
+    private int _shiftHeld;
+    private bool _capsLock;
+
+    /// <summary>On-screen keyboard entry point: resolves raw key signals (see
+    /// <see cref="KayproKeyboardLayoutFactory"/>) into bytes for the SIO line. SHIFT (either key)
+    /// is a held modifier and CAPS LOCK a press-toggle - while either is active, a-z letters go
+    /// out uppercased (digits/symbols pass through untouched: click their stacked shift halves
+    /// instead, exactly like the layout's own doc comment describes).</summary>
+    public void SendKeyboardSignal(string signal, bool pressed)
+    {
+        if (signal.Equals(KayproKeyboardLayoutFactory.ShiftSignal, StringComparison.Ordinal))
+        {
+            if (pressed)
+                _shiftHeld++;
+            else
+                _shiftHeld = Math.Max(0, _shiftHeld - 1);
+            return;
+        }
+
+        if (signal.Equals(KayproKeyboardLayoutFactory.CapsSignal, StringComparison.Ordinal))
+        {
+            if (pressed)
+            {
+                _capsLock = !_capsLock;
+                _log.LogInformation("Caps Lock {State}.", _capsLock ? "on" : "off");
+            }
+
+            return;
+        }
+
+        if (signal.Equals(KayproKeyboardLayoutFactory.UnknownSignal, StringComparison.Ordinal))
+            return;
+
+        if (!pressed)
+            return;
+
+        if (!KayproKeyboardLayoutFactory.TryParseSignal(signal, out var value))
+        {
+            _log.LogWarning("Ignoring unknown keyboard signal '{Signal}'.", signal);
+            return;
+        }
+
+        if ((_shiftHeld > 0 || _capsLock) && value is >= (byte)'a' and <= (byte)'z')
+            value = (byte)(value - 0x20);
+        _machine.FeedKeyboardByte(value);
+    }
 
     public void Tick()
     {

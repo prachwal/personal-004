@@ -52,7 +52,7 @@ This project is indexed by GitNexus as **personal-004** (12259 symbols, 35833 re
 ## Resources
 
 | Resource | Use for |
-|----------|---------|
+| ---------- | --------- |
 | `gitnexus://repo/personal-004/context` | Codebase overview, check index freshness |
 | `gitnexus://repo/personal-004/clusters` | All functional areas |
 | `gitnexus://repo/personal-004/processes` | All execution flows |
@@ -61,7 +61,7 @@ This project is indexed by GitNexus as **personal-004** (12259 symbols, 35833 re
 ## CLI
 
 | Task | Read this skill file |
-|------|---------------------|
+| ------ | --------------------- |
 | Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
 | Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
 | Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
